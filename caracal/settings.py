@@ -17,9 +17,12 @@ sentry_sdk.init(
     integrations=[DjangoIntegration()]
 )
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SECRET_KEY = 'e3dk1qlemm9$ptb**v-jfasa_)8c)lc4!^2^0&znctzdg&x-fu'
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
 DEBUG = True
+
+SECRET_KEY = 'e3dk1qlemm9$ptb**v-jfasa_)8c)lc4!^2^0&znctzdg&x-fu'
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 
 INSTALLED_APPS = [
@@ -129,5 +132,5 @@ USE_TZ = True
 
 
 # Static files
-STATIC_ROOT = os.path.join(BASE_DIR, "static")
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
