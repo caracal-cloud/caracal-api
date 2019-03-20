@@ -77,7 +77,7 @@ SHELL_PLUS_PRE_IMPORTS = (
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR+'/caracal/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
