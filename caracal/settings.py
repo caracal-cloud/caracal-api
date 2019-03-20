@@ -35,7 +35,7 @@ sentry_sdk.init(
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SECRET_KEY = 'e3dk1qlemm9$ptb**v-jfasa_)8c)lc4!^2^0&znctzdg&x-fu'
 DEBUG = True
-ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
