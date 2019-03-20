@@ -1,0 +1,9 @@
+
+
+
+# Initialize database from EB instance
+. /opt/python/current/env
+source /opt/python/run/venv/bin/activate
+cd /opt/python/current/app/
+
+celery worker -A caracal -l INFO
