@@ -34,7 +34,7 @@ jsonschema==2.6.0
 kombu==4.3.0
 MarkupSafe==1.1.1
 pathspec==0.5.9
-pycurl==7.43.0.2 -global-option="--with-nss"
+pycurl==7.43.0.2 --global-option="--with-nss"
 python-dateutil==2.8.0
 pytz==2018.9
 PyYAML==3.13
