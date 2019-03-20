@@ -5,11 +5,9 @@ from django.conf import settings
 import sentry_sdk
 import traceback
 
-from caracal import celery_app
 
 import time
 
-@celery_app.task
 def send_email(subject, message, sender, recipients):
 
     kwargs = {

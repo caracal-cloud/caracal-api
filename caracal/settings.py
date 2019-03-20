@@ -10,21 +10,6 @@ AWS_ACCESS_KEY_ID = os.environ['TUMA_AWS_KEY']
 AWS_SECRET_ACCESS_KEY = os.environ['TUMA_AWS_SECRET']
 AWS_REGION = "us-east-1"
 
-# Celery
-BROKER_URL = 'sqs://{0}:{1}@'.format(
-    urllib.parse.quote(AWS_ACCESS_KEY_ID, safe=''),
-    urllib.parse.quote(AWS_SECRET_ACCESS_KEY, safe='')
-)
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_DEFAULT_QUEUE = 'caracal.fifo'
-CELERY_RESULT_BACKEND = None # Disabling the results backend
-BROKER_TRANSPORT_OPTIONS = {
-    'region': 'us-east-1',
-    'polling_interval': 20,
-}
-
 DEFAULT_EMAIL_RECIPIENT = "casey@caracal.cloud"
 
 sentry_sdk.init(

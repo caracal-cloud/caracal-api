@@ -13,7 +13,7 @@ class ContactView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.ContactSerializer
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -25,8 +25,8 @@ class ContactView(generics.GenericAPIView):
         email_subject = "Contact - %s" % (area)
         email_message = "Name: %s\nEmail: %s\nArea of Interest: %s\nMessage: %s" % (name, email, area, message)
 
-        tasks.send_email.delay(email_subject, email_message,
-                               settings.DEFAULT_EMAIL_RECIPIENT, [settings.DEFAULT_EMAIL_RECIPIENT])
+        tasks.send_email(email_subject, email_message,
+                         settings.DEFAULT_EMAIL_RECIPIENT, [settings.DEFAULT_EMAIL_RECIPIENT])
 
         return Response(status=status.HTTP_200_OK)
 
