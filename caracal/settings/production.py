@@ -10,7 +10,7 @@ COGNITO_USER_POOL_ID = os.environ['CARACAL_PROD_COGNITO_USERPOOL_ID']
 COGNITO_APP_ID = os.environ['CARACAL_PROD_COGNITO_APP_ID']
 S3_FILES_BUCKET = "caracal-user-prod"
 
-ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud'] # TODO: add EB
+ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 
 DATABASES = {
     'default': {
