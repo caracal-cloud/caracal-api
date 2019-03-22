@@ -1,5 +1,5 @@
 
-
+eb deploy caracal-api-prod --profile=tuma-admin
 
 # Initialize database from EB instance
 . /opt/python/current/env
