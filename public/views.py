@@ -26,7 +26,8 @@ class ContactView(generics.GenericAPIView):
         email_message = "Name: %s\nEmail: %s\nArea of Interest: %s\nMessage: %s" % (name, email, area, message)
 
         tasks.send_email(email_subject, email_message,
-                         settings.DEFAULT_EMAIL_RECIPIENT, [settings.DEFAULT_EMAIL_RECIPIENT])
+                         settings.DEFAULT_EMAIL_SENDER,
+                         [settings.DEFAULT_EMAIL_RECIPIENT])
 
         return Response(status=status.HTTP_200_OK)
 

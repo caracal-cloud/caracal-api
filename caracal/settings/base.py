@@ -1,29 +1,22 @@
-
 from corsheaders.defaults import default_methods, default_headers
+from datetime import timedelta
 import os
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
-import urllib
+
+APPLICATION_NAME = 'Caracal'
 
 # tuma-admin
 AWS_ACCESS_KEY_ID = os.environ['TUMA_AWS_KEY']
 AWS_SECRET_ACCESS_KEY = os.environ['TUMA_AWS_SECRET']
 AWS_REGION = "us-east-1"
 
-DEFAULT_EMAIL_RECIPIENT = "casey@caracal.cloud"
-
-sentry_sdk.init(
-    dsn="https://07c4110769a945c18d4395adf1bce4bd@sentry.io/1419868",
-    integrations=[DjangoIntegration()]
-)
+DEFAULT_EMAIL_SENDER = "noreply@caracal.cloud"
+DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 DEBUG = True
 
 SECRET_KEY = 'e3dk1qlemm9$ptb**v-jfasa_)8c)lc4!^2^0&znctzdg&x-fu'
-
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -36,7 +29,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_yasg',
-    'public'
+    'public',
+    'account'
 ]
 
 MIDDLEWARE = [
@@ -49,6 +43,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+AUTH_USER_MODEL = 'account.Account'
 
 ROOT_URLCONF = 'caracal.urls'
 
@@ -95,14 +91,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'caracal.wsgi.application'
 
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -118,7 +112,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 LANGUAGE_CODE = 'en-us'
 
