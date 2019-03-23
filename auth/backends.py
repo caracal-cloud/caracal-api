@@ -58,12 +58,14 @@ class CognitoAuthentication(BaseAuthentication):
 
         if len(auth) == 1:
             raise exceptions.AuthenticationFailed({
-                'error': 'invalid_auth_header_no_creds'
+                'error': 'invalid_auth_header_no_creds',
+                'detail': auth
             })
 
         elif len(auth) > 2:
             raise exceptions.AuthenticationFailed({
-                'error': 'invalid_auth_header_spaces'
+                'error': 'invalid_auth_header_spaces',
+                'detail': auth
             })
 
         return auth[1]
