@@ -11,8 +11,16 @@ S3_FILES_BUCKET = "caracal-user-development"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'development.db'
+        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'NAME': 'caracal_dev',
+        'USER': os.environ['LOCAL_MYSQL_USER'],
+        'PASSWORD': os.environ['LOCAL_MYSQL_PASSWORD'],
+        'HOST': os.environ['LOCAL_MYSQL_HOST'],
+        'PORT': '3306',
+    },
+    'OPTIONS': {
+        'charset': 'utf8mb4',
+        'use_unicode': True,
     }
 }
 

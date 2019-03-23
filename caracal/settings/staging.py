@@ -14,11 +14,18 @@ ALLOWED_HOSTS = ['127.0.0.1', 'api.staging.caracal.cloud'] # TODO: add EB
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'staging.db'
+        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'NAME': 'caracal_staging',
+        'USER': os.environ['TUMA_REMOTE_MYSQL_USER'],
+        'PASSWORD': os.environ['TUMA_REMOTE_MYSQL_PASSWORD'],
+        'HOST': os.environ['TUMA_REMOTE_MYSQL_HOST'],
+        'PORT': '3306',
+    },
+    'OPTIONS': {
+        'charset': 'utf8mb4',
+        'use_unicode': True,
     }
 }
-
 
 CACHES = {
     'default': {

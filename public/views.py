@@ -11,10 +11,9 @@ class ContactView(generics.GenericAPIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
-    serializer_class = serializers.ContactSerializer
 
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = serializers.ContactSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         name = serializer.data['name']

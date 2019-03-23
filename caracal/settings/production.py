@@ -14,8 +14,16 @@ ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'prod.db'
+        'ENGINE': 'django.contrib.gis.db.backends.mysql',
+        'NAME': 'caracal_prod',
+        'USER': os.environ['TUMA_REMOTE_MYSQL_USER'],
+        'PASSWORD': os.environ['TUMA_REMOTE_MYSQL_PASSWORD'],
+        'HOST': os.environ['TUMA_REMOTE_MYSQL_HOST'],
+        'PORT': '3306',
+    },
+    'OPTIONS': {
+        'charset': 'utf8mb4',
+        'use_unicode': True,
     }
 }
 
