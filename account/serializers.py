@@ -9,9 +9,29 @@ from auth import cognito
 from caracal.common.fields import CaseInsensitiveEmailField
 
 
+class ConfirmForgotPasswordSerializer(serializers.Serializer):
+    email = CaseInsensitiveEmailField(required=True, max_length=200)
+    confirmation_code = serializers.CharField(max_length=100)
+    new_password = serializers.CharField(max_length=100)
+
+
+class ForcedPasswordResetSerializer(serializers.Serializer):
+    email = CaseInsensitiveEmailField(required=True, max_length=200)
+    old_password = serializers.CharField(max_length=100)
+    new_password = serializers.CharField(max_length=100)
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = CaseInsensitiveEmailField(required=True, max_length=200)
+
+
 class LoginSerializer(serializers.Serializer):
     email = CaseInsensitiveEmailField(required=True, max_length=200)
     password = serializers.CharField(required=True, max_length=200)
+
+
+class RefreshSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()
 
 
 class RegisterSerializer(serializers.Serializer):

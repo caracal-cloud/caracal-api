@@ -3,6 +3,25 @@ import botocore
 from django.conf import settings
 import os
 from rest_framework.authentication import get_authorization_header
+from warrant import Cognito
+
+
+def confirm_forgot_password(email, confirmation_code, new_password, cognito_idp_client):
+    params = {
+        'ClientId': settings.COGNITO_APP_ID,
+        'Username': email,
+        'ConfirmationCode': confirmation_code,
+        'Password': new_password
+    }
+    cognito_idp_client.confirm_forgot_password(**params)
+
+
+def confirm_user(email):
+    cognito_idp_client = get_cognito_idp_client()
+    cognito_idp_client.admin_confirm_sign_up(
+        UserPoolId=settings.COGNITO_USER_POOL_ID,
+        Username=email
+    )
 
 
 def get_cognito_idp_client():
@@ -13,21 +32,21 @@ def get_cognito_idp_client():
     }
     return boto3.client('cognito-idp', **kwargs)
 
-def get_tokens(email, password, cognito_idp_client):
 
-    response = cognito_idp_client.initiate_auth(
-        AuthFlow='USER_PASSWORD_AUTH',
-        AuthParameters={
-            'USERNAME': email,
-            'PASSWORD': password
-        },
-        ClientId=settings.COGNITO_APP_ID
-    )
+def get_warrant_wrapper_client(email):
+    return Cognito(user_pool_id=settings.COGNITO_USER_POOL_ID,
+                   client_id=settings.COGNITO_APP_ID,
+                   user_pool_region=settings.AWS_REGION,
+                   access_key=settings.AWS_ACCESS_KEY_ID,
+                   secret_key=settings.AWS_SECRET_ACCESS_KEY,
+                   username=email)
 
-    auth_result = response['AuthenticationResult']
+
+def get_tokens(warrant_client, password):
+    warrant_client.authenticate(password)
     return {
-        'access_token': auth_result['AccessToken'],
-        'refresh_token': auth_result['RefreshToken']
+        'access_token': warrant_client.access_token,
+        'refresh_token': warrant_client.refresh_token
     }
 
 
@@ -43,14 +62,6 @@ def register(email, password, cognito_idp_client):
     }
     response = cognito_idp_client.sign_up(**params)
     return response.get('UserSub', None)
-
-
-def confirm_user(email):
-    cognito_idp_client = get_cognito_idp_client()
-    cognito_idp_client.admin_confirm_sign_up(
-        UserPoolId=settings.COGNITO_USER_POOL_ID,
-        Username=email
-    )
 
 
 def remove_all_users():
@@ -69,13 +80,6 @@ def remove_all_users():
             UserPoolId=settings.COGNITO_USER_POOL_ID,
             Username=sub
         )
-
-
-
-
-
-
-
 
 
 
