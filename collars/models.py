@@ -22,6 +22,7 @@ class CollarAccount(models.Model):
 
 
 class CollarIndividual(models.Model):
+    # todo: this will be added by a lambda function... and modified through this app
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
     datetime_updated = models.DateTimeField(null=True)
@@ -38,6 +39,7 @@ class CollarIndividual(models.Model):
 
 
 class CollarPosition(models.Model):
+    # todo: this will be added by a lambda function, and accessed by a lambda function (output function)
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
     datetime_recorded = models.DateTimeField(null=True)
