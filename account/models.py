@@ -17,7 +17,7 @@ class Organization(m.Model):
     datetime_deleted = m.DateTimeField(null=True)
     is_active = m.BooleanField(default=True) # alias for deleted
 
-    name = m.CharField(max_length=50, blank=False, null=False)
+    name = m.CharField(max_length=150, blank=False, null=False)
 
     class Meta:
         ordering = ['name']
@@ -78,9 +78,9 @@ class Account(AbstractBaseUser, PermissionsMixin):
     is_active = m.BooleanField(default=True)
 
     organization = m.ForeignKey(Organization, on_delete=m.CASCADE, related_name="accounts")
-    email = m.EmailField(unique=True)
-    name = m.CharField(max_length=100)
-    phone_number = m.CharField(max_length=20, blank=True, null=True)
+    email = m.EmailField(unique=True, max_length=150) # real make is 191 for utf8mb4
+    name = m.CharField(max_length=150)
+    phone_number = m.CharField(max_length=50, blank=True, null=True)
 
     is_superuser = m.BooleanField(default=False) # project-wide superuser
     is_staff = m.BooleanField(default=False) # super user or agent

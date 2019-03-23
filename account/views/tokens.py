@@ -21,6 +21,7 @@ class LoginView(generics.GenericAPIView):
         warrant_client = cognito.get_warrant_wrapper_client(email)
         try:
             tokens = cognito.get_tokens(warrant_client, password)
+            # TODO: set last login...
             return Response(tokens, status=status.HTTP_200_OK)
         except warrant_client.client.exceptions.NotAuthorizedException:
             return Response({

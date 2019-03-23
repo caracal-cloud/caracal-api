@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ('datetime_updated', models.DateTimeField(null=True)),
                 ('datetime_deleted', models.DateTimeField(null=True)),
                 ('is_active', models.BooleanField(default=True)),
-                ('email', models.EmailField(max_length=254, unique=True)),
+                ('email', models.EmailField(max_length=150, unique=True)),
                 ('name', models.CharField(max_length=100)),
                 ('phone_number', models.CharField(blank=True, max_length=20, null=True)),
                 ('is_superuser', models.BooleanField(default=False)),
