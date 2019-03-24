@@ -6,16 +6,18 @@ from sentry_sdk.integrations.django import DjangoIntegration
 DEBUG = False
 TESTING = False
 
+COGNITO_USER_POOL_NAME = 'Caracal-Production'
 COGNITO_USER_POOL_ID = os.environ['CARACAL_PROD_COGNITO_USERPOOL_ID']
 COGNITO_APP_ID = os.environ['CARACAL_PROD_COGNITO_APP_ID']
 S3_FILES_BUCKET = "caracal-user-prod"
 
 ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 
+DATABASE_NAME = 'caracal_prod'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'caracal_prod',
+        'NAME': DATABASE_NAME,
         'USER': os.environ['TUMA_PG_USER'],
         'PASSWORD': os.environ['TUMA_PG_PASSWORD'],
         'HOST': os.environ['TUMA_PG_HOST'],

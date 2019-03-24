@@ -1,7 +1,9 @@
 
 from rest_framework import serializers
 
+from caracal.common import constants
 from collars.models import CollarAccount
+
 
 class AddCollarSerializer(serializers.Serializer):
     provider_short_name = serializers.CharField(max_length=100, required=True)
@@ -26,3 +28,32 @@ class AddCollarSerializer(serializers.Serializer):
 
         return attrs
 
+
+class AddCollarIndividualSerializer(serializers.Serializer):
+    collar_account_uid = serializers.UUIDField(required=True)
+    collar_id = serializers.CharField(max_length=100, required=True)
+
+    def validate(self, attrs):
+        return attrs
+
+class AddCollarIndividualPositionSerializer(serializers.Serializer):
+    collar_account_uid = serializers.UUIDField(required=True)
+    collar_id = serializers.CharField(max_length=100, required=True)
+    datetime_recorded = serializers.DateTimeField()
+    latitude = serializers.DecimalField(decimal_places=6, max_digits=12)
+    longitude = serializers.DecimalField(decimal_places=6, max_digits=12)
+
+    def validate(self, attrs):
+        return attrs
+
+
+class UpdateCollarIndividualSerializer(serializers.Serializer):
+    collar_account_uid = serializers.UUIDField(required=True)
+    collar_id = serializers.CharField(max_length=50, required=True)
+    name = serializers.CharField(max_length=100, required=False)
+    sex = serializers.ChoiceField(['male', 'female'], required=False)
+    subtype = serializers.CharField(max_length=100, required=False)
+    status = serializers.ChoiceField(constants.COLLAR_STATUSES, required=False)
+
+    def validate(self, attrs):
+        return attrs

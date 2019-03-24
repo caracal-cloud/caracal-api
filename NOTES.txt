@@ -1,0 +1,9 @@
+
+
+when Lambda is adding individuals and positions it will have to provide a JWT
+    - would be inefficient to login each time!
+    - possible login for lambda?
+        - modify CognitoAuthentication to accept lambda user...
+
+
+establish where validation occurs (in model, view, or serializer)!

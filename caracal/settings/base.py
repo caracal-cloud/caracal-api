@@ -11,6 +11,10 @@ AWS_REGION = "us-east-1"
 
 DEFAULT_EMAIL_SENDER = "noreply@caracal.cloud"
 DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
+OVERLORD_EMAIL = "overlord@caracal.cloud"
+OVERLORD_PASSWORD = os.environ['CARACAL_OVERLORD_PASSWORD']
+
+SRID = 4326 # Spatial Reference System Identifier
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
