@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 import uuid
 
-from account.models import Organization
+from account.models import Account, Organization
 from caracal.common import constants
 
 
@@ -43,7 +43,6 @@ class CollarAccount(models.Model):
     username = models.CharField(max_length=100, null=True, blank=True)
     password = models.CharField(max_length=100, null=True, blank=True)
 
-    
     def validate_unique(self, exclude=None):
         if self.provider.short_name == 'orbcomm':
             a = CollarAccount.objects.filter(organization=self.organization,
@@ -65,6 +64,15 @@ class CollarAccount(models.Model):
     def save(self, *args, **kwargs):
         self.validate_unique()
         super(CollarAccount, self).save(*args, **kwargs)
+
+
+class CollarAccountActivity(models.Model):
+    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
+    datetime_created = models.DateTimeField(default=timezone.now)
+
+    user_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='collar_account_activities')
+    collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='collar_account_activities')
+    action = models.CharField(choices=constants.COLLAR_ACCOUNT_ACTIVITIES, max_length=100)
 
 
 class CollarIndividual(models.Model):
@@ -99,6 +107,5 @@ class CollarPosition(models.Model):
 
     class Meta:
         unique_together = ['datetime_recorded', 'individual', 'position']
-
 
 

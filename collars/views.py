@@ -9,7 +9,7 @@ import traceback
 
 from auth.backends import CognitoAuthentication
 from collars import serializers
-from collars.models import CollarAccount, CollarIndividual, CollarPosition, CollarProvider
+from collars.models import CollarAccount, CollarAccountActivity, CollarIndividual, CollarPosition, CollarProvider
 
 
 class AddCollarAccountView(generics.GenericAPIView):
@@ -40,7 +40,8 @@ class AddCollarAccountView(generics.GenericAPIView):
                 'error': 'account_already_added'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # TODO: add user activity event (i.e. user1 added elephant collar account)
+        CollarAccountActivity.objects.create(user_account=request.user, collar_account=account, action='add')
+
         return Response({
             'collar_account_uid': account.uid
         }, status=status.HTTP_201_CREATED)
@@ -159,6 +160,8 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         CollarIndividual.objects.filter(collar_account=collar_account, collar_id=collar_id).update(**update_data)
+
+        CollarAccountActivity.objects.create(user_account=request.user, collar_account=collar_account, action='update_individual')
 
         return Response(status=status.HTTP_200_OK)
 

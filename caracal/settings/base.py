@@ -76,7 +76,10 @@ CORS_ALLOW_METHODS = default_methods # + ('NEW_ACTION',)
 CORS_ALLOW_HEADERS = default_headers # + ('new-header',)
 
 SHELL_PLUS_PRE_IMPORTS = (
-
+    ('account.models', '*'),
+    ('account.serializers', '*'),
+    ('collars.models', '*'),
+    ('collars.serializers', '*'),
 )
 
 TEMPLATES = [
