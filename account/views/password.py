@@ -1,4 +1,5 @@
 
+from botocore.exceptions import ParamValidationError
 from django.conf import settings
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
@@ -30,6 +31,10 @@ class ConfirmForgotPasswordView(generics.GenericAPIView):
             return Response({
                 'error': 'expired_code'
             }, status=status.HTTP_400_BAD_REQUEST)
+        except ParamValidationError:
+            return Response({
+                'error': 'invalid_password'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ForcedPasswordResetView(generics.GenericAPIView):
@@ -54,12 +59,18 @@ class ForcedPasswordResetView(generics.GenericAPIView):
                 'detail': 'use forgot password flow'
             }, status=status.HTTP_403_FORBIDDEN)
         except warrant.exceptions.ForceChangePasswordException: # FORCE_CHANGE_PASSWORD
-            warrant_client.new_password_challenge(old_password, new_password)
-            return Response(status=status.HTTP_200_OK)
-        except warrant_client.client.exceptions.NotAuthorizedException:
+            try:
+                warrant_client.new_password_challenge(old_password, new_password)
+            except warrant_client.client.exceptions.InvalidPasswordException:
+                return Response({
+                    'error': 'invalid_password',
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except (warrant_client.client.exceptions.NotAuthorizedException, warrant_client.client.exceptions.UserNotFoundException):
             return Response({
                 'error': 'invalid_credentials'
             }, status=status.HTTP_403_FORBIDDEN)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class ForgotPasswordView(generics.GenericAPIView):
