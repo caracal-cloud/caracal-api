@@ -37,7 +37,7 @@ class CollarAccount(models.Model):
 
     species = models.CharField(max_length=100)
     # Orbcomm
-    orbcomm_timezone= models.CharField(max_length=20, null=True, blank=True)
+    orbcomm_timezone = models.CharField(max_length=20, null=True, blank=True)
     orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
     # Savannah Tracker
     savannah_username = models.CharField(max_length=100, null=True, blank=True)
@@ -48,18 +48,18 @@ class CollarAccount(models.Model):
             a = CollarAccount.objects.filter(organization=self.organization,
                                              provider__short_name=self.provider.short_name,
                                              species=self.species,
-                                             timezone=self.timezone,
-                                             company_id=self.company_id)
+                                             orbcomm_timezone=self.orbcomm_timezone,
+                                             orbcomm_company_id=self.orbcomm_company_id)
             if a.count() > 0:
-                raise ValidationError('orbcomm uniqueness on name, species, timezone and company_id')
+                raise ValidationError('orbcomm uniqueness on name, species, orbcomm_timezone and orbcomm_company_id')
         elif self.provider.short_name == 'savannah':
             a = CollarAccount.objects.filter(organization=self.organization,
                                              provider__short_name=self.provider.short_name,
                                              species=self.species,
-                                             username=self.username,
-                                             password=self.password)
+                                             savannah_username=self.savannah_username,
+                                             savannah_password=self.savannah_password)
             if a.count() > 0:
-                raise ValidationError('savannah uniqueness on name, species, username and password')
+                raise ValidationError('savannah uniqueness on name, species, savannah_username and savannah_password')
 
     def save(self, *args, **kwargs):
         self.validate_unique()
