@@ -18,9 +18,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': DATABASE_NAME,
-        'USER': os.environ['TUMA_PG_USER'],
-        'PASSWORD': os.environ['TUMA_PG_PASSWORD'],
-        'HOST': os.environ['TUMA_PG_HOST'],
+        'USER': os.environ['CARACAL_PG_USER'],
+        'PASSWORD': os.environ['CARACAL_PG_PASSWORD'],
+        'HOST': os.environ['CARACAL_PG_HOST'],
         'PORT': '5432'
     },
     'OPTIONS': {
