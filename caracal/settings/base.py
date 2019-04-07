@@ -11,7 +11,7 @@ AWS_REGION = "us-east-1"
 
 DEFAULT_EMAIL_SENDER = "noreply@caracal.cloud"
 DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
-OVERLORD_EMAIL = "overlord@caracal.cloud"
+OVERLORD_EMAIL = os.environ['CARACAL_OVERLORD_EMAIL']
 OVERLORD_PASSWORD = os.environ['CARACAL_OVERLORD_PASSWORD']
 
 SRID = 4326 # Spatial Reference System Identifier
@@ -60,14 +60,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 
-    'DEFAULT_THROTTLE_CLASSES': (
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ),
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/minute',
-        'user': '200/minute'
-    }
+    #'DEFAULT_THROTTLE_CLASSES': (
+    #    'rest_framework.throttling.AnonRateThrottle',
+    #    'rest_framework.throttling.UserRateThrottle'
+    #),
+    #'DEFAULT_THROTTLE_RATES': {
+    #    'anon': '100/minute',
+    #    'user': '200/minute'
+    #}
 }
 
 CORS_ORIGIN_ALLOW_ALL = True

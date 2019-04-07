@@ -37,11 +37,11 @@ class CollarAccount(models.Model):
 
     species = models.CharField(max_length=100)
     # Orbcomm
-    timezone= models.CharField(max_length=20, null=True, blank=True)
-    company_id = models.CharField(max_length=50, null=True, blank=True)
+    orbcomm_timezone= models.CharField(max_length=20, null=True, blank=True)
+    orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
     # Savannah Tracker
-    username = models.CharField(max_length=100, null=True, blank=True)
-    password = models.CharField(max_length=100, null=True, blank=True)
+    savannah_username = models.CharField(max_length=100, null=True, blank=True)
+    savannah_password = models.CharField(max_length=100, null=True, blank=True)
 
     def validate_unique(self, exclude=None):
         if self.provider.short_name == 'orbcomm':
@@ -104,6 +104,8 @@ class CollarPosition(models.Model):
     datetime_recorded = models.DateTimeField(null=True)
     individual = models.ForeignKey(CollarIndividual, on_delete=models.CASCADE)
     position = models.PointField(srid=settings.SRID, null=False)
+    temperature = models.DecimalField(max_digits=5, decimal_places=1, null=True) # Celcius
+    savannah_tracking_id = models.IntegerField(null=True)
 
     class Meta:
         unique_together = ['datetime_recorded', 'individual', 'position']

@@ -37,8 +37,7 @@ class AddCollarIndividualSerializer(serializers.Serializer):
         return attrs
 
 class AddCollarIndividualPositionSerializer(serializers.Serializer):
-    collar_account_uid = serializers.UUIDField(required=True)
-    collar_id = serializers.CharField(max_length=100, required=True)
+    collar_individual_uid = serializers.UUIDField(required=True)
     datetime_recorded = serializers.DateTimeField()
     latitude = serializers.DecimalField(decimal_places=6, max_digits=12)
     longitude = serializers.DecimalField(decimal_places=6, max_digits=12)
