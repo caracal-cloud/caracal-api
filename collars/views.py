@@ -27,10 +27,10 @@ class AddCollarAccountView(generics.GenericAPIView):
         serializer = serializers.AddCollarSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        global_config = aws.get_global_config()
+
         user = request.user
-
         data = serializer.data
-
         provider_short_name = data.pop('provider_short_name')
 
         try:
@@ -41,8 +41,7 @@ class AddCollarAccountView(generics.GenericAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            collar_account = CollarAccount(organization=request.user.organization, provider=provider, **data)
-            collar_account.save()
+            collar_account = CollarAccount.objects.create(organization=request.user.organization, provider=provider, **data)
         except ValidationError:
             return Response({
                 'error': 'account_already_added'
@@ -50,33 +49,32 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         CollarAccountActivity.objects.create(user_account=request.user, collar_account=collar_account, action='add')
 
-
         # todo: this is pretty gross...
 
-        function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider.short_name)
-        lambda_function = aws.get_lambda_function(function_name)
+        fetch_function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider.short_name)
+        fetch_lambda_function = aws.get_lambda_function(fetch_function_name)
 
-        rule_input = {
+        fetch_rule_input = {
             'collar_account_uid': str(collar_account.uid),
             'organization_uid': str(user.organization.uid),
             'species': data['species']
         }
         rule_name = '%s-collars-fetch-%s-%s-%s' % (user.organization.short_name, provider.short_name, data['species'],
                                                    str(collar_account.uid).split('-')[0])
-
-        aws.schedule_lambda_function(lambda_function['arn'], lambda_function['name'], rule_input, rule_name)
+        aws.schedule_lambda_function(fetch_lambda_function['arn'], fetch_lambda_function['name'], fetch_rule_input,
+                                     rule_name, global_config['COLLAR_FETCH_RATE_MINUTES'])
 
         create_kml_function_name = 'caracal_%s_collars_create_kml' % settings.STAGE.lower()
         create_kml_function = aws.get_lambda_function(create_kml_function_name)
-        periods = [24, 72, 168, 720] # todo: use global config
-        for period in periods:
+        for period in global_config['PERIODS_HOURS']:
             create_kml_input = {
                 'organization_uid': str(user.organization.uid),
                 'species': data['species'],
                 'period_hours': period
             }
             create_kml_rule_name = '%s-collars-create-kml-%s-%d' % (user.organization.short_name, data['species'], period)
-            aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input, create_kml_rule_name)
+            aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input,
+                                         create_kml_rule_name, global_config['COLLAR_KML_CREATE_RATE_MINUTES'])
 
         return Response({
             'collar_account_uid': collar_account.uid
