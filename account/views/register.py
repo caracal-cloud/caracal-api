@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from account import serializers
 
 
-
 class RegisterView(generics.GenericAPIView):
 
     def post(self, request):

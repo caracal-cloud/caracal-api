@@ -6,6 +6,8 @@ from sentry_sdk.integrations.django import DjangoIntegration
 DEBUG = True
 TESTING = False
 
+STAGE = 'staging'
+
 COGNITO_USER_POOL_NAME = 'Caracal-Staging'
 COGNITO_USER_POOL_ID = os.environ['CARACAL_STAGING_COGNITO_USERPOOL_ID']
 COGNITO_APP_ID = os.environ['CARACAL_STAGING_COGNITO_APP_ID']

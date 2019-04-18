@@ -88,7 +88,7 @@ class CollarIndividual(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     sex = models.CharField(choices=constants.SEXES, max_length=100, null=True, blank=True) # enum?
     subtype = models.CharField(max_length=100, null=True, blank=True) # (i.e. forest, savannah) # todo: serve species/subspecies endpoint:)
-    status = models.CharField(choices=constants.COLLAR_STATUSES, max_length=100, null=True, blank=True)
+    status = models.CharField(choices=constants.COLLAR_STATUSES, default='active', max_length=100, null=True, blank=True)
 
     def __str__(self):
         return "%s - %s - %s - %s" % (self.name, self.sex, self.subtype, self.status)
@@ -101,13 +101,15 @@ class CollarPosition(models.Model):
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
 
+    # TODO: null for now...
+    collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='positions', null=True)
+    individual = models.ForeignKey(CollarIndividual, on_delete=models.CASCADE, related_name='positions')
+
     datetime_recorded = models.DateTimeField(null=True)
-    individual = models.ForeignKey(CollarIndividual, on_delete=models.CASCADE)
     position = models.PointField(srid=settings.SRID, null=False)
     temperature = models.DecimalField(max_digits=5, decimal_places=1, null=True) # Celcius
-    savannah_tracking_id = models.IntegerField(null=True)
+    savannah_tracking_id = models.BigIntegerField(null=True)
 
     class Meta:
         unique_together = ['datetime_recorded', 'individual', 'position']
-
 

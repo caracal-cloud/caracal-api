@@ -2,6 +2,7 @@
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.validators import UniqueValidator
 import sentry_sdk
 
 from account.models import Account, Organization
@@ -36,22 +37,29 @@ class RefreshSerializer(serializers.Serializer):
 
 class RegisterSerializer(serializers.Serializer):
     organization_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
+    organization_short_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
     account_name = serializers.CharField(max_length=100, required=True)
     account_email = CaseInsensitiveEmailField(required=True, max_length=200)
     account_password = serializers.CharField(required=True)
     account_phone_number = serializers.CharField(max_length=25, required=False, allow_blank=True)
 
-    def validate(self, attrs):
-        return attrs
+    def validate_organization_short_name(self, value):
+        # UniqueValidator wasn't working
+        try:
+            Organization.objects.get(short_name=value)
+            raise serializers.ValidationError('short_name_already_exists')
+        except Organization.DoesNotExist:
+            return value
 
     def create(self, validated_data):
         organization_name = validated_data['organization_name']
+        organization_short_name = validated_data['organization_short_name'].split(' ')[0].lower() # must be one word, alphanumeric
         account_name = validated_data['account_name']
         account_email = validated_data['account_email']
         account_password = validated_data['account_password']
         account_phone_number = validated_data.get('account_phone_number')
 
-        organization = Organization.objects.create(name=organization_name)
+        organization = Organization.objects.create(name=organization_name, short_name=organization_short_name)
 
         cognito_idp_client = cognito.get_cognito_idp_client()
 

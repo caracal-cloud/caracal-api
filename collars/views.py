@@ -1,15 +1,21 @@
+
+
+import boto3
 from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
+import json
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 import sentry_sdk
 import traceback
 
 from auth.backends import CognitoAuthentication
+from caracal.common import aws
 from collars import serializers
 from collars.models import CollarAccount, CollarAccountActivity, CollarIndividual, CollarPosition, CollarProvider
+
 
 
 class AddCollarAccountView(generics.GenericAPIView):
@@ -20,6 +26,8 @@ class AddCollarAccountView(generics.GenericAPIView):
     def post(self, request):
         serializer = serializers.AddCollarSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        user = request.user
 
         data = serializer.data
 
@@ -33,17 +41,45 @@ class AddCollarAccountView(generics.GenericAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            account = CollarAccount(organization=request.user.organization, provider=provider, **data)
-            account.save()
+            collar_account = CollarAccount(organization=request.user.organization, provider=provider, **data)
+            collar_account.save()
         except ValidationError:
             return Response({
                 'error': 'account_already_added'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        CollarAccountActivity.objects.create(user_account=request.user, collar_account=account, action='add')
+        CollarAccountActivity.objects.create(user_account=request.user, collar_account=collar_account, action='add')
+
+
+        # todo: this is pretty gross...
+
+        function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider.short_name)
+        lambda_function = aws.get_lambda_function(function_name)
+
+        rule_input = {
+            'collar_account_uid': str(collar_account.uid),
+            'organization_uid': str(user.organization.uid),
+            'species': data['species']
+        }
+        rule_name = '%s-collars-fetch-%s-%s-%s' % (user.organization.short_name, provider.short_name, data['species'],
+                                                   str(collar_account.uid).split('-')[0])
+
+        aws.schedule_lambda_function(lambda_function['arn'], lambda_function['name'], rule_input, rule_name)
+
+        create_kml_function_name = 'caracal_%s_collars_create_kml' % settings.STAGE.lower()
+        create_kml_function = aws.get_lambda_function(create_kml_function_name)
+        periods = [24, 72, 168, 720] # todo: use global config
+        for period in periods:
+            create_kml_input = {
+                'organization_uid': str(user.organization.uid),
+                'species': data['species'],
+                'period_hours': period
+            }
+            create_kml_rule_name = '%s-collars-create-kml-%s-%d' % (user.organization.short_name, data['species'], period)
+            aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input, create_kml_rule_name)
 
         return Response({
-            'collar_account_uid': account.uid
+            'collar_account_uid': collar_account.uid
         }, status=status.HTTP_201_CREATED)
 
 

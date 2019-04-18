@@ -18,6 +18,8 @@ class Organization(m.Model):
     is_active = m.BooleanField(default=True) # alias for deleted
 
     name = m.CharField(max_length=150, blank=False, null=False)
+    short_name = m.CharField(max_length=50, blank=False, null=False, unique=True)
+    timezone = m.CharField(max_length=50, default='Africa/Kigali')
 
     class Meta:
         ordering = ['name']
@@ -52,9 +54,11 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email, password, **extra_fields):
         # only auto-create org for superusers
-        org = Organization.objects.filter(name=settings.APPLICATION_NAME).first()
+        org = Organization.objects.filter(name=settings.APPLICATION_NAME,
+                                          short_name=settings.APPLICATION_NAME.split(' ')[0].lower()).first()
         if org is None:
-            org = Organization.objects.create(name=settings.APPLICATION_NAME)
+            org = Organization.objects.create(name=settings.APPLICATION_NAME,
+                                              short_name=settings.APPLICATION_NAME.split(' ')[0].lower())
 
         extra_fields.setdefault('organization', org)
         extra_fields.setdefault('is_superuser', True)
