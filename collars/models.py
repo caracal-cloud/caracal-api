@@ -16,7 +16,7 @@ class CollarProvider(models.Model):
     datetime_deleted = models.DateTimeField(null=True)
     is_active = models.BooleanField(default=True)
 
-    name = models.CharField(max_length=200, null=False, blank=False) # i.e. Savannah Tracker
+    name = models.CharField(max_length=200, null=False, blank=False) # i.e. Savannah Tracking
     short_name = models.CharField(max_length=200, null=False, blank=False) # i.e. savannah
     base_url = models.CharField(max_length=200, null=False, blank=False)
     is_available = models.BooleanField(default=False) # user can use this provider
@@ -34,14 +34,12 @@ class CollarAccount(models.Model):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     provider = models.ForeignKey(CollarProvider, on_delete=models.CASCADE, related_name='collar_accounts')
-
     species = models.CharField(max_length=100)
-    # Orbcomm
+
     orbcomm_timezone = models.CharField(max_length=20, null=True, blank=True)
     orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
-    # Savannah Tracker
-    savannah_username = models.CharField(max_length=100, null=True, blank=True)
-    savannah_password = models.CharField(max_length=100, null=True, blank=True)
+    savannah_tracking_username = models.CharField(max_length=100, null=True, blank=True)
+    savannah_tracking_password = models.CharField(max_length=100, null=True, blank=True)
 
     def validate_unique(self, exclude=None):
         if self.provider.short_name == 'orbcomm':
@@ -52,19 +50,21 @@ class CollarAccount(models.Model):
                                              orbcomm_company_id=self.orbcomm_company_id)
             if a.count() > 0:
                 raise ValidationError('orbcomm uniqueness on name, species, orbcomm_timezone and orbcomm_company_id')
-        elif self.provider.short_name == 'savannah':
+        elif self.provider.short_name == 'savannah_tracking':
             a = CollarAccount.objects.filter(organization=self.organization,
                                              provider__short_name=self.provider.short_name,
                                              species=self.species,
-                                             savannah_username=self.savannah_username,
-                                             savannah_password=self.savannah_password)
+                                             savannah_tracking_username=self.savannah_tracking_username,
+                                             savannah_tracking_password=self.savannah_tracking_password)
             if a.count() > 0:
-                raise ValidationError('savannah uniqueness on name, species, savannah_username and savannah_password')
+                raise ValidationError('savannah uniqueness on name, species, username and password')
 
     def save(self, *args, **kwargs):
         self.validate_unique()
         super(CollarAccount, self).save(*args, **kwargs)
 
+    class Meta:
+        ordering = ['provider__name', '-datetime_created']
 
 class CollarAccountActivity(models.Model):
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)

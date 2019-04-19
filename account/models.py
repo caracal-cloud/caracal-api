@@ -18,7 +18,7 @@ class Organization(m.Model):
     is_active = m.BooleanField(default=True) # alias for deleted
 
     name = m.CharField(max_length=150, blank=False, null=False)
-    short_name = m.CharField(max_length=50, blank=False, null=False, unique=True)
+    short_name = m.CharField(max_length=20, blank=False, null=False, unique=True)
     timezone = m.CharField(max_length=50, default='Africa/Kigali')
 
     class Meta:

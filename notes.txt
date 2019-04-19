@@ -1,19 +1,31 @@
 
+deploy to eb
+--------------------------------------------------------------------------------
 eb deploy caracal-api-prod --profile=tuma-admin
 
-# Initialize database from EB instance
+
+initialize database from eb instance
+--------------------------------------------------------------------------------
 . /opt/python/current/env
 source /opt/python/run/venv/bin/activate
 cd /opt/python/current/app/
+-- todo: comlete me --
 
 
-
-# Connect to local Postgres
+connect to local postgres
+--------------------------------------------------------------------------------
 sudo -i -u postgres
 psql
 \l, \du
 
 
-# Startup pgAdmin4
+start pgAdmin4
+--------------------------------------------------------------------------------
 source ~/bin/pgAdmin4/pgAdmin4/bin/activate
 python pgAdmin4/lib/python3.5/site-packages/pgadmin4/pgAdmin4.py
+
+
+Get and remove resource-based policies
+--------------------------------------------------------------------------------
+aws lambda get-policy --function-name my-function --output text
+aws lambda remove-permission --function-name example --statement-id sns

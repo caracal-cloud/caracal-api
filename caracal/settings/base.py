@@ -8,13 +8,14 @@ APPLICATION_NAME = 'Caracal'
 AWS_ACCESS_KEY_ID = os.environ['TUMA_AWS_KEY']
 AWS_SECRET_ACCESS_KEY = os.environ['TUMA_AWS_SECRET']
 AWS_REGION = "us-east-1"
+DYNAMO_CONFIG_TABLE_NAME = 'caracal-global-configuration'
 
 DEFAULT_EMAIL_SENDER = "noreply@caracal.cloud"
 DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
 OVERLORD_EMAIL = os.environ['CARACAL_OVERLORD_EMAIL']
 OVERLORD_PASSWORD = os.environ['CARACAL_OVERLORD_PASSWORD']
 
-SRID = 4326 # Spatial Reference System Identifier
+SRID = 4326 # Spatial Reference System Identifier - still using this over global config.
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 

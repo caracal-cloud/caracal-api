@@ -49,8 +49,6 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         CollarAccountActivity.objects.create(user_account=request.user, collar_account=collar_account, action='add')
 
-        # todo: this is pretty gross...
-
         fetch_function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider.short_name)
         fetch_lambda_function = aws.get_lambda_function(fetch_function_name)
 
@@ -59,10 +57,13 @@ class AddCollarAccountView(generics.GenericAPIView):
             'organization_uid': str(user.organization.uid),
             'species': data['species']
         }
-        rule_name = '%s-collars-fetch-%s-%s-%s' % (user.organization.short_name, provider.short_name, data['species'],
-                                                   str(collar_account.uid).split('-')[0])
+
+        fetch_rule_name = aws.get_cloudwatch_fetch_collars_rule_name(user.organization.short_name, settings.STAGE,
+                                                                     provider.short_name, data['species'],
+                                                                     collar_account.uid)
+
         aws.schedule_lambda_function(fetch_lambda_function['arn'], fetch_lambda_function['name'], fetch_rule_input,
-                                     rule_name, global_config['COLLAR_FETCH_RATE_MINUTES'])
+                                     fetch_rule_name, global_config['COLLAR_FETCH_RATE_MINUTES'])
 
         create_kml_function_name = 'caracal_%s_collars_create_kml' % settings.STAGE.lower()
         create_kml_function = aws.get_lambda_function(create_kml_function_name)
@@ -72,7 +73,8 @@ class AddCollarAccountView(generics.GenericAPIView):
                 'species': data['species'],
                 'period_hours': period
             }
-            create_kml_rule_name = '%s-collars-create-kml-%s-%d' % (user.organization.short_name, data['species'], period)
+            create_kml_rule_name = aws.get_cloudwatch_create_kml_rule_name(user.organization.short_name,
+                                                                           settings.STAGE, data['species'], period)
             aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input,
                                          create_kml_rule_name, global_config['COLLAR_KML_CREATE_RATE_MINUTES'])
 
@@ -119,6 +121,26 @@ class AddCollarIndividualPositionView(generics.GenericAPIView):
             }, status=status.HTTP_204_NO_CONTENT)
 
 
+class GetCollarAccountsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.GetCollarAccountsSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return CollarAccount.objects.filter(is_active=True, organization=user.organization)
+
+
+class GetCollarAccountDetailView(generics.RetrieveAPIView):
+    lookup_field = 'uid'
+    queryset = CollarAccount.objects.all()
+    serializer_class = serializers.GetCollarAccountDetailSerializer
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+
+
 class GetCollarIndividualOrCreateView(generics.GenericAPIView):
     """
     Retrieves the collar individual or creates it if it does not exist.
@@ -157,6 +179,35 @@ class GetCollarIndividualOrCreateView(generics.GenericAPIView):
             'collar_individual_uid': collar_individual.uid,
             'created': created
         }, status=status.HTTP_200_OK)
+
+
+class UpdateCollarAccountView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = serializers.UpdateCollarAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        update_data = serializer.data
+        collar_account_uid = update_data.pop('collar_account_uid')
+
+        try:
+            collar_account = CollarAccount.objects.get(uid=collar_account_uid)
+        except CollarAccount.DoesNotExist:
+            return Response({
+                'error': 'collar_account_does_not_exist'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if collar_account.organization != request.user.organization and not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        CollarAccount.objects.filter(id=collar_account.id).update(**update_data)
+
+        # no need to update CloudWatch rule, because input contains collar_account_uid which is used to look up details
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class UpdateCollarIndividualView(generics.GenericAPIView):

@@ -5,8 +5,8 @@ from collars.models import CollarProvider
 def add_collar_providers():
     collar_providers = [
         {
-            'name': 'Savannah Tracker',
-            'short_name': 'savannah',
+            'name': 'Savannah Tracking',
+            'short_name': 'savannah_tracking',
             'base_url': 'http://52.72.63.142/savannah_data/',
             'is_available': True
         },
