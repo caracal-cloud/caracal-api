@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from caracal.common import constants
-from collars.models import CollarAccount
+from collars.models import CollarAccount, CollarIndividual
 
 
 class AddCollarSerializer(serializers.Serializer):
@@ -47,7 +47,6 @@ class AddCollarIndividualPositionSerializer(serializers.Serializer):
 
 
 class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
-
     url = serializers.HyperlinkedIdentityField(
         lookup_field='uid',
         view_name='collar-account-detail',
@@ -72,7 +71,6 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
-
     provider = serializers.CharField(source='provider.name')
     provider_short_name = serializers.CharField(source='provider.short_name')
 
@@ -89,6 +87,30 @@ class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
         fields = ['uid', 'datetime_created', 'datetime_updated',
                   'provider', 'provider_short_name', 'species', 'orbcomm_timezone',
                   'orbcomm_company_id', 'savannah_tracking_username', 'savannah_tracking_password']
+
+
+class GetCollarIndividualsQueryParamsSerializer(serializers.Serializer):
+    collar_account_uid = serializers.UUIDField(required=True)
+
+
+class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
+    url = serializers.HyperlinkedIdentityField(
+        lookup_field='uid',
+        view_name='collar-individual-detail',
+    )
+
+    class Meta:
+        model = CollarIndividual
+        fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
+                  'name', 'sex', 'subtype', 'status']
+
+
+class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CollarIndividual
+        fields = ['uid', 'datetime_created', 'datetime_updated',
+                  'name', 'sex', 'subtype', 'status']
 
 
 class UpdateCollarAccountSerializer(serializers.Serializer):

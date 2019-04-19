@@ -122,7 +122,6 @@ class AddCollarIndividualPositionView(generics.GenericAPIView):
 
 
 class GetCollarAccountsView(generics.ListAPIView):
-
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.GetCollarAccountsSerializer
@@ -134,10 +133,43 @@ class GetCollarAccountsView(generics.ListAPIView):
 
 class GetCollarAccountDetailView(generics.RetrieveAPIView):
     lookup_field = 'uid'
-    queryset = CollarAccount.objects.all()
     serializer_class = serializers.GetCollarAccountDetailSerializer
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CollarAccount.objects.filter(organization=self.request.user.organization)
+
+
+class GetCollarIndividualsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.GetCollarIndividualsSerializer
+
+    def get_queryset(self):
+        serializer = serializers.GetCollarIndividualsQueryParamsSerializer(data=self.request.query_params)
+        serializer.is_valid(raise_exception=True)
+        query_params = serializer.data
+        user = self.request.user
+
+        try:
+            collar_account = CollarAccount.objects.get(is_active=True, organization=user.organization, uid=query_params['collar_account_uid'])
+        except CollarAccount.DoesNotExist:
+            return CollarIndividual.objects.none()
+
+        return CollarIndividual.objects.filter(is_active=True, collar_account=collar_account)
+
+
+class GetCollarIndividualDetailView(generics.RetrieveAPIView):
+    lookup_field = 'uid'
+    serializer_class = serializers.GetCollarIndividualDetailSerializer
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CollarIndividual.objects.filter(collar_account__organization=self.request.user.organization)
+
 
 
 

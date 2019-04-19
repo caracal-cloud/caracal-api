@@ -94,6 +94,7 @@ class CollarIndividual(models.Model):
         return "%s - %s - %s - %s" % (self.name, self.sex, self.subtype, self.status)
 
     class Meta:
+        ordering = ['status', 'name']
         unique_together = ['collar_account', 'collar_id']
 
 
