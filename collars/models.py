@@ -117,5 +117,6 @@ class CollarPosition(models.Model):
     savannah_tracking_id = models.BigIntegerField(null=True)
 
     class Meta:
+        ordering = ['datetime_recorded']
         unique_together = ['datetime_recorded', 'individual', 'position']
 

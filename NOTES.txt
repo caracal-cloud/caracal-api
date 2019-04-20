@@ -7,3 +7,8 @@ when Lambda is adding individuals and positions it will have to provide a JWT
 
 
 establish where validation occurs (in model, view, or serializer)!
+
+
+- find better way to handle path measurement (individual serializer)
+
+- handle timezone correctly - standardize everything

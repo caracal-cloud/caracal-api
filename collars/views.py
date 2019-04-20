@@ -163,6 +163,19 @@ class GetCollarIndividualsView(generics.ListAPIView):
         return CollarIndividual.objects.filter(is_active=True, collar_account=collar_account)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 class GetCollarIndividualDetailView(generics.RetrieveAPIView):
 
     lookup_field = 'uid'

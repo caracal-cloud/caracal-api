@@ -1,8 +1,10 @@
 
+from datetime import timedelta
+from django.utils import timezone
 from rest_framework import serializers
 
-from caracal.common import constants
-from collars.models import CollarAccount, CollarIndividual
+from caracal.common import constants, gis
+from collars.models import CollarAccount, CollarIndividual, CollarPosition
 
 
 class AddCollarSerializer(serializers.Serializer):
@@ -106,18 +108,46 @@ class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
         view_name='collar-individual-detail',
     )
 
+    datetime_last_reported = serializers.SerializerMethodField()
+    def get_datetime_last_reported(self, individual):
+        last_reported_position = CollarPosition.objects.filter(individual=individual).order_by('-datetime_recorded')[0]
+        return last_reported_position.datetime_recorded
+
+    distance_last_24_kms = serializers.SerializerMethodField() # distance traveled in last 24 hours
+    def get_distance_last_24_kms(self, individual):
+        then = timezone.now() - timedelta(hours=24)
+        positions  = CollarPosition.objects.filter(individual=individual, datetime_recorded__gte=then).order_by('datetime_recorded')
+        points = [p.position for p in positions]
+        distance = gis.get_path_distance_km(points)
+        return distance
+
     class Meta:
         model = CollarIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'name', 'sex', 'subtype', 'status']
+                  'name', 'sex', 'subtype', 'status',
+                  'datetime_last_reported', 'distance_last_24_kms']
 
 
 class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 
+    datetime_last_reported = serializers.SerializerMethodField()
+    def get_datetime_last_reported(self, individual):
+        last_reported_position = CollarPosition.objects.filter(individual=individual).order_by('-datetime_recorded')[0]
+        return last_reported_position.datetime_recorded
+
+    distance_last_24_kms = serializers.SerializerMethodField() # distance traveled in last 24 hours
+    def get_distance_last_24_kms(self, individual):
+        then = timezone.now() - timedelta(hours=24)
+        positions  = CollarPosition.objects.filter(individual=individual, datetime_recorded__gte=then).order_by('datetime_recorded')
+        points = [p.position for p in positions]
+        distance = gis.get_path_distance_km(points)
+        return distance
+
     class Meta:
         model = CollarIndividual
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'name', 'sex', 'subtype', 'status']
+                  'name', 'sex', 'subtype', 'status',
+                  'datetime_last_reported', 'distance_last_24_kms']
 
 
 class UpdateCollarAccountSerializer(serializers.Serializer):
