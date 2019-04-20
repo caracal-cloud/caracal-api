@@ -2,7 +2,8 @@ from django.conf import settings
 
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
-import traceback
+
+from caracal.common import aws
 
 from public import serializers, tasks
 
@@ -31,5 +32,15 @@ class ContactView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
+
+class SpeciesSubtypesView(generics.GenericAPIView):
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        global_config = aws.get_global_config()
+        species_subtypes = global_config['SPECIES_SUBTYPES']
+        return Response(status=status.HTTP_200_OK, data=species_subtypes)
 
 

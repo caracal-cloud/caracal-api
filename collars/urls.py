@@ -4,7 +4,6 @@ from collars import views
 
 urlpatterns = [
     path('add_account/', views.AddCollarAccountView.as_view()),
-    path('add_position/', views.AddCollarIndividualPositionView.as_view()),
     path('get_accounts/', views.GetCollarAccountsView.as_view()),
     path('get_account/<str:uid>', views.GetCollarAccountDetailView.as_view(), name='collar-account-detail'),
     path('get_individuals/', views.GetCollarIndividualsView.as_view()),

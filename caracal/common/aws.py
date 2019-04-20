@@ -1,6 +1,7 @@
 
 import boto3
 from django.conf import settings
+from dynamodb_json import json_util as dynamodb_json_util
 import json
 from sentry_sdk import capture_message
 
@@ -9,31 +10,23 @@ def create_dynamo_credentials(org_short_name, username, password, permissions):
     assert isinstance(permissions, list)
 
     client = get_boto_client('dynamodb')
-    response = client.put_item(
-        TableName='caracal-user-access-credentials',
-        Item={
-            'organization': {
-                'S': org_short_name
-            },
-
-            'credentials': {
-                'L': [
-                    {
-                        'M': {
-                            'p': {
-                                'S': password
-                            },
-                            'u': {
-                                'S': username
-                            },
-                            'permissions': {
-                                'L': [{'S': p} for p in permissions]
-                            }
-                        }
-                    }
-                ]
+    item = {
+        'organization': org_short_name,
+        'credentials': [
+            {
+                'p': password,
+                'u': username,
+                'permissions': permissions
             }
-        }
+        ]
+    }
+
+    dynamodb_json = dynamodb_json_util.dumps(item)
+    dynamodb_json = json.loads(dynamodb_json)
+
+    client.put_item(
+        TableName='caracal-user-access-credentials',
+        Item=dynamodb_json
     )
 
 
@@ -79,28 +72,8 @@ def get_global_config():
         TableName=settings.DYNAMO_CONFIG_TABLE_NAME,
     )
 
-    config = dict()
-    for item in data['Items']:
-        name = item['name']['S']
-        value = item['value']
-        if 'S' in value.keys():
-            config[name] = value['S']
-        elif 'N' in value.keys():
-            config[name] = int(value['N'])
-        elif 'BOOL' in value.keys():
-            config[name] = bool(value['BOOL'])
-        elif 'L' in value.keys():
-            config[name] = list()
-            for v in value['L']:
-                if 'N' in v.keys():
-                    config[name].append(int(v['N']))
-                elif 'S' in v.keys():
-                    config[name].append(v['S'])
-                else:
-                    capture_message("Unsupported DynamoDB list element type: " + str(value), level='warning')
-        else:
-            capture_message("Unsupported DynamoDB type: " + str(value), level='warning')
-
+    items = dynamodb_json_util.loads(data['Items'])
+    config = {item['name']: item['value'] for item in items}
     return config
 
 

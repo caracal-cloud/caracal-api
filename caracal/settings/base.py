@@ -35,9 +35,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_yasg',
-    'public',
     'account',
-    'collars'
+    'activity',
+    'collars',
+    'public'
 ]
 
 MIDDLEWARE = [

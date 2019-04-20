@@ -34,7 +34,7 @@ class CollarAccount(models.Model):
     datetime_deleted = models.DateTimeField(null=True)
     is_active = models.BooleanField(default=True)
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='collar_accounts')
     provider = models.ForeignKey(CollarProvider, on_delete=models.CASCADE, related_name='collar_accounts')
     species = models.CharField(max_length=100)
 
@@ -67,16 +67,6 @@ class CollarAccount(models.Model):
 
     class Meta:
         ordering = ['provider__name', '-datetime_created']
-
-
-class CollarAccountActivity(models.Model):
-
-    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
-    datetime_created = models.DateTimeField(default=timezone.now)
-
-    user_account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='collar_account_activities')
-    collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='collar_account_activities')
-    action = models.CharField(choices=constants.COLLAR_ACCOUNT_ACTIVITIES, max_length=100)
 
 
 class CollarIndividual(models.Model):
