@@ -6,6 +6,7 @@ from collars.models import CollarAccount, CollarIndividual
 
 
 class AddCollarSerializer(serializers.Serializer):
+
     provider_short_name = serializers.CharField(max_length=100, required=True)
     species = serializers.CharField(max_length=100)
 
@@ -29,6 +30,7 @@ class AddCollarSerializer(serializers.Serializer):
 
 
 class AddCollarIndividualSerializer(serializers.Serializer):
+
     collar_account_uid = serializers.UUIDField(required=True)
     collar_id = serializers.CharField(max_length=100, required=True)
 
@@ -37,6 +39,7 @@ class AddCollarIndividualSerializer(serializers.Serializer):
 
 
 class AddCollarIndividualPositionSerializer(serializers.Serializer):
+
     collar_individual_uid = serializers.UUIDField(required=True)
     datetime_recorded = serializers.DateTimeField()
     latitude = serializers.DecimalField(decimal_places=6, max_digits=12)
@@ -47,6 +50,7 @@ class AddCollarIndividualPositionSerializer(serializers.Serializer):
 
 
 class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
+
     url = serializers.HyperlinkedIdentityField(
         lookup_field='uid',
         view_name='collar-account-detail',
@@ -71,6 +75,7 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
 
 class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
+
     provider = serializers.CharField(source='provider.name')
     provider_short_name = serializers.CharField(source='provider.short_name')
 
@@ -90,10 +95,12 @@ class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
 
 
 class GetCollarIndividualsQueryParamsSerializer(serializers.Serializer):
+
     collar_account_uid = serializers.UUIDField(required=True)
 
 
 class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
+
     url = serializers.HyperlinkedIdentityField(
         lookup_field='uid',
         view_name='collar-individual-detail',
@@ -114,6 +121,7 @@ class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 
 
 class UpdateCollarAccountSerializer(serializers.Serializer):
+
     collar_account_uid = serializers.UUIDField(required=True)
     orbcomm_timezone= serializers.CharField(max_length=20, required=False)
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)
@@ -124,23 +132,21 @@ class UpdateCollarAccountSerializer(serializers.Serializer):
         if len(attrs) < 2:
             raise serializers.ValidationError('one or more account details required')
 
-        details = dict(attrs)
-
         try:
-            collar_account = CollarAccount.objects.get(uid=details.pop('collar_account_uid'))
+            collar_account = CollarAccount.objects.get(uid=attrs['collar_account_uid'])
         except CollarAccount.DoesNotExist:
             raise serializers.ValidationError('invalid account uid')
 
-        for key, value in details.items():
-            if not key.startswith(collar_account.provider.short_name):
+        for key, value in attrs.items():
+            if not key.startswith(collar_account.provider.short_name) and key != 'collar_account_uid':
                 raise serializers.ValidationError('account details do not match provider: ' + collar_account.provider.short_name)
 
         return attrs
 
 
 class UpdateCollarIndividualSerializer(serializers.Serializer):
-    collar_account_uid = serializers.UUIDField(required=True)
-    collar_id = serializers.CharField(max_length=50, required=True)
+
+    collar_individual_uid = serializers.UUIDField(required=True)
     name = serializers.CharField(max_length=100, required=False)
     sex = serializers.ChoiceField(['male', 'female'], required=False)
     subtype = serializers.CharField(max_length=100, required=False)

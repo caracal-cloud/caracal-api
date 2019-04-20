@@ -10,6 +10,7 @@ from caracal.common import constants
 
 
 class CollarProvider(models.Model):
+
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
     datetime_updated = models.DateTimeField(null=True)
@@ -26,6 +27,7 @@ class CollarProvider(models.Model):
 
 
 class CollarAccount(models.Model):
+
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
     datetime_updated = models.DateTimeField(null=True)
@@ -66,7 +68,9 @@ class CollarAccount(models.Model):
     class Meta:
         ordering = ['provider__name', '-datetime_created']
 
+
 class CollarAccountActivity(models.Model):
+
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
 
@@ -76,6 +80,7 @@ class CollarAccountActivity(models.Model):
 
 
 class CollarIndividual(models.Model):
+
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
     datetime_updated = models.DateTimeField(null=True)
@@ -99,11 +104,11 @@ class CollarIndividual(models.Model):
 
 
 class CollarPosition(models.Model):
+
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
 
-    # TODO: null for now...
-    collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='positions', null=True)
+    collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='positions', null=False)
     individual = models.ForeignKey(CollarIndividual, on_delete=models.CASCADE, related_name='positions')
 
     datetime_recorded = models.DateTimeField(null=True)
