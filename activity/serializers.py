@@ -6,6 +6,10 @@ from rest_framework import serializers
 from activity.models import ActivityAlert, ActivityChange
 
 
+class DeleteAlertSerializer(serializers.Serializer):
+    alert_uid = serializers.UUIDField()
+
+
 class GetAlertsSerializer(serializers.ModelSerializer):
 
     class Meta:

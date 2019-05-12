@@ -23,7 +23,7 @@ class AddCollarAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        serializer = serializers.AddCollarSerializer(data=request.data)
+        serializer = serializers.AddCollarAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         global_config = aws.get_global_config()
@@ -82,6 +82,34 @@ class AddCollarAccountView(generics.GenericAPIView):
         return Response({
             'collar_account_uid': collar_account.uid
         }, status=status.HTTP_201_CREATED)
+
+
+class DeleteCollarAccountView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.DeleteCollarAccountSerializer
+
+    def post(self, request):
+        serializer = serializers.DeleteCollarAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            collar_account = CollarAccount.objects.get(uid=serializer.data['collar_account_uid'])
+        except CollarAccount.DoesNotExist:
+            return Response({
+                'error': 'collar_account_does_not_exist'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if collar_account.organization != request.user.organization and not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        # doing this instead of .save() to avoid validate_unique error
+        CollarAccount.objects.filter(uid=collar_account.uid).update(datetime_updated=timezone.now(), is_active=False)
+
+        # TODO: remove cloudwatch rules...
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class GetCollarAccountsView(generics.ListAPIView):

@@ -12,6 +12,8 @@ class ActivityAlert(models.Model):
 
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)
+    datetime_updated = models.DateTimeField(null=True)
+    datetime_deleted = models.DateTimeField(null=True)
     is_active = models.BooleanField(default=True)
 
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='alerts')
@@ -23,7 +25,9 @@ class ActivityAlert(models.Model):
     class Meta:
         ordering = ['-datetime_created']
 
+
 class ActivityChange(models.Model):
+    # user 1 added elephant account, user 2 dismissed an alert (no elephant positions)
 
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=timezone.now)

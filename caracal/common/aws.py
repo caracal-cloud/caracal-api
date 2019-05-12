@@ -25,10 +25,9 @@ def create_dynamo_credentials(org_short_name, username, password, permissions):
     dynamodb_json = json.loads(dynamodb_json)
 
     client.put_item(
-        TableName='caracal-user-access-credentials',
+        TableName=settings.S3_USER_CREDENTIALS_TABLE,
         Item=dynamodb_json
     )
-
 
 
 def get_boto_client(service):
@@ -65,6 +64,21 @@ def get_cloudwatch_fetch_collars_rule_name(org_short_name, stage, provider_short
     return rule_name
 
 
+# from caracal.common.aws import get_dynamo_credentials as get_creds
+def get_dynamo_credentials(short_name):
+    client = get_boto_client('dynamodb')
+    item = client.get_item(
+        TableName=settings.S3_USER_CREDENTIALS_TABLE,
+        Key={
+            'organization': {
+                'S': short_name
+            }
+        }
+    )
+
+    item = dynamodb_json_util.loads(item)['Item']
+    return item['credentials']
+
 def get_global_config():
 
     client = get_boto_client('dynamodb')
@@ -77,6 +91,25 @@ def get_global_config():
     return config
 
 
+def get_s3_files(suffix, prefix, bucket_name):
+
+    # from caracal.common.aws import get_s3_files
+    # get_s3_files('.kmz', 'garamba', 'caracal-user-data')
+
+    s3_client = get_boto_client('s3')
+    response = s3_client.list_objects(
+        Bucket=bucket_name,
+        EncodingType='url',
+        Prefix=prefix
+    )
+
+    is_truncated = response['IsTruncated']
+    next_marker = response.get('NextMarker') # if is_truncated, use next_marker
+    contents = response.get('Contents', None)
+    objects = [c['Key'] for c in contents if c['Key'].endswith(suffix)]
+    return objects
+
+
 def get_lambda_function(function_name):
     lambda_client = boto3.client('lambda')
     fn_response = lambda_client.get_function(FunctionName=function_name)
@@ -84,6 +117,17 @@ def get_lambda_function(function_name):
         'arn': fn_response['Configuration']['FunctionArn'],
         'name': fn_response['Configuration']['FunctionName']
     }
+
+
+def get_presigned_url(object_key, bucket, expiration_secs):
+    client = get_boto_client('s3')
+    url = client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': object_key}, ExpiresIn=expiration_secs)
+    return url
+
+
+def put_s3_item(body, bucket, object_key):
+    client = get_boto_client('s3')
+    client.put_object(Body=body, Bucket=bucket, Key=object_key)
 
 
 def schedule_lambda_function(fn_arn, fn_name, rule_input, rule_name, rate_minutes):

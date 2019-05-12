@@ -37,6 +37,7 @@ class CollarAccount(models.Model):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='collar_accounts')
     provider = models.ForeignKey(CollarProvider, on_delete=models.CASCADE, related_name='collar_accounts')
     species = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, blank=True, null=True)
 
     orbcomm_timezone = models.CharField(max_length=20, null=True, blank=True)
     orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
@@ -62,7 +63,7 @@ class CollarAccount(models.Model):
                 raise ValidationError('savannah uniqueness on name, species, username and password')
 
     def save(self, *args, **kwargs):
-        self.validate_unique()
+        self.validate_unique() # fixme: this breaks when trying to update an account...
         super(CollarAccount, self).save(*args, **kwargs)
 
     class Meta:

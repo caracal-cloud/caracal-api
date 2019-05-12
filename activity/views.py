@@ -10,6 +10,31 @@ from auth.backends import CognitoAuthentication
 from collars.models import CollarPosition
 
 
+class DeleteAlertView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = serializers.DeleteAlertSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            alert = ActivityAlert.objects.get(uid=serializer.data['uid'])
+        except ActivityAlert.DoesNotExist:
+            return Response({
+                'error': 'alert_does_not_exist'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if alert.organization != request.user.organization:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        alert.is_active = False
+        alert.save()
+
+        return Response(status=status.HTTP_200_OK)
+
+
 class GetAlertsView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]

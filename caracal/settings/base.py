@@ -15,6 +15,9 @@ DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
 OVERLORD_EMAIL = os.environ['CARACAL_OVERLORD_EMAIL']
 OVERLORD_PASSWORD = os.environ['CARACAL_OVERLORD_PASSWORD']
 
+S3_USER_CREDENTIALS_TABLE = 'caracal-user-access-credentials'
+S3_USER_DATA_TABLE = 'caracal-user-data'
+
 SRID = 4326 # Spatial Reference System Identifier - still using this over global config.
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))

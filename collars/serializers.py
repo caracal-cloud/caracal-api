@@ -7,10 +7,11 @@ from caracal.common import constants, gis
 from collars.models import CollarAccount, CollarIndividual, CollarPosition
 
 
-class AddCollarSerializer(serializers.Serializer):
+class AddCollarAccountSerializer(serializers.Serializer):
 
     provider_short_name = serializers.CharField(max_length=100, required=True)
     species = serializers.CharField(max_length=100)
+    title = serializers.CharField(max_length=100)
 
     orbcomm_timezone= serializers.CharField(max_length=20, required=False)
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)
@@ -51,6 +52,10 @@ class AddCollarIndividualPositionSerializer(serializers.Serializer):
         return attrs
 
 
+class DeleteCollarAccountSerializer(serializers.Serializer):
+    collar_account_uid = serializers.UUIDField(required=True)
+
+
 class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(
@@ -72,7 +77,7 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = CollarAccount
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'provider', 'provider_short_name', 'species', 'orbcomm_timezone',
+                  'provider', 'provider_short_name', 'species', 'title', 'orbcomm_timezone',
                   'orbcomm_company_id', 'savannah_tracking_username', 'savannah_tracking_password']
 
 
@@ -92,12 +97,11 @@ class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = CollarAccount
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'provider', 'provider_short_name', 'species', 'orbcomm_timezone',
+                  'provider', 'provider_short_name', 'species', 'title', 'orbcomm_timezone',
                   'orbcomm_company_id', 'savannah_tracking_username', 'savannah_tracking_password']
 
 
 class GetCollarIndividualsQueryParamsSerializer(serializers.Serializer):
-
     collar_account_uid = serializers.UUIDField(required=True)
 
 
@@ -153,12 +157,17 @@ class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 class UpdateCollarAccountSerializer(serializers.Serializer):
 
     collar_account_uid = serializers.UUIDField(required=True)
+    title = serializers.CharField(max_length=100, required=False)
     orbcomm_timezone= serializers.CharField(max_length=20, required=False)
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)
     savannah_tracking_username = serializers.CharField(max_length=100, required=False)
     savannah_tracking_password = serializers.CharField(max_length=100, required=False)
 
     def validate(self, attrs):
+        unknown =  set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
+
         if len(attrs) < 2:
             raise serializers.ValidationError('one or more account details required')
 
@@ -167,8 +176,9 @@ class UpdateCollarAccountSerializer(serializers.Serializer):
         except CollarAccount.DoesNotExist:
             raise serializers.ValidationError('invalid account uid')
 
+        # reject input with details from other provider (i.e. if Orbcomm, reject Savannah Tracking details)
         for key, value in attrs.items():
-            if not key.startswith(collar_account.provider.short_name) and key != 'collar_account_uid':
+            if not key.startswith(collar_account.provider.short_name) and key not in ['collar_account_uid', 'title'] :
                 raise serializers.ValidationError('account details do not match provider: ' + collar_account.provider.short_name)
 
         return attrs
@@ -183,4 +193,7 @@ class UpdateCollarIndividualSerializer(serializers.Serializer):
     status = serializers.ChoiceField(constants.COLLAR_STATUSES, required=False)
 
     def validate(self, attrs):
+        unknown =  set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
         return attrs

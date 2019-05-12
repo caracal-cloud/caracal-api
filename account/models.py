@@ -3,7 +3,6 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import django.db.models as m
 from django.utils import timezone
-import pytz
 from sentry_sdk import capture_message
 import uuid
 
@@ -20,6 +19,7 @@ class Organization(m.Model):
     name = m.CharField(max_length=150, blank=False, null=False)
     short_name = m.CharField(max_length=20, blank=False, null=False, unique=True)
     timezone = m.CharField(max_length=50, default='Africa/Kigali')
+    logo_object_key = m.CharField(max_length=255, null=True)
 
     class Meta:
         ordering = ['name']
@@ -101,4 +101,29 @@ class Account(AbstractBaseUser, PermissionsMixin):
         ordering = ['email']
         verbose_name = 'account'
         verbose_name_plural = 'accounts'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
