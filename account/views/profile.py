@@ -26,6 +26,7 @@ class UpdateAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateAccountSerializer
 
     def post(self, request):
         user = request.user
@@ -40,6 +41,7 @@ class UpdateOrganizationView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateOrganizationSerializer
 
     def post(self, request):
         user = request.user

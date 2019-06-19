@@ -1,15 +1,20 @@
 
 from django.conf import settings
-from rest_framework import permissions, status, generics
+from rest_framework import permissions, status, generics, views
+from rest_framework.authentication import get_authorization_header
 from rest_framework.response import Response
 import sentry_sdk
 import warrant
 
 from auth import cognito
+from auth.backends import CognitoAuthentication
 from account import serializers
 
 
 class LoginView(generics.GenericAPIView):
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = serializers.LoginSerializer
 
     def post(self, request):
         serializer = serializers.LoginSerializer(data=request.data)
@@ -18,22 +23,26 @@ class LoginView(generics.GenericAPIView):
         email = serializer.data['email'].lower()
         password = serializer.data['password']
 
+        invalid_credentials_message = 'invalid email/password combination'
+
         warrant_client = cognito.get_warrant_wrapper_client(email)
         try:
             tokens = cognito.get_tokens(warrant_client, password)
-            # TODO: set last login...
             return Response(tokens, status=status.HTTP_200_OK)
         except warrant_client.client.exceptions.NotAuthorizedException:
             return Response({
-                'error': 'invalid_credentials'
+                'error': 'invalid_credentials',
+                'message': invalid_credentials_message
             }, status=status.HTTP_403_FORBIDDEN)
         except warrant_client.client.exceptions.UserNotConfirmedException:
             return Response({
-                'error': 'email_not_confirmed'
+                'error': 'email_not_confirmed',
+                'message': 'email not confirmed'
             }, status=status.HTTP_403_FORBIDDEN)
         except warrant_client.client.exceptions.UserNotFoundException:
             return Response({
-                'error': 'invalid_credentials'
+                'error': 'invalid_credentials',
+                'message': invalid_credentials_message
             }, status=status.HTTP_403_FORBIDDEN)
         except warrant_client.client.exceptions.PasswordResetRequiredException: # RESET_REQUIRED
             return Response({
@@ -45,15 +54,30 @@ class LoginView(generics.GenericAPIView):
                 'error': 'password_change_required',
                 'detail': 'use forced password change flow'
             }, status=status.HTTP_403_FORBIDDEN)
-        except Exception as e:
-            sentry_sdk.capture_exception()
-            return Response({
-                'error': 'unknown_error',
-                'detail': "%s - %s" % (type(e), str(e))
-            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LogoutView(views.APIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        access_token = get_authorization_header(request).split()[1].decode('utf-8')
+        client = cognito.get_cognito_idp_client()
+        response = client.global_sign_out(AccessToken=access_token)
+
+        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
+            return Response(status=status.HTTP_200_OK)
+        else:
+            sentry_sdk.capture_message("Sign out failed", level="warning")
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class RefreshView(generics.GenericAPIView):
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = serializers.RefreshSerializer
 
     def post(self, request):
         serializer = serializers.RefreshSerializer(data=request.data)

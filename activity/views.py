@@ -1,7 +1,7 @@
 
 from datetime import timedelta
 from django.utils import timezone
-from rest_framework import permissions, status, generics
+from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 
 from activity import serializers
@@ -14,6 +14,7 @@ class DeleteAlertView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.DeleteAlertSerializer
 
     def post(self, request):
         serializer = serializers.DeleteAlertSerializer(data=request.data)
@@ -57,7 +58,7 @@ class GetChangesView(generics.ListAPIView):
         return ActivityChange.objects.filter(organization=user.organization)
 
 
-class GetOverviewMetricsView(generics.GenericAPIView):
+class GetOverviewMetricsView(views.APIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]

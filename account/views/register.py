@@ -5,11 +5,15 @@ from rest_framework.response import Response
 import uuid
 
 from account import serializers
-from caracal.common import aws
+
 
 class RegisterView(generics.GenericAPIView):
 
+    permission_classes = [permissions.AllowAny]
+    serializer_class = serializers.RegisterSerializer
+
     def post(self, request):
+
         serializer = serializers.RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

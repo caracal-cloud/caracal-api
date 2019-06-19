@@ -20,6 +20,7 @@ urlpatterns = [
     path('activity/', include('activity.urls')),
     path('admin/', admin.site.urls),
     path('collars/', include('collars.urls')),
+    path('oauth/', include('oauth.urls')),
     path('public/', include('public.urls')),
     re_path(r'^$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]

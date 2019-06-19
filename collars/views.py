@@ -21,6 +21,7 @@ class AddCollarAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.AddCollarAccountSerializer
 
     def post(self, request):
         serializer = serializers.AddCollarAccountSerializer(data=request.data)
@@ -169,6 +170,7 @@ class UpdateCollarAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateCollarAccountSerializer
 
     def post(self, request):
         serializer = serializers.UpdateCollarAccountSerializer(data=request.data)
@@ -200,6 +202,7 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateCollarIndividualSerializer
 
     def post(self, request):
         serializer = serializers.UpdateCollarIndividualSerializer(data=request.data)

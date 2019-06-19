@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from rest_framework import permissions, status, generics
+from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 
 from caracal.common import aws
@@ -12,6 +12,7 @@ class ContactView(generics.GenericAPIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
+    serializer_class =  serializers.ContactSerializer
 
     def post(self, request):
         serializer = serializers.ContactSerializer(data=request.data)
@@ -32,8 +33,7 @@ class ContactView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
-
-class SpeciesSubtypesView(generics.GenericAPIView):
+class SpeciesSubtypesView(views.APIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]

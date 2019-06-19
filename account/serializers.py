@@ -18,7 +18,7 @@ class ConfirmForgotPasswordSerializer(serializers.Serializer):
 
     email = CaseInsensitiveEmailField(required=True, max_length=200)
     confirmation_code = serializers.CharField(max_length=100)
-    new_password = serializers.CharField(max_length=100)
+    new_password = serializers.CharField(min_length=7, max_length=100)
 
 
 class ForcedPasswordResetSerializer(serializers.Serializer):
@@ -67,13 +67,13 @@ class RegisterSerializer(serializers.Serializer):
     account_name = serializers.CharField(max_length=100, required=True)
     account_email = CaseInsensitiveEmailField(required=True, max_length=200)
     account_password = serializers.CharField(required=True)
-    account_phone_number = serializers.CharField(max_length=25, required=False, allow_blank=True)
+    account_phone_number = serializers.CharField(max_length=25, required=True, allow_blank=True)
 
     def validate_organization_short_name(self, value):
         # UniqueValidator wasn't working
         try:
             Organization.objects.get(short_name=value)
-            raise serializers.ValidationError('short_name_already_exists')
+            raise serializers.ValidationError('organization_short_name already exists')
         except Organization.DoesNotExist:
             return value
 
@@ -101,13 +101,13 @@ class RegisterSerializer(serializers.Serializer):
             # create credentials for S3
             password = str(uuid.uuid4()).split('-')[0]
             aws.create_dynamo_credentials(validated_data['organization_short_name'], 'admin', password, ['all'])
-
             return account
 
         except cognito_idp_client.exceptions.UsernameExistsException:
             organization.delete()
             return Response({
-                'error': 'email_already_exists'
+                'error': 'email_already_exists',
+                'message': 'account email already exists'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         except:

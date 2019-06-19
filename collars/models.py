@@ -105,9 +105,8 @@ class CollarPosition(models.Model):
     datetime_recorded = models.DateTimeField(null=True)
     position = models.PointField(srid=settings.SRID, null=False)
     temperature = models.DecimalField(max_digits=5, decimal_places=1, null=True) # Celcius
-    savannah_tracking_id = models.BigIntegerField(null=True)
+    savannah_tracking_id = models.BigIntegerField(null=False, default=-1) # -1 for not Savannah Tracking - might be good to separate models by provider
 
     class Meta:
         ordering = ['datetime_recorded']
-        unique_together = ['datetime_recorded', 'individual', 'position']
-
+        unique_together = ['datetime_recorded', 'individual', 'position', 'savannah_tracking_id']
