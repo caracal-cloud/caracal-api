@@ -42,6 +42,9 @@ class CognitoAuthentication(BaseAuthentication):
 
         return user, jwt_value
 
+    def authenticate_header(self, request):
+        return 'Bearer'
+
     # this cannot be static
     def get_jwt_value(self, request):
 
@@ -106,7 +109,7 @@ class CognitoAuthentication(BaseAuthentication):
         elif expiry_secs < int(round(time.time())):
             raise exceptions.AuthenticationFailed({
                 'error': 'access_token_expired'
-            }, status.HTTP_403_FORBIDDEN)
+            })
 
     @staticmethod
     def verify_kid(jwt_value):

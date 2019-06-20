@@ -1,5 +1,6 @@
 
 from django.conf import settings
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, generics, views
 from rest_framework.authentication import get_authorization_header
 from rest_framework.response import Response
@@ -12,10 +13,18 @@ from account import serializers
 
 
 class LoginView(generics.GenericAPIView):
-
+    """
+    post:
+    Return access and refresh tokens.
+    """
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.LoginSerializer
 
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: serializers.LoginResponseSerializer,
+        status.HTTP_400_BAD_REQUEST: 'email_not_confirmed', # todo: add other 400's
+        status.HTTP_401_UNAUTHORIZED: 'invalid_credentials'
+    })
     def post(self, request):
         serializer = serializers.LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -29,38 +38,45 @@ class LoginView(generics.GenericAPIView):
         try:
             tokens = cognito.get_tokens(warrant_client, password)
             return Response(tokens, status=status.HTTP_200_OK)
-        except warrant_client.client.exceptions.NotAuthorizedException:
-            return Response({
-                'error': 'invalid_credentials',
-                'message': invalid_credentials_message
-            }, status=status.HTTP_403_FORBIDDEN)
         except warrant_client.client.exceptions.UserNotConfirmedException:
             return Response({
                 'error': 'email_not_confirmed',
                 'message': 'email not confirmed'
-            }, status=status.HTTP_403_FORBIDDEN)
-        except warrant_client.client.exceptions.UserNotFoundException:
-            return Response({
-                'error': 'invalid_credentials',
-                'message': invalid_credentials_message
-            }, status=status.HTTP_403_FORBIDDEN)
+            }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.PasswordResetRequiredException: # RESET_REQUIRED
             return Response({
                 'error': 'password_reset_required',
                 'detail': 'use forgot password flow'
-            }, status=status.HTTP_403_FORBIDDEN)
+            }, status=status.HTTP_400_BAD_REQUEST)
         except warrant.exceptions.ForceChangePasswordException: # FORCE_CHANGE_PASSWORD
             return Response({
                 'error': 'password_change_required',
                 'detail': 'use forced password change flow'
-            }, status=status.HTTP_403_FORBIDDEN)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except warrant_client.client.exceptions.NotAuthorizedException:
+            return Response({
+                'error': 'invalid_credentials',
+                'message': invalid_credentials_message
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        except warrant_client.client.exceptions.UserNotFoundException:
+            return Response({
+                'error': 'invalid_credentials',
+                'message': invalid_credentials_message
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class LogoutView(views.APIView):
-
+    """
+    post:
+    Global logout.
+    """
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: 'success',
+        status.HTTP_401_UNAUTHORIZED: 'not_authorized'
+    })
     def post(self, request):
         access_token = get_authorization_header(request).split()[1].decode('utf-8')
         client = cognito.get_cognito_idp_client()
@@ -73,12 +89,18 @@ class LogoutView(views.APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
-
 class RefreshView(generics.GenericAPIView):
-
+    """
+    post:
+    Return access token.
+    """
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.RefreshSerializer
 
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: serializers.RefreshResponseSerializer,
+        status.HTTP_400_BAD_REQUEST: 'invalid_access_token',
+    })
     def post(self, request):
         serializer = serializers.RefreshSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -96,7 +118,7 @@ class RefreshView(generics.GenericAPIView):
             )
         except cognito_idp_client.exceptions.NotAuthorizedException:
             return Response({
-                'error': 'not_authorized'
+                'error': 'invalid_access_token'
             }, status=status.HTTP_403_FORBIDDEN)
 
         return Response({
