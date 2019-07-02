@@ -20,7 +20,7 @@ class ForcedPasswordResetView(generics.GenericAPIView):
         status.HTTP_400_BAD_REQUEST: 'invalid_password',
         status.HTTP_401_UNAUTHORIZED: 'invalid_credentials',
         status.HTTP_403_FORBIDDEN: 'password_reset_required'
-    })
+    }, security=[], operation_id='account - forced password reset')
     def post(self, request):
         serializer = serializers.ForcedPasswordResetSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -62,7 +62,7 @@ class ForgotPasswordView(generics.GenericAPIView):
     @swagger_auto_schema(responses={
         status.HTTP_200_OK: '',
         status.HTTP_400_BAD_REQUEST: 'password_reset_rejected, limit_exceeded, invalid_email',
-    })
+    }, security=[], operation_id='account - forgot password')
     def post(self, request):
         serializer = serializers.ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -103,7 +103,7 @@ class ForgotPasswordConfirmView(generics.GenericAPIView):
     @swagger_auto_schema(responses={
         status.HTTP_200_OK: '',
         status.HTTP_400_BAD_REQUEST: 'invalid_code, expired_code, invalid_password, invalid_email',
-    })
+    }, security=[], operation_id='account - forced password confirm')
     def post(self, request):
         serializer = serializers.ConfirmForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

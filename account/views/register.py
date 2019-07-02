@@ -16,7 +16,7 @@ class RegisterView(generics.GenericAPIView):
     @swagger_auto_schema(responses={
         status.HTTP_201_CREATED: '',
         status.HTTP_400_BAD_REQUEST: 'email_already_exists',
-    })
+    }, security=[], operation_id='account - register')
     def post(self, request):
 
         serializer = serializers.RegisterSerializer(data=request.data)

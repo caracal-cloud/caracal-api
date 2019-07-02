@@ -24,7 +24,7 @@ class LoginView(generics.GenericAPIView):
         status.HTTP_200_OK: serializers.LoginResponseSerializer,
         status.HTTP_400_BAD_REQUEST: 'email_not_confirmed', # todo: add other 400's
         status.HTTP_401_UNAUTHORIZED: 'invalid_credentials'
-    })
+    }, security=[], operation_id='account - login')
     def post(self, request):
         serializer = serializers.LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -76,7 +76,7 @@ class LogoutView(views.APIView):
     @swagger_auto_schema(responses={
         status.HTTP_200_OK: '',
         status.HTTP_401_UNAUTHORIZED: 'not_authorized'
-    })
+    }, security=[], operation_id='account - logout')
     def post(self, request):
         access_token = get_authorization_header(request).split()[1].decode('utf-8')
         client = cognito.get_cognito_idp_client()
@@ -100,7 +100,7 @@ class RefreshView(generics.GenericAPIView):
     @swagger_auto_schema(responses={
         status.HTTP_200_OK: serializers.RefreshResponseSerializer,
         status.HTTP_400_BAD_REQUEST: 'invalid_access_token',
-    })
+    }, security=[], operation_id='account - refresh')
     def post(self, request):
         serializer = serializers.RefreshSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

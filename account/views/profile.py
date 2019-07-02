@@ -1,5 +1,6 @@
 
 from django.conf import settings
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 import uuid
@@ -13,6 +14,9 @@ from caracal.common import aws
 
 class HelloCors(views.APIView):
 
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: '',
+    }, security=[], operation_id='account - hello cors')
     def get(self, request):
         return Response({
             'message': 'hello cors'
@@ -35,6 +39,10 @@ class UpdateAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.UpdateAccountSerializer
 
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: '',
+        status.HTTP_400_BAD_REQUEST: '',
+    }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - update account')
     def post(self, request):
         user = request.user
         serializer = serializers.UpdateAccountSerializer(user, data=request.data)
@@ -50,6 +58,10 @@ class UpdateOrganizationView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.UpdateOrganizationSerializer
 
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: '',
+        status.HTTP_400_BAD_REQUEST: '',
+    }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - update organization')
     def post(self, request):
         user = request.user
         serializer = serializers.UpdateOrganizationSerializer(user.organization, data=request.data)

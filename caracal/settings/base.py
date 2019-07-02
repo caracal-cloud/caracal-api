@@ -83,6 +83,16 @@ CORS_ALLOW_METHODS = default_methods # + ('NEW_ACTION',)
 CORS_ALLOW_HEADERS = default_headers # + ('new-header',)
 
 
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+      'JWT': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+      }
+   }
+}
+
 
 SHELL_PLUS_PRE_IMPORTS = (
     ('account.models', '*'),
