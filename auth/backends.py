@@ -130,7 +130,7 @@ class CognitoAuthentication(BaseAuthentication):
                 'error': 'kid_required'
             })
 
-        jwk_path = os.path.join(os.path.dirname(settings.BASE_DIR), 'account', 'resources', 'jwks.json')
+        jwk_path = os.path.join(settings.BASE_DIR, 'account', 'resources', 'jwks.json')
         if not os.path.isfile(jwk_path):
             capture_message("jwks_missing: jwks.json does not exist. run get_all_jwks", level="error")
             raise exceptions.AuthenticationFailed({
