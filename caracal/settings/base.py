@@ -21,7 +21,7 @@ S3_USER_DATA_TABLE = 'caracal-user-data'
 
 SRID = 4326 # Spatial Reference System Identifier - still using this over global config.
 
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 DEBUG = True
 
@@ -82,6 +82,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = default_methods # + ('NEW_ACTION',)
 CORS_ALLOW_HEADERS = default_headers # + ('new-header',)
 
+
+
 SHELL_PLUS_PRE_IMPORTS = (
     ('account.models', '*'),
     ('account.serializers', '*'),
@@ -139,5 +141,5 @@ USE_TZ = True
 JET_DEFAULT_THEME = 'light-gray'
 
 # Static files
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
 STATIC_URL = '/static/'

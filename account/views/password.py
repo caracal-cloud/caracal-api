@@ -76,17 +76,17 @@ class ForgotPasswordView(generics.GenericAPIView):
         except warrant_client.client.exceptions.NotAuthorizedException:
             return Response({
                 'error': 'password_reset_rejected',
-                'detail': 'cannot reset password if change required'
+                'message': 'cannot reset password if change required'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.InvalidParameterException:
             return Response({
                 'error': 'password_reset_rejected',
-                'detail': 'cannot reset password for non-verified accounts'
+                'message': 'cannot reset password for non-verified accounts'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.LimitExceededException:
             return Response({
                 'error': 'limit_exceeded',
-                'detail': 'try again later'
+                'message': 'try again later'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.UserNotFoundException:
             return Response({
