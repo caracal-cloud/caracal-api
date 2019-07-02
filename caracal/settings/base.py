@@ -82,6 +82,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = default_methods # + ('NEW_ACTION',)
 CORS_ALLOW_HEADERS = default_headers # + ('new-header',)
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
