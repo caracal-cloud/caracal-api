@@ -4,16 +4,18 @@ from django.conf import settings
 from activity.models import ActivityAlert, ActivityChange
 from account.models import Account, Organization
 from auth import cognito
-from collars.models import CollarAccount, CollarIndividual, CollarPosition, CollarProvider
+
+from collars.models import CollarProvider
+from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition
 
 
 def clear_all_content():
     print("...clearing all content")
     ActivityAlert.objects.all().delete()
     ActivityChange.objects.all().delete()
-    CollarPosition.objects.all().delete()
-    CollarIndividual.objects.all().delete()
-    CollarAccount.objects.all().delete()
+    RealTimePosition.objects.all().delete()
+    RealTimeIndividual.objects.all().delete()
+    RealTimeAccount.objects.all().delete()
     CollarProvider.objects.all().delete()
     Account.objects.all().delete()
     Organization.objects.all().delete()

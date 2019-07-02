@@ -30,7 +30,7 @@ class Command(BaseCommand):
             return
 
         common.clear_all_content()
-        common.create_overlord()
+        #common.create_overlord()
         collars.add_collar_providers()
 
 

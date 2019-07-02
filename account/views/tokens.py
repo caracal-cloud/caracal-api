@@ -74,7 +74,7 @@ class LogoutView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(responses={
-        status.HTTP_200_OK: 'success',
+        status.HTTP_200_OK: '',
         status.HTTP_401_UNAUTHORIZED: 'not_authorized'
     })
     def post(self, request):

@@ -18,7 +18,8 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('account/', include('account.urls')),
     #path('activity/', include('activity.urls')),
-    path('admin/', admin.site.urls),
+    re_path(r'^jet/', include('jet.urls', 'jet')),
+    path('cybersyn1971/', admin.site.urls),
     #path('collars/', include('collars.urls')),
     #path('oauth/', include('oauth.urls')),
     #path('public/', include('public.urls')),

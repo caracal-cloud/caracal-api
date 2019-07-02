@@ -14,7 +14,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import aws
 from collars import serializers
-from collars.models import CollarAccount, CollarIndividual, CollarPosition, CollarProvider
+from collars.models import CollarAccount, CollarIndividual, CollarProvider
 
 
 class AddCollarAccountView(generics.GenericAPIView):
@@ -26,6 +26,10 @@ class AddCollarAccountView(generics.GenericAPIView):
     def post(self, request):
         serializer = serializers.AddCollarAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # TODO: don't save creds to account, just use in rule...
+
+        # fixme: possibly not enforcing uniqueness
 
         global_config = aws.get_global_config()
 
@@ -48,6 +52,7 @@ class AddCollarAccountView(generics.GenericAPIView):
                 'error': 'account_already_added'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        """
         fetch_function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider.short_name)
         fetch_lambda_function = aws.get_lambda_function(fetch_function_name)
 
@@ -77,11 +82,13 @@ class AddCollarAccountView(generics.GenericAPIView):
             aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input,
                                          create_kml_rule_name, global_config['COLLAR_KML_CREATE_RATE_MINUTES'])
 
+        """
+
         message = f'{species} collar account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response({
-            'collar_account_uid': collar_account.uid
+            'collar_account_uid': collar_account.collar_account_uid
         }, status=status.HTTP_201_CREATED)
 
 

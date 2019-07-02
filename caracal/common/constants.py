@@ -1,5 +1,7 @@
 
 
+ACCOUNT_STATUSES = [('healthy', 'healthy'), ('unhealthy', 'unhealthy'), ('pending', 'pending')]
+
 # ALERT_FEEDBACK = [('confirm', 'confirm'), ('deny', 'deny')]
 ALERT_LEVELS = [('info', 'info'), ('warning', 'warning'), ('severe', 'severe')]
 

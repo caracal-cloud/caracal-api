@@ -7,6 +7,7 @@ import uuid
 
 from account.models import Account, Organization
 from caracal.common import constants
+import caracal.common.models as parent_models
 
 
 class CollarProvider(models.Model):
@@ -22,18 +23,16 @@ class CollarProvider(models.Model):
     base_url = models.CharField(max_length=200, null=False, blank=False)
     is_available = models.BooleanField(default=False) # user can use this provider
 
+    def __str__(self):
+        return f'{self.name} - {self.short_name}'
+
     class Meta:
         unique_together = ['name', 'short_name', 'base_url']
 
 
-class CollarAccount(models.Model):
+class CollarAccount(parent_models.RealTimeAccount):
 
-    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
-    datetime_created = models.DateTimeField(default=timezone.now)
-    datetime_updated = models.DateTimeField(null=True)
-    datetime_deleted = models.DateTimeField(null=True)
-    is_active = models.BooleanField(default=True)
-
+    collar_account_uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='collar_accounts')
     provider = models.ForeignKey(CollarProvider, on_delete=models.CASCADE, related_name='collar_accounts')
     species = models.CharField(max_length=100)
@@ -43,6 +42,13 @@ class CollarAccount(models.Model):
     orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
     savannah_tracking_username = models.CharField(max_length=100, null=True, blank=True)
     savannah_tracking_password = models.CharField(max_length=100, null=True, blank=True)
+    savannah_tracking_record_indexes = models.TextField(blank=True, null=True) # last position indexes json
+
+    account_ptr = models.OneToOneField(
+        parent_models.RealTimeAccount, on_delete=models.CASCADE,
+        parent_link=True,
+        related_name='collar_account'
+    )
 
     def validate_unique(self, exclude=None):
         if self.provider.short_name == 'orbcomm':
@@ -66,47 +72,52 @@ class CollarAccount(models.Model):
         self.validate_unique() # fixme: this breaks when trying to update an account...
         super(CollarAccount, self).save(*args, **kwargs)
 
+    def __str__(self):
+        return f'{self.species} - {self.provider.short_name} - {self.organization.short_name}'
+
     class Meta:
         ordering = ['provider__name', '-datetime_created']
 
 
-class CollarIndividual(models.Model):
+class CollarIndividual(parent_models.RealTimeIndividual):
 
-    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
-    datetime_created = models.DateTimeField(default=timezone.now)
-    datetime_updated = models.DateTimeField(null=True)
-    datetime_deleted = models.DateTimeField(null=True)
-    is_active = models.BooleanField(default=True)
-
+    collar_individual_uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='collar_individuals')
-    collar_id = models.CharField(max_length=100) # provider specific ID
 
     name = models.CharField(max_length=100, null=True, blank=True)
     sex = models.CharField(choices=constants.SEXES, max_length=100, null=True, blank=True) # enum?
     subtype = models.CharField(max_length=100, null=True, blank=True) # (i.e. forest, savannah) # todo: serve species/subspecies endpoint:)
     status = models.CharField(choices=constants.COLLAR_STATUSES, default='active', max_length=100, null=True, blank=True)
 
+    individual_ptr = models.OneToOneField(
+        parent_models.RealTimeIndividual, on_delete=models.CASCADE,
+        parent_link=True,
+        related_name='collar_individual'
+    )
+
     def __str__(self):
         return "%s - %s - %s - %s" % (self.name, self.sex, self.subtype, self.status)
 
     class Meta:
         ordering = ['status', 'name']
-        unique_together = ['collar_account', 'collar_id']
 
 
-class CollarPosition(models.Model):
+class OrbcommCollarPosition(parent_models.RealTimePosition):
 
-    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
-    datetime_created = models.DateTimeField(default=timezone.now)
+    position_ptr = models.OneToOneField(
+        parent_models.RealTimePosition, on_delete=models.CASCADE,
+        parent_link=True,
+        related_name='orbcomm_collar_position'
+    )
 
-    collar_account = models.ForeignKey(CollarAccount, on_delete=models.CASCADE, related_name='positions', null=False)
-    individual = models.ForeignKey(CollarIndividual, on_delete=models.CASCADE, related_name='positions')
 
-    datetime_recorded = models.DateTimeField(null=True)
-    position = models.PointField(srid=settings.SRID, null=False)
-    temperature = models.DecimalField(max_digits=5, decimal_places=1, null=True) # Celcius
-    savannah_tracking_id = models.BigIntegerField(null=False, default=-1) # -1 for not Savannah Tracking - might be good to separate models by provider
+class SavannahTrackingCollarPosition(parent_models.RealTimePosition):
 
-    class Meta:
-        ordering = ['datetime_recorded']
-        unique_together = ['datetime_recorded', 'individual', 'position', 'savannah_tracking_id']
+    savannah_tracking_id = models.BigIntegerField(null=False, default=-1)
+    position_ptr = models.OneToOneField(
+        parent_models.RealTimePosition, on_delete=models.CASCADE,
+        parent_link=True,
+        related_name='savannah_tracking_collar_position'
+    )
+
+

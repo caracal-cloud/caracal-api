@@ -3,6 +3,7 @@ from datetime import timedelta
 import os
 
 APPLICATION_NAME = 'Caracal'
+APPLICATION_SHORT_NAME = 'caracal'
 
 # tuma-admin
 AWS_ACCESS_KEY_ID = os.environ['TUMA_AWS_KEY']
@@ -27,6 +28,7 @@ DEBUG = True
 SECRET_KEY = 'e3dk1qlemm9$ptb**v-jfasa_)8c)lc4!^2^0&znctzdg&x-fu'
 
 INSTALLED_APPS = [
+    'jet',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -128,15 +130,13 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
+
+JET_DEFAULT_THEME = 'light-gray'
 
 # Static files
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')

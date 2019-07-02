@@ -53,21 +53,21 @@ class UserManager(BaseUserManager):
         return self._create_user(email, password, cognito_idp_client, **extra_fields)
 
     def create_superuser(self, email, password, **extra_fields):
-        # only auto-create org for superusers
-        org = Organization.objects.filter(name=settings.APPLICATION_NAME,
-                                          short_name=settings.APPLICATION_NAME.split(' ')[0].lower()).first()
-        if org is None:
-            org = Organization.objects.create(name=settings.APPLICATION_NAME,
-                                              short_name=settings.APPLICATION_NAME.split(' ')[0].lower())
+
+        try:
+            org = Organization.objects.get(short_name=settings.APPLICATION_SHORT_NAME)
+        except Organization.DoesNotExist:
+            org = Organization.objects.create(name=settings.APPLICATION_NAME, short_name=settings.APPLICATION_SHORT_NAME)
 
         extra_fields.setdefault('organization', org)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_staff', True)
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('superuser must have is_superuser=True')
 
-        cognito_idp_client = cognito.get_cognito_idp_client()
-        return self._create_user(email, password, cognito_idp_client, **extra_fields)
+        email = self.normalize_email(email).lower()
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
 
 def jwt_get_secret_key(user):

@@ -11,7 +11,6 @@ from auth.backends import CognitoAuthentication
 from caracal.common import aws
 
 
-
 class GetProfileView(generics.RetrieveAPIView):
 
     authentication_classes = [CognitoAuthentication]
