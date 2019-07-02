@@ -38,10 +38,10 @@ class CollarAccount(parent_models.RealTimeAccount):
     species = models.CharField(max_length=100)
     title = models.CharField(max_length=100, blank=True, null=True)
 
-    orbcomm_timezone = models.CharField(max_length=20, null=True, blank=True)
-    orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
-    savannah_tracking_username = models.CharField(max_length=100, null=True, blank=True)
-    savannah_tracking_password = models.CharField(max_length=100, null=True, blank=True)
+    #orbcomm_timezone = models.CharField(max_length=20, null=True, blank=True)
+    #orbcomm_company_id = models.CharField(max_length=50, null=True, blank=True)
+    #savannah_tracking_username = models.CharField(max_length=100, null=True, blank=True)
+    #savannah_tracking_password = models.CharField(max_length=100, null=True, blank=True)
     savannah_tracking_record_indexes = models.TextField(blank=True, null=True) # last position indexes json
 
     account_ptr = models.OneToOneField(

@@ -9,7 +9,6 @@ from account import serializers
 from account.models import Account
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import aws
 
 
 class GetProfileView(generics.RetrieveAPIView):

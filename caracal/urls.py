@@ -20,7 +20,7 @@ urlpatterns = [
     #path('activity/', include('activity.urls')),
     re_path(r'^jet/', include('jet.urls', 'jet')),
     path('cybersyn1971/', admin.site.urls),
-    #path('collars/', include('collars.urls')),
+    path('collars/', include('collars.urls')),
     #path('oauth/', include('oauth.urls')),
     #path('public/', include('public.urls')),
     re_path(r'^$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

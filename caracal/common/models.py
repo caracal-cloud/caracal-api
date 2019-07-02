@@ -22,6 +22,7 @@ class BaseAsset(models.Model):
 class RealTimeAccount(BaseAsset):
 
     status = models.CharField(choices=constants.ACCOUNT_STATUSES, max_length=50, default='pending')
+    #device_indexes = models.TextField(blank=True, null=True) # last position indexes json
 
     class Meta:
         app_label = 'account'

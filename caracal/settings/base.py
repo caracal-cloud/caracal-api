@@ -36,10 +36,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.gis',
+
     'django_extensions',
     'rest_framework',
     'corsheaders',
     'drf_yasg',
+
     'account',
     'activity',
     'collars',
