@@ -84,13 +84,14 @@ CORS_ALLOW_HEADERS = default_headers # + ('new-header',)
 
 
 SWAGGER_SETTINGS = {
-   'SECURITY_DEFINITIONS': {
-      'JWT': {
+    'SECURITY_DEFINITIONS': {
+        'JWT': {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header'
-      }
-   }
+        }
+    },
+    'DEFAULT_API_URL': 'https://api.caracal.cloud'
 }
 
 
