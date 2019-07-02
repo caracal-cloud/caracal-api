@@ -12,17 +12,6 @@ from auth.backends import CognitoAuthentication
 from caracal.common import aws
 
 
-class HelloCors(views.APIView):
-
-    @swagger_auto_schema(responses={
-        status.HTTP_200_OK: '',
-    }, security=[], operation_id='account - hello cors')
-    def get(self, request):
-        return Response({
-            'message': 'hello cors'
-        }, status=status.HTTP_200_OK)
-
-
 class GetProfileView(generics.RetrieveAPIView):
 
     authentication_classes = [CognitoAuthentication]
