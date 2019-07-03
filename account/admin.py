@@ -53,8 +53,8 @@ class RealTimePositionAdmin(admin.ModelAdmin):
 
 @admin.register(RealTimePositionHash)
 class RealTimePositionHashAdmin(admin.ModelAdmin):
-    list_display = ['hash', 'datetime_created', 'account']
-    search_fields = []
+    list_display = ['hash', 'datetime_created', 'account', 'individual']
+    search_fields = ['account__source', 'account__provider', 'individual__device_id']
     list_filter = []
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'hash']

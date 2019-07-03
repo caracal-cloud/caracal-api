@@ -36,6 +36,9 @@ class RealTimeAccount(BaseAsset):
         ordering = ['-datetime_created']
         unique_together = ['organization', 'source', 'provider', 'type']
 
+    def __str__(self):
+        return f'{self.source} - {self.provider} - {self.type} - {self.title}'
+
 
 class RealTimeIndividual(BaseAsset):
 
@@ -64,6 +67,9 @@ class RealTimeIndividual(BaseAsset):
         app_label = 'account'
         unique_together = ['account', 'device_id']
 
+    def __str__(self):
+        return f'{self.account} - {self.device_id} - {self.name} - {self.subtype}'
+
 
 class RealTimePosition(BaseAsset):
 
@@ -83,6 +89,7 @@ class RealTimePositionHash(models.Model):
 
     datetime_created = models.DateTimeField(default=timezone.now)
     account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, related_name='rt_hash_positions')
+    individual = models.ForeignKey(RealTimeIndividual, on_delete=models.CASCADE, related_name='rt_hash_positions', null=True)
     hash = models.CharField(max_length=255, unique=True)
 
     class Meta:
