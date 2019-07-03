@@ -1,14 +1,21 @@
 
 
+ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savannah_tracking')]
+ACCOUNT_SOURCES = [('collar', 'collar')]
 ACCOUNT_STATUSES = [('healthy', 'healthy'), ('unhealthy', 'unhealthy'), ('pending', 'pending')]
 
 # ALERT_FEEDBACK = [('confirm', 'confirm'), ('deny', 'deny')]
 ALERT_LEVELS = [('info', 'info'), ('warning', 'warning'), ('severe', 'severe')]
 
+BLOOD_TYPES = [('', '')]
 
-# TODO: move to global config
+INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
+
 SEXES = [('male', 'male'), ('female', 'female')]
-COLLAR_STATUSES = [('active', 'active'), ('broken', 'broken'), ('dead', 'dead'), ('unknown', 'unknown')]
+
+
+
+# COLLAR_STATUSES = [('active', 'active'), ('broken', 'broken'), ('dead', 'dead'), ('unknown', 'unknown')]
 
 # CHANGE_ACTIONS = [('create', 'create'), ('read', 'read'), ('update', 'update'), ('delete', 'delete')]
 # CHANGE_TARGETS = [('collar_account', 'collar_account'), ('collar_individual', 'collar_individual')]

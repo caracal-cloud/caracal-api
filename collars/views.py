@@ -1,66 +1,63 @@
 
+
 from django.conf import settings
-from django.contrib.gis.geos import Point
-from django.core.exceptions import ValidationError
-from django.utils import timezone
 from django.db.utils import IntegrityError
-import json
+from django.utils import timezone
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
-import sentry_sdk
-import traceback
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import aws
-from collars import serializers
-from collars.models import CollarAccount, CollarIndividual, CollarProvider
+from caracal.common.models import RealTimeAccount, RealTimeIndividual
+import caracal.common.serializers as common_serializers
+
+from collars import serializers as collar_serializers
 
 
 class AddCollarAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.AddCollarAccountSerializer
+    serializer_class = collar_serializers.AddCollarAccountSerializer
 
     def post(self, request):
-        serializer = serializers.AddCollarAccountSerializer(data=request.data)
+        serializer = collar_serializers.AddCollarAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         # TODO: don't save creds to account, just use in rule...
 
-        # fixme: possibly not enforcing uniqueness
-
-        global_config = aws.get_global_config()
-
         user = request.user
         data = serializer.data
-        species = data['species']
-        provider_short_name = data.pop('provider_short_name')
+        species = data['type']
+        provider = data['provider']
+
+        fetch_rule_input = dict()
+        if provider == 'orbcomm':
+            fetch_rule_input['orbcomm_timezone'] = data.pop('orbcomm_timezone')
+            fetch_rule_input['orbcomm_company_id'] = data.pop('orbcomm_company_id')
+        elif provider == 'savannah_tracking':
+            fetch_rule_input['savannah_tracking_username'] = data.pop('savannah_tracking_username')
+            fetch_rule_input['savannah_tracking_password'] = data.pop('savannah_tracking_password')
 
         try:
-            provider = CollarProvider.objects.get(short_name=provider_short_name, is_available=True)
-        except CollarProvider.DoesNotExist:
+            account = RealTimeAccount.objects.create(organization=user.organization, source='collar', **data)
+        except IntegrityError:
             return Response({
-                'error': 'unknown_provider'
+                'error': 'account_already_added',
+                'message': 'account already added'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            collar_account = CollarAccount.objects.create(organization=request.user.organization, provider=provider, **data)
-        except ValidationError:
-            return Response({
-                'error': 'account_already_added'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        fetch_rule_input['account_uid'] = str(account.uid)
+
 
         """
-        fetch_function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider.short_name)
-        fetch_lambda_function = aws.get_lambda_function(fetch_function_name)
+        
+        global_config = aws.get_global_config()
 
-        fetch_rule_input = {
-            'collar_account_uid': str(collar_account.uid),
-            'organization_uid': str(user.organization.uid),
-            'species': species
-        }
+
+        fetch_function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider)
+        fetch_lambda_function = aws.get_lambda_function(fetch_function_name)
 
         fetch_rule_name = aws.get_cloudwatch_fetch_collars_rule_name(user.organization.short_name, settings.STAGE,
                                                                      provider.short_name, species,
@@ -88,7 +85,7 @@ class AddCollarAccountView(generics.GenericAPIView):
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response({
-            'collar_account_uid': collar_account.collar_account_uid
+            'account_uid': account.uid
         }, status=status.HTTP_201_CREATED)
 
 
@@ -96,24 +93,25 @@ class DeleteCollarAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.DeleteCollarAccountSerializer
+    serializer_class = common_serializers.DeleteAccountSerializer
 
     def post(self, request):
-        serializer = serializers.DeleteCollarAccountSerializer(data=request.data)
+        serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            collar_account = CollarAccount.objects.get(uid=serializer.data['collar_account_uid'])
-        except CollarAccount.DoesNotExist:
+            account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'])
+        except RealTimeAccount.DoesNotExist:
             return Response({
-                'error': 'collar_account_does_not_exist'
+                'error': 'account_does_not_exist',
+                'message': 'account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if collar_account.organization != request.user.organization and not request.user.is_superuser:
+        if account.organization != request.user.organization and not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         # doing this instead of .save() to avoid validate_unique error
-        CollarAccount.objects.filter(uid=collar_account.uid).update(datetime_updated=timezone.now(), is_active=False)
+        RealTimeAccount.objects.filter(uid=account.uid).update(datetime_updated=timezone.now(), is_active=False)
 
         # TODO: remove cloudwatch rules...
 
@@ -124,82 +122,86 @@ class GetCollarAccountsView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.GetCollarAccountsSerializer
+    serializer_class = collar_serializers.GetCollarAccountsSerializer
 
     def get_queryset(self):
         user = self.request.user
-        return CollarAccount.objects.filter(is_active=True, organization=user.organization)
+        return RealTimeAccount.objects.filter(is_active=True, organization=user.organization, source='collar')
 
 
 class GetCollarAccountDetailView(generics.RetrieveAPIView):
 
     lookup_field = 'uid'
-    serializer_class = serializers.GetCollarAccountDetailSerializer
+    serializer_class = collar_serializers.GetCollarAccountDetailSerializer
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return CollarAccount.objects.filter(organization=self.request.user.organization)
+        return RealTimeAccount.objects.filter(organization=self.request.user.organization, source='collar')
 
 
 class GetCollarIndividualsView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.GetCollarIndividualsSerializer
+    serializer_class = collar_serializers.GetCollarIndividualsSerializer
 
     def get_queryset(self):
-        serializer = serializers.GetCollarIndividualsQueryParamsSerializer(data=self.request.query_params)
+
+        serializer = common_serializers.GetRtIndividualsQueryParamsSerializer(data=self.request.query_params)
         serializer.is_valid(raise_exception=True)
-        query_params = serializer.data
+        account_uid = serializer.data['account_uid']
         user = self.request.user
 
         try:
-            collar_account = CollarAccount.objects.get(is_active=True, organization=user.organization, uid=query_params['collar_account_uid'])
-        except CollarAccount.DoesNotExist:
-            return CollarIndividual.objects.none()
+            account = RealTimeAccount.objects.get(is_active=True, organization=user.organization, uid=account_uid)
+            if account.source != 'collar':
+                return RealTimeIndividual.objects.none()
+        except RealTimeAccount.DoesNotExist:
+            return RealTimeIndividual.objects.none()
 
-        return CollarIndividual.objects.filter(is_active=True, collar_account=collar_account)
+        return RealTimeIndividual.objects.filter(is_active=True, account=account)
 
 
 class GetCollarIndividualDetailView(generics.RetrieveAPIView):
 
     lookup_field = 'uid'
-    serializer_class = serializers.GetCollarIndividualDetailSerializer
+    serializer_class = collar_serializers.GetCollarIndividualDetailSerializer
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return CollarIndividual.objects.filter(collar_account__organization=self.request.user.organization)
+        return RealTimeIndividual.objects.filter(account__organization=self.request.user.organization)
 
 
 class UpdateCollarAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.UpdateCollarAccountSerializer
+    serializer_class = common_serializers.UpdateRtAccountSerializer
 
     def post(self, request):
-        serializer = serializers.UpdateCollarAccountSerializer(data=request.data)
+        serializer = common_serializers.UpdateRtAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
         update_data = serializer.data
-        collar_account_uid = update_data.pop('collar_account_uid')
+        account_uid = update_data.pop('account_uid')
 
         try:
-            collar_account = CollarAccount.objects.get(uid=collar_account_uid)
-        except CollarAccount.DoesNotExist:
+            account = RealTimeAccount.objects.get(uid=account_uid)
+        except RealTimeAccount.DoesNotExist:
             return Response({
-                'error': 'collar_account_does_not_exist'
+                'error': 'rt_account_does_not_exist',
+                'message': 'real-time account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if collar_account.organization != user.organization and not user.is_superuser:
+        if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        CollarAccount.objects.filter(uid=collar_account.uid).update(datetime_updated=timezone.now(), **update_data)
+        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
 
-        message = f'{collar_account.species} collar account updated by {user.name}'
+        message = f'{account.type} collar account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response(status=status.HTTP_200_OK)
@@ -209,29 +211,30 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.UpdateCollarIndividualSerializer
+    serializer_class = collar_serializers.UpdateCollarIndividualSerializer
 
     def post(self, request):
-        serializer = serializers.UpdateCollarIndividualSerializer(data=request.data)
+        serializer = collar_serializers.UpdateCollarIndividualSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
         update_data = serializer.data
-        collar_individual_uid = update_data.pop('collar_individual_uid')
+        individual_uid = update_data.pop('individual_uid')
 
         try:
-            collar_individual = CollarIndividual.objects.get(uid=collar_individual_uid)
-        except CollarIndividual.DoesNotExist:
+            individual = RealTimeIndividual.objects.get(uid=individual_uid)
+        except RealTimeIndividual.DoesNotExist:
             return Response({
-                'error': 'collar_individual_does_not_exist'
+                'error': 'rt_individual_does_not_exist',
+                'message': 'real-time individual does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if collar_individual.collar_account.organization != user.organization and not user.is_superuser:
+        if individual.account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        CollarIndividual.objects.filter(uid=collar_individual.uid).update(datetime_updated=timezone.now(), **update_data)
+        RealTimeIndividual.objects.filter(uid=individual_uid).update(datetime_updated=timezone.now(), **update_data)
 
-        message = f'{collar_individual.collar_account.species} collar individual updated by {user.name}'
+        message = f'{individual.account.type} collar individual updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response(status=status.HTTP_200_OK)

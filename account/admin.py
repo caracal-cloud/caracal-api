@@ -3,6 +3,7 @@ from django.contrib import admin
 from account.models import Account, Organization
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 
+
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     list_display = ['uid', 'email', 'organization', 'name',
@@ -14,7 +15,7 @@ class AccountAdmin(admin.ModelAdmin):
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
-    list_display = ['name', 'short_name', 'timezone', 'datetime_created']
+    list_display = ['uid', 'name', 'short_name', 'timezone', 'datetime_created']
     search_fields = ['uid', 'name', 'short_name']
     list_filter = ['is_active']
     ordering = ['name']
@@ -22,7 +23,7 @@ class OrganizationAdmin(admin.ModelAdmin):
 
 @admin.register(RealTimeAccount)
 class RealTimeAccountAdmin(admin.ModelAdmin):
-    list_display = ['datetime_created', 'status', 'collar_account'] # add other children
+    list_display = ['uid', 'datetime_created', 'title', 'status', 'source', 'provider', 'type']
     search_fields = ['uid']
     list_filter = ['is_active']
     ordering = ['-datetime_created']
@@ -31,7 +32,7 @@ class RealTimeAccountAdmin(admin.ModelAdmin):
 
 @admin.register(RealTimeIndividual)
 class RealTimeIndividualAdmin(admin.ModelAdmin):
-    list_display = ['datetime_created', 'account', 'collar_individual'] # add other children
+    list_display = ['uid', 'datetime_created', 'account', 'device_id', 'status', 'name', 'subtype']
     search_fields = ['uid']
     list_filter = ['is_active']
     ordering = ['-datetime_created']
@@ -41,9 +42,8 @@ class RealTimeIndividualAdmin(admin.ModelAdmin):
 
 @admin.register(RealTimePosition)
 class RealTimePositionAdmin(admin.ModelAdmin):
-    list_display = ['datetime_created', 'account', 'individual',
-                    'position', 'datetime_recorded',
-                    'orbcomm_collar_position', 'savannah_tracking_collar_position'] # add other children
+    list_display = ['uid', 'datetime_created', 'account', 'individual',
+                    'position', 'datetime_recorded']
     search_fields = ['uid']
     list_filter = ['is_active']
     ordering = ['-datetime_created']
@@ -53,7 +53,7 @@ class RealTimePositionAdmin(admin.ModelAdmin):
 
 @admin.register(RealTimePositionHash)
 class RealTimePositionHashAdmin(admin.ModelAdmin):
-    list_display = ['datetime_created', 'hash', 'account']
+    list_display = ['hash', 'datetime_created', 'account']
     search_fields = []
     list_filter = []
     ordering = ['-datetime_created']

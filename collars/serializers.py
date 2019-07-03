@@ -1,167 +1,99 @@
 
 from rest_framework import serializers
 from caracal.common import constants
-from collars.models import CollarAccount, CollarIndividual
+# from collars.models import CollarAccount, CollarIndividual
+
+from caracal.common.models import RealTimeAccount, RealTimeIndividual
 
 
 class AddCollarAccountSerializer(serializers.Serializer):
 
-    provider_short_name = serializers.CharField(max_length=100, required=True)
-    species = serializers.CharField(max_length=100)
     title = serializers.CharField(max_length=100)
+    provider = serializers.ChoiceField(choices=constants.ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
+    type = serializers.CharField(max_length=100) # i.e. elephant
 
-    orbcomm_timezone= serializers.CharField(max_length=20, required=False)
+    # Orbcomm/Skygistics
+    orbcomm_timezone = serializers.CharField(max_length=20, required=False)
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)
+
+    # Savannah Tracking
     savannah_tracking_username = serializers.CharField(max_length=100, required=False)
     savannah_tracking_password = serializers.CharField(max_length=100, required=False)
 
     def validate(self, attrs):
-        provider = attrs['provider_short_name']
+
+        # no unknown values allowed because we do **
+        unknown =  set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
+
+        provider = attrs['provider']
         if provider == 'orbcomm':
             if attrs.get('orbcomm_timezone') is None or attrs.get('orbcomm_company_id') is None:
                 raise serializers.ValidationError('orbcomm requires orbcomm_timezone and orbcomm_company_id')
+            if attrs.get('savannah_tracking_username') is not None or attrs.get('savannah_tracking_password') is not None:
+                raise serializers.ValidationError('savannah tracking details not allowed')
         elif provider == 'savannah_tracking':
             if attrs.get('savannah_tracking_username') is None or attrs.get('savannah_tracking_password') is None:
                 raise serializers.ValidationError('savannah_tracking requires savannah_tracking_username and savannah_tracking_password')
+            if attrs.get('orbcomm_timezone') is not None or attrs.get('orbcomm_company_id') is not None:
+                raise serializers.ValidationError('orbcomm details not allowed')
         else:
             raise serializers.ValidationError('invalid provider_name (use orbcomm or savannah_tracking)')
 
         return attrs
 
 
-class AddCollarIndividualSerializer(serializers.Serializer):
-
-    collar_account_uid = serializers.UUIDField(required=True)
-    collar_id = serializers.CharField(max_length=100, required=True)
-
-    def validate(self, attrs):
-        return attrs
-
-
-class AddCollarIndividualPositionSerializer(serializers.Serializer):
-
-    collar_individual_uid = serializers.UUIDField(required=True)
-    datetime_recorded = serializers.DateTimeField()
-    latitude = serializers.DecimalField(decimal_places=6, max_digits=12)
-    longitude = serializers.DecimalField(decimal_places=6, max_digits=12)
-
-    def validate(self, attrs):
-        return attrs
-
-
-class DeleteCollarAccountSerializer(serializers.Serializer):
-    collar_account_uid = serializers.UUIDField(required=True)
-
 
 class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
-    url = serializers.HyperlinkedIdentityField(
-        lookup_field='uid',
-        view_name='collar-account-detail',
-    )
-
-    provider = serializers.CharField(source='provider.name')
-    provider_short_name = serializers.CharField(source='provider.short_name')
-
-    orbcomm_company_id = serializers.SerializerMethodField()
-    def get_orbcomm_company_id(self, obj):
-        return obj.orbcomm_company_id[:2] + '**' if obj.orbcomm_company_id is not None else None
-
-    savannah_tracking_password = serializers.SerializerMethodField()
-    def get_savannah_tracking_password(self, obj):
-        return obj.savannah_tracking_password[:3] + '***' if obj.savannah_tracking_password is not None else None
+    url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-account-detail')
 
     class Meta:
-        model = CollarAccount
+        model = RealTimeAccount
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'provider', 'provider_short_name', 'species', 'title', 'orbcomm_timezone',
-                  'orbcomm_company_id', 'savannah_tracking_username', 'savannah_tracking_password']
+                  'status', 'title', 'source', 'provider', 'type']
 
 
 class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
 
-    provider = serializers.CharField(source='provider.name')
-    provider_short_name = serializers.CharField(source='provider.short_name')
-
-    orbcomm_company_id = serializers.SerializerMethodField()
-    def get_orbcomm_company_id(self, obj):
-        return obj.orbcomm_company_id[:2] + '**' if obj.orbcomm_company_id is not None else None
-
-    savannah_tracking_password = serializers.SerializerMethodField()
-    def get_savannah_tracking_password(self, obj):
-        return obj.savannah_tracking_password[:3] + '***' if obj.savannah_tracking_password is not None else None
-
     class Meta:
-        model = CollarAccount
+        model = RealTimeAccount
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'provider', 'provider_short_name', 'species', 'title', 'orbcomm_timezone',
-                  'orbcomm_company_id', 'savannah_tracking_username', 'savannah_tracking_password']
-
-
-class GetCollarIndividualsQueryParamsSerializer(serializers.Serializer):
-    collar_account_uid = serializers.UUIDField(required=True)
+                  'status', 'title', 'source', 'provider', 'type']
 
 
 class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
 
-    url = serializers.HyperlinkedIdentityField(
-        lookup_field='uid',
-        view_name='collar-individual-detail',
-    )
+    url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='rt-individual-detail')
+
+    # TODO: calculate distances with monthly_paths
 
     class Meta:
-        model = CollarIndividual
+        model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'datetime_last_position',
-                  'name', 'sex', 'subtype', 'status']
+                  'status', 'name', 'subtype', 'sex',
+                  'datetime_last_position']
 
 
 class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 
+    # TODO: calculate distances with monthly_paths
+
     class Meta:
-        model = CollarIndividual
-        fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'datetime_last_position',
-                  'name', 'sex', 'subtype', 'status']
-
-
-class UpdateCollarAccountSerializer(serializers.Serializer):
-
-    collar_account_uid = serializers.UUIDField(required=True)
-    title = serializers.CharField(max_length=100, required=False)
-    orbcomm_timezone= serializers.CharField(max_length=20, required=False)
-    orbcomm_company_id = serializers.CharField(max_length=50, required=False)
-    savannah_tracking_username = serializers.CharField(max_length=100, required=False)
-    savannah_tracking_password = serializers.CharField(max_length=100, required=False)
-
-    def validate(self, attrs):
-        unknown =  set(self.initial_data) - set(self.fields)
-        if unknown:
-            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
-
-        if len(attrs) < 2:
-            raise serializers.ValidationError('one or more account details required')
-
-        try:
-            collar_account = CollarAccount.objects.get(uid=attrs['collar_account_uid'])
-        except CollarAccount.DoesNotExist:
-            raise serializers.ValidationError('invalid account uid')
-
-        # reject input with details from other provider (i.e. if Orbcomm, reject Savannah Tracking details)
-        for key, value in attrs.items():
-            if not key.startswith(collar_account.provider.short_name) and key not in ['collar_account_uid', 'title'] :
-                raise serializers.ValidationError('account details do not match provider: ' + collar_account.provider.short_name)
-
-        return attrs
+        model = RealTimeIndividual
+        fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
+                  'status', 'name', 'subtype', 'sex',
+                  'datetime_last_position']
 
 
 class UpdateCollarIndividualSerializer(serializers.Serializer):
 
-    collar_individual_uid = serializers.UUIDField(required=True)
+    individual_uid = serializers.UUIDField(required=True)
+    status = serializers.ChoiceField(constants.INDIVIDUAL_STATUSES, required=False)
     name = serializers.CharField(max_length=100, required=False)
-    sex = serializers.ChoiceField(['male', 'female'], required=False)
     subtype = serializers.CharField(max_length=100, required=False)
-    status = serializers.ChoiceField(constants.COLLAR_STATUSES, required=False)
+    sex = serializers.ChoiceField(choices=constants.SEXES, required=False)
 
     def validate(self, attrs):
         unknown =  set(self.initial_data) - set(self.fields)

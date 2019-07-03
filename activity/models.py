@@ -5,16 +5,10 @@ import uuid
 
 from account.models import Account, Organization
 from caracal.common import constants
-from collars.models import CollarAccount
+from caracal.common.models import BaseAsset
 
 
-class ActivityAlert(models.Model):
-
-    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
-    datetime_created = models.DateTimeField(default=timezone.now)
-    datetime_updated = models.DateTimeField(null=True)
-    datetime_deleted = models.DateTimeField(null=True)
-    is_active = models.BooleanField(default=True)
+class ActivityAlert(BaseAsset):
 
     organization = models.ForeignKey(Organization, on_delete=models.PROTECT, related_name='alerts')
 

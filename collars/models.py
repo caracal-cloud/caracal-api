@@ -10,6 +10,9 @@ from caracal.common import constants
 import caracal.common.models as parent_models
 
 
+
+"""
+
 class CollarProvider(models.Model):
 
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
@@ -120,4 +123,5 @@ class SavannahTrackingCollarPosition(parent_models.RealTimePosition):
         related_name='savannah_tracking_collar_position'
     )
 
+"""
 
