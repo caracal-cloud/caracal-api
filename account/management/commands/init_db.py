@@ -1,11 +1,9 @@
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-import json
-import os
-import requests
 
-from .utils import collars, common
+
+from .utils import common
 
 class Command(BaseCommand):
     help = 'Initializes the all JWKs from all user pools in Cognito.'
@@ -30,8 +28,6 @@ class Command(BaseCommand):
             return
 
         common.clear_all_content()
-        #common.create_overlord()
-        collars.add_collar_providers()
 
 
 
