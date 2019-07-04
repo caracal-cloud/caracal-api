@@ -9,6 +9,8 @@ ALERT_LEVELS = [('info', 'info'), ('warning', 'warning'), ('severe', 'severe')]
 
 BLOOD_TYPES = [('', '')]
 
+DEFAULT_IMAGE_FORMAT = 'png'
+
 INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
 
 SEXES = [('male', 'male'), ('female', 'female')]

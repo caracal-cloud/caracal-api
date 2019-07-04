@@ -33,7 +33,8 @@ class ForcedPasswordResetView(generics.GenericAPIView):
         try:
             cognito.get_tokens(warrant_client, old_password)
             return Response({
-                'detail': 'password reset not required'
+                'error': 'reset_not_required',
+                'message': 'password reset not required'
             }, status=status.HTTP_200_OK)
         except warrant.exceptions.ForceChangePasswordException: # FORCE_CHANGE_PASSWORD
             try:
@@ -42,15 +43,17 @@ class ForcedPasswordResetView(generics.GenericAPIView):
             except warrant_client.client.exceptions.InvalidPasswordException:
                 return Response({
                     'error': 'invalid_password',
+                    'message': 'invalid password, min length 7'
                 }, status=status.HTTP_400_BAD_REQUEST)
         except (warrant_client.client.exceptions.NotAuthorizedException, warrant_client.client.exceptions.UserNotFoundException):
             return Response({
-                'error': 'invalid_credentials'
+                'error': 'invalid_credentials',
+                'message': 'invalid credentials'
             }, status=status.HTTP_401_UNAUTHORIZED)
         except warrant_client.client.exceptions.PasswordResetRequiredException: # RESET_REQUIRED
             return Response({
                 'error': 'password_reset_required',
-                'detail': 'use forgot password flow'
+                'message': 'use forgot password flow'
             }, status=status.HTTP_403_FORBIDDEN)
 
 
@@ -86,7 +89,7 @@ class ForgotPasswordView(generics.GenericAPIView):
         except warrant_client.client.exceptions.LimitExceededException:
             return Response({
                 'error': 'limit_exceeded',
-                'message': 'try again later'
+                'message': 'limit exceeded, try again later'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.UserNotFoundException:
             return Response({
@@ -109,27 +112,27 @@ class ForgotPasswordConfirmView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.data['email']
-        confirmation_code = serializer.data['confirmation_code']
+        verification_code = serializer.data['verification_code']
         new_password = serializer.data['new_password']
 
         warrant_client = cognito.get_warrant_wrapper_client(email)
         try:
-            warrant_client.confirm_forgot_password(confirmation_code, new_password)
+            warrant_client.confirm_forgot_password(verification_code, new_password)
             return Response(status=status.HTTP_200_OK)
         except warrant_client.client.exceptions.CodeMismatchException:
             return Response({
                 'error': 'invalid_code',
-                'message': 'invalid code'
+                'message': 'invalid verification code'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.ExpiredCodeException:
             return Response({
                 'error': 'expired_code',
-                'message': 'code expired, please try again'
+                'message': 'verification code expired, please try again'
             }, status=status.HTTP_400_BAD_REQUEST)
         except ParamValidationError:
             return Response({
                 'error': 'invalid_password',
-                'message': 'invalid password'
+                'message': 'invalid password, min length 7'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.UserNotFoundException:
             return Response({

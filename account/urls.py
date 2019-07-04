@@ -26,6 +26,6 @@ urlpatterns = [
     path('logout/', tokens.LogoutView.as_view()),
     path('refresh/', tokens.RefreshView.as_view()),
     path('register/', register.RegisterView.as_view()),
-    #path('update_account/', profile.UpdateAccountView.as_view()),
-    #path('update_organization/', profile.UpdateOrganizationView.as_view()),
+    path('update_account/', profile.UpdateAccountView.as_view()),
+    path('update_organization/', profile.UpdateOrganizationView.as_view()),
 ]

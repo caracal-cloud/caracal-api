@@ -56,7 +56,10 @@ class UpdateOrganizationView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         if not request.user.is_admin:
-            return Response(status=status.HTTP_403_FORBIDDEN)
+            return Response({
+               'error': 'admin_required',
+                'message': 'admin privileges required'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         serializer.save(organization=user.organization)
 

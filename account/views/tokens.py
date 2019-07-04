@@ -46,12 +46,12 @@ class LoginView(generics.GenericAPIView):
         except warrant_client.client.exceptions.PasswordResetRequiredException: # RESET_REQUIRED
             return Response({
                 'error': 'password_reset_required',
-                'detail': 'use forgot password flow'
+                'message': 'use forgot password flow'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant.exceptions.ForceChangePasswordException: # FORCE_CHANGE_PASSWORD
             return Response({
                 'error': 'password_change_required',
-                'detail': 'use forced password change flow'
+                'message': 'use forced password change flow'
             }, status=status.HTTP_400_BAD_REQUEST)
         except warrant_client.client.exceptions.NotAuthorizedException:
             return Response({
@@ -118,7 +118,8 @@ class RefreshView(generics.GenericAPIView):
             )
         except cognito_idp_client.exceptions.NotAuthorizedException:
             return Response({
-                'error': 'invalid_access_token'
+                'error': 'invalid_access_token',
+                'message': 'invalid access token'
             }, status=status.HTTP_403_FORBIDDEN)
 
         return Response({
