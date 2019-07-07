@@ -54,6 +54,13 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, email, password, **extra_fields):
 
+        try: # we can only have 1 superuser
+            Account.objects.get(is_superuser=True)
+            print('superuser already exists')
+            return
+        except Account.DoesNotExist:
+            pass
+
         try:
             org = Organization.objects.get(short_name=settings.APPLICATION_SHORT_NAME)
         except Organization.DoesNotExist:

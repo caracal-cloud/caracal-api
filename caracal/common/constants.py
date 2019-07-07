@@ -5,7 +5,7 @@ ACCOUNT_SOURCES = [('collar', 'collar')]
 ACCOUNT_STATUSES = [('healthy', 'healthy'), ('unhealthy', 'unhealthy'), ('pending', 'pending')]
 
 # ALERT_FEEDBACK = [('confirm', 'confirm'), ('deny', 'deny')]
-ALERT_LEVELS = [('info', 'info'), ('warning', 'warning'), ('severe', 'severe')]
+ALERT_LEVELS = [('low', 'low'), ('medium', 'medium'), ('high', 'high')]
 
 BLOOD_TYPES = [('', '')]
 
