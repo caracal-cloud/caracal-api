@@ -11,4 +11,5 @@ urlpatterns = [
     path('get_individual/<str:uid>', views.GetCollarIndividualDetailView.as_view(), name='collar-individual-detail'),
     path('update_account/', views.UpdateCollarAccountView.as_view()),
     path('update_individual/', views.UpdateCollarIndividualView.as_view()),
+    path('validate_account/', views.ValidateAccountDetailsView.as_view())
 ]

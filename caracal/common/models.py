@@ -90,6 +90,7 @@ class RealTimePositionHash(models.Model):
     datetime_created = models.DateTimeField(default=timezone.now)
     account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, related_name='rt_hash_positions')
     individual = models.ForeignKey(RealTimeIndividual, on_delete=models.CASCADE, related_name='rt_hash_positions', null=True)
+    datetime_recorded = models.DateTimeField()
     hash = models.CharField(max_length=255, unique=True)
 
     class Meta:

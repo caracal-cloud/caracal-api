@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.db.utils import IntegrityError
 from django.utils import timezone
+import requests
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 
@@ -240,11 +241,74 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class ValidateAccountDetailsView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = collar_serializers.ValidateAccountDetailsSerializer
+
+    def post(self, request):
+        serializer = collar_serializers.ValidateAccountDetailsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        provider = serializer.data['provider']
+
+        global_config = aws.get_global_config()
+
+        if provider == 'orbcomm':
+            orbcomm_company_id = serializer.data['orbcomm_company_id']
+            orbcomm_timezone = serializer.data['orbcomm_timezone']
+            orbcomm_list_url = global_config['ORBCOMM_BASE_URL'] + 'getUnitList'
+
+            payload = {
+                'company': orbcomm_company_id,
+                'tz': orbcomm_timezone,
+                'lmtime': orbcomm_timezone
+            }
+
+            res = requests.get(orbcomm_list_url, params=payload) # status_code is always 200
+            rows = parse_orbcomm_rows(res)
+            is_verified = len(rows) > 0
+
+        elif provider == 'savannah_tracking':
+            savannah_tracking_username = serializer.data['savannah_tracking_username']
+            savannah_tracking_password = serializer.data['savannah_tracking_password']
+
+            login_payload = {
+                'request': 'authenticate',
+                'uid': savannah_tracking_username,
+                'pwd': savannah_tracking_password
+            }
+
+            savannah_tracking_login_url = global_config['SAVANNAH_TRACKING_BASE_URL'] + 'savannah_data/data_auth'
+            login_res = requests.post(savannah_tracking_login_url, data=login_payload)
+            login_content = login_res.json()
+            is_verified = 'sucess' in login_content.keys() and login_content['sucess']
+
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if is_verified:
+            return Response(status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'error': 'invalid_collar_account_details',
+                'message': 'invalid collar account details'
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+def parse_orbcomm_rows(res):
 
+    content = res.content.decode('utf-8')
+    content = content.replace('<?xml version="1.0" encoding="utf-8"?>\n', '')
+    content = content.replace('<string xmlns="http://tempuri.org/">', '')
+    content = content.replace('</string>', '')
 
+    rows = content.split('~')
+    rows = [row.split('`') for row in rows]
+    rows = rows[1:]
 
+    return rows
 
 
 

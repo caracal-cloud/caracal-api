@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from activity import serializers
 from activity.models import ActivityAlert, ActivityChange
 from auth.backends import CognitoAuthentication
-from collars.models import CollarPosition
+from caracal.common.models import RealTimePositionHash
 
 
 class DeleteAlertView(generics.GenericAPIView):
@@ -82,12 +82,13 @@ class GetOverviewMetricsView(views.APIView):
         data = {}
 
         # Collars
-        collar_accounts = organization.collar_accounts.filter(is_active=True)
-        for collar_account in collar_accounts:
-            key = f'num_{collar_account.species}_positions'
+        accounts = organization.rt_accounts.filter(is_active=True)
+        for account in accounts:
+            key = f'num_{account.type}_positions'
+            # initialize and increment number of positions grouped by type (elephant, radio, etc.)
             if key not in data.keys():
                 data[key] = 0
-            data[key] += CollarPosition.objects.filter(collar_account=collar_account, datetime_recorded__gte=then).count()
+            data[key] += RealTimePositionHash.objects.filter(account=account, datetime_recorded__gte=then).count()
 
         # Alerts
         data['num_alerts'] = organization.alerts.count()
