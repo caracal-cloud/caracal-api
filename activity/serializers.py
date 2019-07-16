@@ -10,7 +10,7 @@ class DeleteAlertSerializer(serializers.Serializer):
     alert_uid = serializers.UUIDField()
 
 
-class GetAlertsSerializer(serializers.ModelSerializer):
+class GetEventsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ActivityAlert

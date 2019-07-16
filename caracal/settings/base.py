@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'account',
     'activity',
     'collars',
+    'drives',
+    'outputs',
     'public'
 ]
 

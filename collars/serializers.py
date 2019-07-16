@@ -6,7 +6,7 @@ from caracal.common import constants
 from caracal.common.models import RealTimeAccount, RealTimeIndividual
 
 
-class AddCollarAccountSerializer(serializers.Serializer):
+class AddCollarAccountSerializer(serializers.ModelSerializer):
 
     title = serializers.CharField(max_length=100)
     provider = serializers.ChoiceField(choices=constants.ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
@@ -20,15 +20,30 @@ class AddCollarAccountSerializer(serializers.Serializer):
     savannah_tracking_username = serializers.CharField(max_length=100, required=False)
     savannah_tracking_password = serializers.CharField(max_length=100, required=False)
 
-    def validate(self, attrs):
+    # Outputs
+    output_agol = serializers.BooleanField(default=False)
+    output_database = serializers.BooleanField(default=False)
+    output_kml = serializers.BooleanField(default=False)
 
+    class Meta:
+        model = RealTimeAccount
+        fields = ['title', 'provider', 'type',
+                  'orbcomm_timezone', 'orbcomm_company_id',
+                  'savannah_tracking_username', 'savannah_tracking_password',
+                  'output_agol', 'output_database', 'output_kml']
+
+    def validate(self, attrs):
         # no unknown values allowed because we do **
         unknown =  set(self.initial_data) - set(self.fields)
         if unknown:
             raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
 
         validate_provider_details(attrs)
+
+        # TODO: verify that exclusively savannah or orbcomm
+
         return attrs
+
 
 
 

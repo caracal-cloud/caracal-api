@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.db.utils import IntegrityError
 from django.utils import timezone
+import json
 import requests
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
@@ -41,8 +42,17 @@ class AddCollarAccountView(generics.GenericAPIView):
             fetch_rule_input['savannah_tracking_username'] = data.pop('savannah_tracking_username')
             fetch_rule_input['savannah_tracking_password'] = data.pop('savannah_tracking_password')
 
+        # outputs
+        outputs = {
+            'output_agol': data.pop('output_agol', False),
+            'output_database': data.pop('output_database', False),
+            'output_kml': data.pop('output_kml', False)
+        }
+        outputs = json.dumps(outputs)
+
         try:
-            account = RealTimeAccount.objects.create(organization=user.organization, source='collar', **data)
+            account = RealTimeAccount.objects.create(organization=user.organization, source='collar',
+                                                     outputs=outputs, **data)
         except IntegrityError:
             return Response({
                 'error': 'account_already_added',
@@ -251,9 +261,9 @@ class ValidateAccountDetailsView(generics.GenericAPIView):
         serializer = collar_serializers.ValidateAccountDetailsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        provider = serializer.data['provider']
-
         global_config = aws.get_global_config()
+
+        provider = serializer.data['provider']
 
         if provider == 'orbcomm':
             orbcomm_company_id = serializer.data['orbcomm_company_id']

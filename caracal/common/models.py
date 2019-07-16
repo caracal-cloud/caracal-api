@@ -29,7 +29,8 @@ class RealTimeAccount(BaseAsset):
     source = models.CharField(choices=constants.ACCOUNT_SOURCES, max_length=50, blank=False, null=False)
     provider = models.CharField(choices=constants.ACCOUNT_PROVIDERS, max_length=100, blank=False, null=False) # i.e. orbcomm
     type = models.CharField(max_length=100) # i.e. elephant
-    device_indexes = models.TextField(blank=True, null=True) # last position indexes json
+    device_indexes = models.TextField(blank=True, null=True) # last position indexes as json
+    outputs = models.TextField(blank=False, null=True) # outputs as json
 
     class Meta:
         app_label = 'account'

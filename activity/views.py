@@ -36,11 +36,11 @@ class DeleteAlertView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class GetAlertsView(generics.ListAPIView):
+class GetEventsView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.GetAlertsSerializer
+    serializer_class = serializers.GetEventsSerializer
 
     def get_queryset(self):
         #user = self.request.user
