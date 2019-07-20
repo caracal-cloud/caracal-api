@@ -3,6 +3,8 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import django.db.models as m
 from django.utils import timezone
+
+
 from sentry_sdk import capture_message
 import uuid
 
@@ -26,7 +28,6 @@ class Organization(m.Model):
     google_oauth_access_token = m.TextField(null=True)
     google_oauth_refresh_token = m.TextField(null=True)
 
-    # maybe inforce force_organization_update at auth level in backend?
     update_required = m.BooleanField(default=False, null=True)
 
     class Meta:

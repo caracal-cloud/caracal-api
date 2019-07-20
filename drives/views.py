@@ -2,12 +2,14 @@
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import json
+import jwt
 import os
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
+from caracal.common.oauth import refresh_google_token
 from drives import serializers
 
 
@@ -18,15 +20,23 @@ class GetGoogleOauthRequestUrlView(views.APIView):
 
     def get(self, request):
 
-        # TODO: check if google oauth creds already connected
+        user = request.user
+        if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
+
+            access_token = refresh_google_token(user.organization.google_oauth_refresh_token)
+            if access_token is not None:
+                return Response({
+                    'message': 'google account already connected'
+                }, status=status.HTTP_204_NO_CONTENT)
 
         state = {
-            'account_uid': request.user.uid_cognito
+            'account_uid': str(user.uid_cognito)
         }
 
         flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
             os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
-            scopes=['https://www.googleapis.com/auth/drive']
+            scopes=["openid",  "https://www.googleapis.com/auth/userinfo.email",
+                    "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/userinfo.profile"]
         )
 
         # TODO: move to settings
@@ -67,9 +77,8 @@ class GoogleOauthResponseView(views.APIView):
 
             flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
                 os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
-                scopes=['https://www.googleapis.com/auth/drive'],
-
-            )
+                scopes=["openid", "https://www.googleapis.com/auth/userinfo.email",
+                        "https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/userinfo.profile"]            )
 
             flow.redirect_uri = 'https://api.caracal.cloud/drives/google/oauth/response'
             flow.redirect_uri = 'http://localhost:8000/drives/google/oauth/response'
@@ -78,12 +87,11 @@ class GoogleOauthResponseView(views.APIView):
             credentials = flow.credentials
 
             access_token = credentials.token
-            refresh_token = credentials.refresh_token
 
-            print('access_token', access_token)
-            print('refresh_token', refresh_token)
+            # refresh_token is None if already signed in
+            if credentials.refresh_token:
+                refresh_token = credentials.refresh_token
 
-            # TODO: save tokens to user's organization
             try:
                 user = Account.objects.get(uid_cognito=state['account_uid'])
             except Account.DoesNotExist:
