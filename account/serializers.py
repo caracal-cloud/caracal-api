@@ -23,6 +23,44 @@ class ConfirmForgotPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(min_length=7, max_length=50)
 
 
+class ForceOrganizationUpdateSerializer(serializers.Serializer):
+
+    organization_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
+    organization_short_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
+
+    def validate_organization_short_name(self, value):
+        short_name = value.strip()
+        if len(short_name.split(' ')) > 1:
+            raise serializers.ValidationError({
+                'error': 'invalid_organization_short_name',
+                'message': 'organization short name must be one word'
+            })
+        return value
+
+    def update(self, account, validated_data):
+
+        name = validated_data['organization_name']
+        short_name = validated_data['organization_short_name']
+
+        try:
+            Organization.objects.get(short_name=short_name)
+            raise serializers.ValidationError({
+                'error': 'organization_short_name_already_exists',
+                'message': 'organization short name already exists'
+            })
+        except Organization.DoesNotExist:
+            pass
+
+        account.organization.name = name
+        account.organization.short_name = short_name
+        account.organization.update_required = False
+        account.organization.save()
+
+        password = str(uuid.uuid4()).split('-')[0]
+        aws.create_dynamo_credentials(validated_data['organization_short_name'], 'admin', password, ['all'])
+
+        return account
+
 class ForcedPasswordResetSerializer(serializers.Serializer):
 
     email = CaseInsensitiveEmailField(required=True, max_length=200)
@@ -39,6 +77,8 @@ class GetProfileSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name')
     organization_short_name = serializers.CharField(source='organization.short_name')
     organization_timezone = serializers.CharField(source='organization.timezone')
+
+    uid = serializers.CharField(source='uid_cognito')
 
     logo_url = serializers.SerializerMethodField()
     def get_logo_url(self, obj):
@@ -73,8 +113,6 @@ class RefreshResponseSerializer(serializers.Serializer):
 
 class RegisterSerializer(serializers.Serializer):
 
-    # TODO: add to prototype? short_name? required phone number...
-
     organization_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
     organization_short_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
     account_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
@@ -91,7 +129,6 @@ class RegisterSerializer(serializers.Serializer):
                 'message': 'organization short name must be one word'
             })
         return value
-
 
     def create(self, validated_data):
         organization_name = validated_data['organization_name']
@@ -148,51 +185,35 @@ class RegisterSerializer(serializers.Serializer):
             traceback.print_exc()
 
 
+class SocialAuthGoogleSerializer(serializers.Serializer):
+    id_token = serializers.CharField()
+
+
 class UpdateAccountSerializer(serializers.Serializer):
 
     name = serializers.CharField(max_length=150, required=False)
     phone_number = serializers.CharField(max_length=150, required=False)
-
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
-        instance.datetime_updated = timezone.now()
-        instance.save()
-        return instance
-
-    def validate(self, attrs):
-        unknown =  set(self.initial_data) - set(self.fields)
-        if unknown:
-            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
-        return attrs
-
-
-class UpdateOrganizationSerializer(serializers.Serializer):
-
-    name = serializers.CharField(max_length=150, required=False)
+    organization_name = serializers.CharField(max_length=150, required=False)
     timezone = serializers.CharField(max_length=50, required=False)
     logo = serializers.ImageField(required=False, allow_empty_file=False)
 
-    def update(self, instance, validated_data):
-        instance.name = validated_data.get('name', instance.name)
-        instance.timezone = validated_data.get('timezone', instance.timezone)
-        instance.datetime_updated = timezone.now()
+    def update(self, account, validated_data):
+        # account
+        account.name = validated_data.get('name', account.name)
+        account.phone_number = validated_data.get('phone_number', account.phone_number)
+        account.datetime_updated = timezone.now()
+        account.save()
 
-        organization = validated_data['organization']
-
+        # organization
+        account.organization.name = validated_data.get('organization_name', account.organization.name)
+        account.organization.timezone = validated_data.get('timezone', account.organization.timezone)
         logo = validated_data.get('logo')
         if logo is not None:
-            logo.file.seek(0)
-            png_logo = image.get_rgba_image(logo.file.read())
-            png_logo_buffer = image.get_image_bufer(png_logo)
+            object_key = save_logo(logo, account)
+            account.organization.logo_object_key = object_key
+        account.organization.save()
 
-            # standardizing ending so Lambda can use suffix filter
-            object_key = f'{organization.short_name}/static/logo.{constants.DEFAULT_IMAGE_FORMAT}'
-            aws.put_s3_item(png_logo_buffer.getvalue(), settings.S3_USER_DATA_TABLE, object_key)
-            instance.logo_object_key = object_key
-
-        instance.save()
-        return instance
+        return account
 
     def validate_timezone(self, timezone_string):
         if timezone_string not in pytz.all_timezones:
@@ -206,11 +227,14 @@ class UpdateOrganizationSerializer(serializers.Serializer):
         return attrs
 
 
-
-
-
-
-
+def save_logo(logo, account):
+    logo.file.seek(0)
+    png_logo = image.get_rgba_image(logo.file.read())
+    png_logo_buffer = image.get_image_bufer(png_logo)
+    # standardizing ending so Lambda can use suffix filter
+    object_key = f'{account.organization.short_name}/static/logo.{constants.DEFAULT_IMAGE_FORMAT}'
+    aws.put_s3_item(png_logo_buffer.getvalue(), settings.S3_USER_DATA_TABLE, object_key)
+    return object_key
 
 
 

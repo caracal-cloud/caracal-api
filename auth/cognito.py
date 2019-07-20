@@ -33,7 +33,7 @@ def get_cognito_idp_client():
     return boto3.client('cognito-idp', **kwargs)
 
 
-def get_warrant_wrapper_client(email):
+def get_warrant_wrapper_client(email=None):
     return Cognito(user_pool_id=settings.COGNITO_USER_POOL_ID,
                    client_id=settings.COGNITO_APP_ID,
                    user_pool_region=settings.AWS_REGION,
@@ -51,6 +51,7 @@ def get_tokens(warrant_client, password):
 
 
 def register(email, password, cognito_idp_client):
+    client = get_cognito_idp_client()
     params = {
         'ClientId': settings.COGNITO_APP_ID,
         'Username': email,
@@ -82,8 +83,12 @@ def remove_all_users():
         )
 
 
-
-
+def sign_out_user(email):
+    client = get_cognito_idp_client()
+    client.admin_user_global_sign_out(
+        UserPoolId=settings.COGNITO_USER_POOL_ID,
+        Username=email
+    )
 
 
 

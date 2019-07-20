@@ -11,6 +11,9 @@ STAGE = 'staging'
 COGNITO_USER_POOL_NAME = 'Caracal-Staging'
 COGNITO_USER_POOL_ID = os.environ['CARACAL_STAGING_COGNITO_USERPOOL_ID']
 COGNITO_APP_ID = os.environ['CARACAL_STAGING_COGNITO_APP_ID']
+
+GOOGLE_CLIENT_ID = os.environ['CARACAL_DEV_GOOGLE_CLIENT_ID']
+
 S3_FILES_BUCKET = "caracal-user-staging"
 
 ALLOWED_HOSTS = ['127.0.0.1', 'api.staging.caracal.cloud'] # TODO: add EB

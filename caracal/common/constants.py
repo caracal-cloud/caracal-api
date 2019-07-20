@@ -13,6 +13,8 @@ DEFAULT_IMAGE_FORMAT = 'png'
 
 INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
 
+REGISTRATION_METHODS = [('email', 'email'), ('google', 'google')]
+
 SEXES = [('male', 'male'), ('female', 'female')]
 
 

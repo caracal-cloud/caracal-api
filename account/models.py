@@ -1,4 +1,4 @@
-from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import django.db.models as m
@@ -7,19 +7,24 @@ from sentry_sdk import capture_message
 import uuid
 
 from auth import cognito
+from caracal.common import constants
 
 
 class Organization(m.Model):
+
     uid = m.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = m.DateTimeField(default=timezone.now)
     datetime_updated = m.DateTimeField(null=True)
     datetime_deleted = m.DateTimeField(null=True)
     is_active = m.BooleanField(default=True) # alias for deleted
 
-    name = m.CharField(max_length=150, blank=False, null=False)
-    short_name = m.CharField(max_length=20, blank=False, null=False, unique=True)
+    name = m.CharField(max_length=150, blank=False, null=True)
+    short_name = m.CharField(max_length=50, blank=False, null=False, unique=True)
     timezone = m.CharField(max_length=50, default='Africa/Kigali')
-    logo_object_key = m.CharField(max_length=255, null=True)
+    logo_object_key = m.CharField(max_length=255, blank=True, null=True)
+
+    # maybe inforce force_organization_update at auth level in backend?
+    update_required = m.BooleanField(default=False, null=True)
 
     class Meta:
         ordering = ['name']
@@ -40,7 +45,7 @@ class UserManager(BaseUserManager):
 
         try:
             sub = cognito.register(email, password, cognito_idp_client)
-            user.uid = sub
+            user.uid_cognito = sub
             user.save(using=self._db)
             return user
 
@@ -77,12 +82,11 @@ class UserManager(BaseUserManager):
         return user
 
 
-def jwt_get_secret_key(user):
-    return user.jwt_secret
-
-
 class Account(AbstractBaseUser, PermissionsMixin):
-    uid = m.UUIDField(unique=True, editable=False, default=uuid.uuid4)
+
+    uid_cognito = m.UUIDField(unique=True, editable=False, default=uuid.uuid4)
+    uid_google = m.CharField(max_length=100, editable=False, null=True)
+
     datetime_created = m.DateTimeField(default=timezone.now)
     datetime_updated = m.DateTimeField(null=True)
     datetime_deleted = m.DateTimeField(null=True)
@@ -96,6 +100,10 @@ class Account(AbstractBaseUser, PermissionsMixin):
     is_superuser = m.BooleanField(default=False) # project-wide superuser
     is_staff = m.BooleanField(default=False) # super user or agent
     is_admin = m.BooleanField(default=False) # is this the organization-admin?
+
+    registration_method = m.CharField(max_length=50, choices=constants.REGISTRATION_METHODS, default='email', null=True)
+    custom_access_jwt_id = m.UUIDField(null=True)
+    custom_refresh_jwt_id = m.UUIDField(null=True)
 
     objects = UserManager()
 

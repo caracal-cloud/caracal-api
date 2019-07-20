@@ -6,20 +6,21 @@ from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimeP
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'email', 'organization', 'name',
+    list_display = ['uid_cognito', 'email', 'organization', 'name',
                     'phone_number', 'datetime_created']
-    search_fields = ['uid', 'email', 'organization__name']
+    search_fields = ['uid_cognito', 'uid_google', 'email', 'organization__name']
     list_filter = ['is_active', 'is_superuser', 'is_staff', 'is_admin']
     ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
 
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ['uid', 'name', 'short_name', 'timezone', 'datetime_created']
     search_fields = ['uid', 'name', 'short_name']
-    list_filter = ['is_active']
+    list_filter = ['is_active', 'update_required']
     ordering = ['name']
-
+    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
 
 @admin.register(RealTimeAccount)
 class RealTimeAccountAdmin(admin.ModelAdmin):

@@ -11,6 +11,32 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 
 
+class ForceOrganizationUpdateView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.ForceOrganizationUpdateSerializer
+
+    @swagger_auto_schema(responses={
+        status.HTTP_200_OK: '',
+        status.HTTP_400_BAD_REQUEST: '',
+    }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - force organization update')
+    def post(self, request):
+        user = request.user
+
+        if not user.organization.update_required:
+            return Response({
+                'error': 'update_not_required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = serializers.ForceOrganizationUpdateSerializer(user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return Response(status=status.HTTP_501_NOT_IMPLEMENTED)
+
+
 class GetProfileView(generics.RetrieveAPIView):
 
     authentication_classes = [CognitoAuthentication]
@@ -35,38 +61,23 @@ class UpdateAccountView(generics.GenericAPIView):
         user = request.user
         serializer = serializers.UpdateAccountSerializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # only admin can update organization
+        admin_fields = {'organization_name', 'timezone', 'logo'}
+        serializer_fields = set(serializer.validated_data.keys())
+        if len(admin_fields.intersection(serializer_fields)) > 0:
+            if not user.is_admin:
+                return Response({
+                    'error': 'admin_privileges_required'
+                }, status=status.HTTP_403_FORBIDDEN)
+            else:
+                message = f'organization profile updated by {user.name}'
+                ActivityChange.objects.create(organization=user.organization, account=user, message=message)
+
         serializer.save()
 
         return Response(status=status.HTTP_200_OK)
 
-
-class UpdateOrganizationView(generics.GenericAPIView):
-
-    authentication_classes = [CognitoAuthentication]
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.UpdateOrganizationSerializer
-
-    @swagger_auto_schema(responses={
-        status.HTTP_200_OK: '',
-        status.HTTP_400_BAD_REQUEST: '',
-    }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - update organization')
-    def post(self, request):
-        user = request.user
-        serializer = serializers.UpdateOrganizationSerializer(user.organization, data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        if not request.user.is_admin:
-            return Response({
-               'error': 'admin_required',
-                'message': 'admin privileges required'
-            }, status=status.HTTP_403_FORBIDDEN)
-
-        serializer.save(organization=user.organization)
-
-        message = f'organization profile updated by {user.name}'
-        ActivityChange.objects.create(organization=user.organization, account=user, message=message)
-
-        return Response(status=status.HTTP_200_OK)
 
 
 

@@ -25,7 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 
 DEBUG = True
 
-SECRET_KEY = 'e3dk1qlemm9$ptb**v-jfasa_)8c)lc4!^2^0&znctzdg&x-fu'
+SECRET_KEY = os.environ['CARACAL_SECRET']
 
 INSTALLED_APPS = [
     'jet',
@@ -110,7 +110,7 @@ SHELL_PLUS_PRE_IMPORTS = (
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR+'/caracal/templates'],
+        'DIRS': [BASE_DIR+'/caracal/templates', BASE_DIR+'/account/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -21,20 +21,45 @@ class CognitoAuthentication(BaseAuthentication):
         if jwt_value is None:
             return None
 
-        CognitoAuthentication.verify_token_valid(jwt_value)
-        CognitoAuthentication.verify_kid(jwt_value)
-        unverified_payload = jwt.decode(jwt_value, None, False)
+        try: # custom auth
 
-        # verify uid or username exists (both same in Cognito)
-        uid = unverified_payload.get('sub', unverified_payload.get('username', None))
-        if uid is None:
+            payload = jwt.decode(jwt_value, settings.SECRET_KEY, True) # cognito auth will throw exception
+
+            if payload.get('iss') not in ['caracal.cloud', 'https://caracal.cloud']:
+                raise exceptions.AuthenticationFailed({
+                    'error': 'invalid_iss'
+                })
+
+            CognitoAuthentication.verify_custom_token_valid(payload)
+            CognitoAuthentication.verify_expiry(payload)
+
+            uid = payload.get('sub', None).replace('-', '')
+            if uid is None:
+                raise exceptions.AuthenticationFailed({
+                    'error': 'sub_claim_required'
+                })
+
+        except jwt.exceptions.ExpiredSignatureError: # custom auth
             raise exceptions.AuthenticationFailed({
-                'error': 'sub_claim_required'
-            })
+                'error': 'access_token_expired'
+            }, status.HTTP_403_FORBIDDEN)
 
-        CognitoAuthentication.verify_expiry(unverified_payload)
+        except (jwt.exceptions.DecodeError, jwt.exceptions.InvalidAlgorithmError): # aws cognito auth
 
-        user = Account.objects.filter(uid=uid).first()
+            CognitoAuthentication.verify_cognito_token_valid(jwt_value)
+            CognitoAuthentication.verify_cognito_kid(jwt_value)
+
+            # verify uid or username exists (both same in Cognito)
+            unverified_payload = jwt.decode(jwt_value, None, False)
+            uid = unverified_payload.get('sub', unverified_payload.get('username', None)).replace('-', '')
+            if uid is None:
+                raise exceptions.AuthenticationFailed({
+                    'error': 'sub_claim_required'
+                })
+
+            CognitoAuthentication.verify_expiry(unverified_payload)
+
+        user = Account.objects.filter(uid_cognito=uid).first()
         if user is None:
             raise exceptions.AuthenticationFailed({
                 'error': 'no_user_with_sub'
@@ -42,8 +67,6 @@ class CognitoAuthentication(BaseAuthentication):
 
         return user, jwt_value
 
-    def authenticate_header(self, request):
-        return 'Bearer'
 
     # this cannot be static
     def get_jwt_value(self, request):
@@ -64,7 +87,6 @@ class CognitoAuthentication(BaseAuthentication):
                 'error': 'invalid_auth_header_no_creds',
                 'detail': auth
             })
-
         elif len(auth) > 2:
             raise exceptions.AuthenticationFailed({
                 'error': 'invalid_auth_header_spaces',
@@ -74,7 +96,7 @@ class CognitoAuthentication(BaseAuthentication):
         return auth[1]
 
     @staticmethod
-    def verify_token_valid(jwt_value):
+    def verify_cognito_token_valid(jwt_value):
         # verify that access_token is still valid (i.e. user hasn't logged out or been revoked)
         cognito_idp_client = cognito.get_cognito_idp_client()
         try:
@@ -92,12 +114,22 @@ class CognitoAuthentication(BaseAuthentication):
             raise exceptions.AuthenticationFailed({
                 'error': 'resource_not_found'
             })
-        except:
-            capture_message("unknown_exception: possible connection issue", level="error")
+
+    @staticmethod
+    def verify_custom_token_valid(payload):
+
+        uid = payload.get('sub', None)
+        try:
+            user = Account.objects.get(uid_cognito=uid)
+            if user.custom_access_jwt_id is None or str(user.custom_access_jwt_id) != payload.get('jti', None):
+                raise exceptions.AuthenticationFailed({
+                    'error': 'access_token_revoked'
+                })
+        except Account.DoesNotExist:
             raise exceptions.AuthenticationFailed({
-                'error': 'unknown_exception',
-                'details': "possibly connection issue"
+                'error': 'user_not_found'
             })
+
 
     @staticmethod
     def verify_expiry(unverified_payload):
@@ -112,7 +144,7 @@ class CognitoAuthentication(BaseAuthentication):
             })
 
     @staticmethod
-    def verify_kid(jwt_value):
+    def verify_cognito_kid(jwt_value):
         """
         Verifies that the kid in the access_token header matches a well-known kid in Cognito
         :param jwt_value:

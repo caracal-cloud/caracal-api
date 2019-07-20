@@ -1,0 +1,66 @@
+{% load rest_framework %}
+
+<html>
+<head>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <meta name="google-signin-client_id" content="{{ google_client_id }}">
+
+    <script>
+        function onGoogleSignIn(googleUser) {
+            var id_token = googleUser.getAuthResponse().id_token;
+
+            const url = "http://localhost:8000/account/social_auth/google/";
+            let formData = new FormData();
+            formData.append('id_token', id_token);
+
+            const params = {
+                body: formData,
+                method: "POST"
+            }
+
+            fetch(url, params)
+                .then(data=>{
+                    return data.json()
+                })
+                .then(res=>{
+                    document.getElementById("access_token").innerHTML = res.access_token;
+                    document.getElementById("refresh_token").innerHTML = res.refresh_token;
+                    document.getElementById("update_required").innerHTML = res.force_organization_update;
+                })
+                .catch(error=>console.log(error))
+        }
+
+
+    </script>
+
+
+
+
+</head>
+<body>
+
+    <div class="container" style="margin-top: 10px; text-align: center;">
+
+        <h1>Test Social Auth</h1>
+
+        <h3>Google</h3>
+        <div class="g-signin2" data-onsuccess="onGoogleSignIn" style="display: inline-block"></div>
+
+        <h4>Access token</h4>
+        <div id="access_token"></div>
+
+        <h4>Refresh token</h4>
+        <div id="refresh_token"></div>
+
+        <h4>Update required</h4>
+        <div id="update_required"></div>
+
+    </div>
+
+
+
+
+</body>
+</html>
