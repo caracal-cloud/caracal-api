@@ -10,6 +10,13 @@ import warrant
 from auth import cognito
 from auth.backends import CognitoAuthentication
 from account import serializers
+from account.models import Account
+
+
+invalid_response = Response({
+    'error': 'invalid_credentials',
+    'detail': 'invalid email/password combination'
+}, status=status.HTTP_403_FORBIDDEN)
 
 
 class LoginView(generics.GenericAPIView):
@@ -32,12 +39,19 @@ class LoginView(generics.GenericAPIView):
         email = serializer.data['email'].lower()
         password = serializer.data['password']
 
+        try:
+            user = Account.objects.get(email=email)
+        except Account.DoesNotExist:
+            return invalid_response
+        else:
+            if not user.is_active:
+                return invalid_response
+
         invalid_credentials_message = 'invalid email/password combination'
 
         warrant_client = cognito.get_warrant_wrapper_client(email)
         try:
             tokens = cognito.get_tokens(warrant_client, password)
-            return Response(tokens, status=status.HTTP_200_OK)
         except warrant_client.client.exceptions.UserNotConfirmedException:
             return Response({
                 'error': 'email_not_confirmed',
@@ -63,6 +77,11 @@ class LoginView(generics.GenericAPIView):
                 'error': 'invalid_credentials',
                 'message': invalid_credentials_message
             }, status=status.HTTP_401_UNAUTHORIZED)
+        else:
+            user.custom_access_jwt_id = None
+            user.custom_refresh_jwt_id = None
+            user.save()
+            return Response(tokens, status=status.HTTP_200_OK)
 
 
 class LogoutView(views.APIView):

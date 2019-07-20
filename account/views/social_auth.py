@@ -88,7 +88,7 @@ class GoogleAuthView(generics.GenericAPIView):
         return Response({
             'access_token': access_token,
             'refresh_token': refresh_token,
-            'force_organization_update': update_required
+            'organization_update_required': update_required
         }, status=status.HTTP_200_OK)
 
 

@@ -77,6 +77,7 @@ class GetProfileSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name')
     organization_short_name = serializers.CharField(source='organization.short_name')
     organization_timezone = serializers.CharField(source='organization.timezone')
+    organization_update_required = serializers.BooleanField(source='organization.update_required')
 
     uid = serializers.CharField(source='uid_cognito')
 
@@ -90,7 +91,8 @@ class GetProfileSerializer(serializers.ModelSerializer):
         model = Account
         fields = ['uid', 'email', 'name', 'phone_number',
                   'organization_name', 'organization_short_name',
-                  'organization_timezone', 'logo_url']
+                  'organization_timezone', 'organization_update_required',
+                  'logo_url']
 
 
 class LoginSerializer(serializers.Serializer):
@@ -131,6 +133,7 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
+
         organization_name = validated_data['organization_name']
         organization_short_name = validated_data['organization_short_name'].split(' ')[0].lower() # must be one word, alphanumeric
         account_name = validated_data['account_name']
@@ -228,6 +231,7 @@ class UpdateAccountSerializer(serializers.Serializer):
 
 
 def save_logo(logo, account):
+
     logo.file.seek(0)
     png_logo = image.get_rgba_image(logo.file.read())
     png_logo_buffer = image.get_image_bufer(png_logo)

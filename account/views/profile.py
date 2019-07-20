@@ -34,7 +34,7 @@ class ForceOrganizationUpdateView(generics.GenericAPIView):
 
         serializer.save()
 
-        return Response(status=status.HTTP_501_NOT_IMPLEMENTED)
+        return Response(status=status.HTTP_200_OK)
 
 
 class GetProfileView(generics.RetrieveAPIView):
@@ -61,6 +61,12 @@ class UpdateAccountView(generics.GenericAPIView):
         user = request.user
         serializer = serializers.UpdateAccountSerializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        if 'logo' in serializer.validated_data.keys() and user.organization.update_required:
+            return Response({
+                'error': 'organization_update_required',
+                'message': 'organization update required'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # only admin can update organization
         admin_fields = {'organization_name', 'timezone', 'logo'}
