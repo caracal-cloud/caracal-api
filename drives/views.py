@@ -6,25 +6,22 @@ import os
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 
-from drives import serializers
+from account.models import Account
 from auth.backends import CognitoAuthentication
+from drives import serializers
 
 
 class GetGoogleOauthRequestUrlView(views.APIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.GetGoogleOauthRequestUrlQueryParamsSerializer
 
     def get(self, request):
-        serializer = serializers.GetGoogleOauthRequestUrlQueryParamsSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
 
-        user = request.user
+        # TODO: check if google oauth creds already connected
 
-        account_uid = serializer.data['account_uid']
         state = {
-            'account_uid': account_uid
+            'account_uid': request.user.uid_cognito
         }
 
         flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
@@ -32,13 +29,14 @@ class GetGoogleOauthRequestUrlView(views.APIView):
             scopes=['https://www.googleapis.com/auth/drive']
         )
 
+        # TODO: move to settings
         #flow.redirect_uri = 'https://api.caracal.cloud/drives/google/oauth/response'
         flow.redirect_uri = 'http://localhost:8000/drives/google/oauth/response'
 
         authorization_url, state = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
-            login_hint=user.email,
+            login_hint=request.user.email,
             state=json.dumps(state)
         )
 
@@ -55,8 +53,6 @@ class GoogleOauthResponseView(views.APIView):
     def get(self, request):
         serializer = serializers.ReceiveGoogleOauthResponseUrlQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-
-        print(serializer.data.keys())
 
         state = serializer.data['state']
         state = json.loads(state)
@@ -86,6 +82,18 @@ class GoogleOauthResponseView(views.APIView):
 
             print('access_token', access_token)
             print('refresh_token', refresh_token)
+
+            # TODO: save tokens to user's organization
+            try:
+                user = Account.objects.get(uid_cognito=state['account_uid'])
+            except Account.DoesNotExist:
+                return Response({
+                    'error': 'user_not_found'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                user.organization.google_oauth_access_token = access_token
+                user.organization.google_oauth_refresh_token = refresh_token
+                user.organization.save()
 
             return Response(status=status.HTTP_200_OK)
 

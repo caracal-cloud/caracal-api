@@ -23,6 +23,9 @@ class Organization(m.Model):
     timezone = m.CharField(max_length=50, default='Africa/Kigali')
     logo_object_key = m.CharField(max_length=255, blank=True, null=True)
 
+    google_oauth_access_token = m.TextField(null=True)
+    google_oauth_refresh_token = m.TextField(null=True)
+
     # maybe inforce force_organization_update at auth level in backend?
     update_required = m.BooleanField(default=False, null=True)
 
