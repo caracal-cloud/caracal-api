@@ -9,7 +9,7 @@ from caracal.common.models import RealTimeAccount, RealTimeIndividual
 class AddCollarAccountSerializer(serializers.ModelSerializer):
 
     title = serializers.CharField(max_length=100)
-    provider = serializers.ChoiceField(choices=constants.ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
+    provider = serializers.ChoiceField(choices=constants.COLLAR_ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
     type = serializers.CharField(max_length=100) # i.e. elephant
 
     # Orbcomm/Skygistics
@@ -106,7 +106,7 @@ class UpdateCollarIndividualSerializer(serializers.Serializer):
 
 class ValidateAccountDetailsSerializer(serializers.Serializer):
 
-    provider = serializers.ChoiceField(choices=constants.ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
+    provider = serializers.ChoiceField(choices=constants.COLLAR_ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
 
     # Orbcomm/Skygistics
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)

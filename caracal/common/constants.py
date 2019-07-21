@@ -1,7 +1,5 @@
 
 
-ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savannah_tracking')]
-ACCOUNT_SOURCES = [('collar', 'collar')]
 ACCOUNT_STATUSES = [('healthy', 'healthy'), ('unhealthy', 'unhealthy'), ('pending', 'pending')]
 
 # ALERT_FEEDBACK = [('confirm', 'confirm'), ('deny', 'deny')]
@@ -9,11 +7,21 @@ ALERT_LEVELS = [('low', 'low'), ('medium', 'medium'), ('high', 'high')]
 
 BLOOD_TYPES = [('', '')]
 
+COLLAR_ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savannah_tracking')]
+
+COORDINATE_SYSTEMS = [('decimal degrees', 'decimal degrees'),
+                      ('degrees minutes seconds', 'degrees minutes seconds'),
+                      ('mgrs', 'mgrs')]
+
 DEFAULT_IMAGE_FORMAT = 'png'
+
+DRIVE_PROVIDERS = [('google', 'google')] # microsoft
 
 INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
 
 REGISTRATION_METHODS = [('email', 'email'), ('google', 'google')]
+
+RT_ACCOUNT_SOURCES = [('collar', 'collar')]
 
 SEXES = [('male', 'male'), ('female', 'female')]
 

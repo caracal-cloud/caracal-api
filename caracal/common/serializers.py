@@ -9,8 +9,8 @@ from caracal.common.models import RealTimeAccount, RealTimeIndividual
 class AddRtAccountSerializer(serializers.Serializer):
 
     title = serializers.CharField(max_length=100)
-    source = serializers.ChoiceField(choices=constants.ACCOUNT_SOURCES) # i.e. collar
-    provider = serializers.ChoiceField(choices=constants.ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
+    source = serializers.ChoiceField(choices=constants.RT_ACCOUNT_SOURCES) # i.e. collar
+    provider = serializers.ChoiceField(choices=constants.COLLAR_ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
     type = serializers.CharField(max_length=100) # i.e. elephant
 
 

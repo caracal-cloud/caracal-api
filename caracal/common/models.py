@@ -22,15 +22,17 @@ class BaseAsset(models.Model):
 
 class RealTimeAccount(BaseAsset):
 
+    # generic account fields
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='rt_accounts')
-
     status = models.CharField(choices=constants.ACCOUNT_STATUSES, max_length=50, default='pending')
     title = models.CharField(max_length=100, blank=True, null=True)
-    source = models.CharField(choices=constants.ACCOUNT_SOURCES, max_length=50, blank=False, null=False)
-    provider = models.CharField(choices=constants.ACCOUNT_PROVIDERS, max_length=100, blank=False, null=False) # i.e. orbcomm
+    outputs = models.TextField(blank=False, null=True) # outputs as json
+
+    # real-time accounts specific
+    source = models.CharField(choices=constants.RT_ACCOUNT_SOURCES, max_length=50, blank=False, null=False)
+    provider = models.CharField(choices=constants.COLLAR_ACCOUNT_PROVIDERS, max_length=100, blank=False, null=False) # i.e. orbcomm
     type = models.CharField(max_length=100) # i.e. elephant
     device_indexes = models.TextField(blank=True, null=True) # last position indexes as json
-    outputs = models.TextField(blank=False, null=True) # outputs as json
 
     class Meta:
         app_label = 'account'

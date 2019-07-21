@@ -15,18 +15,23 @@ from caracal.common import google as google_utils
 from drives import serializers
 
 
-class AddGoogleAccountView(generics.GenericAPIView):
+class AddGoogleSpreadsheetView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.AddGoogleAccountSerializer
 
     def post(self, request):
-        serializer = serializers.AddGoogleAccountSerializer(data=request.data)
+        serializer = serializers.AddGoogleAccountSerializer(user=request.user, data=request.data)
         serializer.is_valid(True)
 
+        serializer.save(user=request.user)
 
-class GetGoogleDocumentsView(views.APIView):
+        return Response(status=status.HTTP_201_CREATED)
+
+
+
+class GetGoogleSpreadsheetsView(views.APIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -58,7 +63,7 @@ class GetGoogleDocumentsView(views.APIView):
         }, status=status.HTTP_403_FORBIDDEN)
 
 
-class GetGoogleDocumentSheetsView(views.APIView):
+class GetGoogleSpreadsheetSheetsView(views.APIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
