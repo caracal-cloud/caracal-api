@@ -9,6 +9,7 @@ urlpatterns = [
             path('response/', views.GoogleOauthResponseView.as_view()),
         ])),
         # path('add_account/', views.AddGoogleAccountView.as_view())
+        path('get_documents/', views.GetGoogleDocumentsView.as_view())
     ]))
 
 ]
