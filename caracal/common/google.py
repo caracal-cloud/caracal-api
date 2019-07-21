@@ -22,6 +22,18 @@ def refresh_google_token(refresh_token):
         return None
 
 
+def get_google_drive_spreadsheet(file_id, access_token):
+
+    url = f'https://sheets.googleapis.com/v4/spreadsheets/{file_id}'
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+
+    res = requests.get(url, headers=headers)
+    return res.json() if res.status_code == 200 else None
+
+
+
 def get_google_drive_spreadsheets(access_token):
 
     # TODO: look into enumeration...
@@ -40,3 +52,5 @@ def get_google_drive_spreadsheets(access_token):
 
     res = requests.get(url, headers=headers, params=params)
     return res.json().get('files', None) if res.status_code == 200 else None
+
+

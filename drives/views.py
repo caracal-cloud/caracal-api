@@ -11,8 +11,19 @@ from rest_framework.response import Response
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
-from caracal.common.google import refresh_google_token, get_google_drive_spreadsheets
+from caracal.common import google as google_utils
 from drives import serializers
+
+
+class AddGoogleAccountView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.AddGoogleAccountSerializer
+
+    def post(self, request):
+        serializer = serializers.AddGoogleAccountSerializer(data=request.data)
+        serializer.is_valid(True)
 
 
 class GetGoogleDocumentsView(views.APIView):
@@ -26,17 +37,57 @@ class GetGoogleDocumentsView(views.APIView):
         # TODO: make this more efficient!
         # TODO: should try google api first, if error then refresh access_token and save to org
         if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
-            access_token = refresh_google_token(user.organization.google_oauth_refresh_token)
+            access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
             if access_token is not None:
                 user.organization.google_oauth_access_token = access_token
                 user.organization.save()
-                documents = get_google_drive_spreadsheets(user.organization.google_oauth_access_token)
+                documents = google_utils.get_google_drive_spreadsheets(user.organization.google_oauth_access_token)
 
                 data = {
                     "count": len(documents),
                     "next": None,
                     "previous": None,
                     "results": documents
+                }
+
+                return Response(data=data, status=status.HTTP_200_OK)
+
+        return Response({
+            'error': 'invalid_credentials',
+            'message': 'get google drive oauth request url and obtain new credentials'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+
+class GetGoogleDocumentSheetsView(views.APIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        serializer = serializers.GetGoogleDocumentSheetsQueryParamsSerializer(data=request.query_params)
+        serializer.is_valid(True)
+
+        user = request.user
+
+        file_id = serializer.data['file_id']
+
+        if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
+            access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
+            if access_token is not None:
+                user.organization.google_oauth_access_token = access_token
+                user.organization.save()
+
+                spreadsheet = google_utils.get_google_drive_spreadsheet(file_id, access_token=access_token)
+                sheets = spreadsheet['sheets']
+
+                data = {
+                    "count": len(sheets),
+                    "next": None,
+                    "previous": None,
+                    "results": [{ # list comprehension!
+                        'id': sheet['properties']['sheetId'],
+                        'title': sheet['properties']['title']
+                    } for sheet in sheets]
                 }
 
                 return Response(data=data, status=status.HTTP_200_OK)
