@@ -16,6 +16,10 @@ COORDINATE_SYSTEMS = [('decimal degrees', 'decimal degrees'),
 DEFAULT_IMAGE_FORMAT = 'png'
 
 DRIVE_PROVIDERS = [('google', 'google')] # microsoft
+DRIVE_FILETYPES = [('google_sheet', 'google_sheet'), ('excel', 'excel'), ('csv', 'csv'), ('geojson', 'geojson')]
+DRIVE_PROVIDER_FILETYPES = {
+    'google': [('google_sheet', 'google_sheet'), ('excel', 'excel'), ('csv', 'csv'), ('geojson', 'geojson')]
+}
 
 INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
 

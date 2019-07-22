@@ -5,23 +5,22 @@ import uuid
 
 from account.models import Account, Organization
 from caracal.common import constants
-from caracal.common.models import BaseAsset
+from caracal.common.models import BaseAccount, BaseAsset
 
 
-class GoogleSheetsAccount(BaseAsset):
+class DriveFileAccount(BaseAsset, BaseAccount):
 
-    # generic account fields
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='google_sheet_accounts')
-    status = models.CharField(choices=constants.ACCOUNT_STATUSES, max_length=50, default='pending')
-    title = models.CharField(max_length=100, blank=True, null=True)
-    outputs = models.TextField(blank=False, null=True) # outputs as json
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='drive_files')
 
-    # google sheets specific stuff
+    provider = models.CharField(choices=constants.DRIVE_PROVIDERS, max_length=100)
+    file_type = models.CharField(choices=constants.DRIVE_FILETYPES, max_length=50)
     file_id = models.CharField(max_length=250)
+
+    # spreadsheets
     sheet_ids = models.CharField(max_length=250, default='*') # * means all
     header_row_index = models.IntegerField(default=0)
     coordinate_system = models.CharField(max_length=50, choices=constants.COORDINATE_SYSTEMS, default='decimal degrees')
 
     class Meta:
         ordering = ['-datetime_created']
-        unique_together = ['organization', 'file_id']
+        #unique_together = ['organization', 'file_id']

@@ -13,30 +13,78 @@ from account.models import Account
 from auth.backends import CognitoAuthentication
 from caracal.common import google as google_utils
 from drives import serializers
+from drives.models import DriveFileAccount
 
 
-class AddGoogleSpreadsheetView(generics.GenericAPIView):
+class AddDriveFileAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.AddGoogleAccountSerializer
+    serializer_class = serializers.AddDriveFileSerializer
 
     def post(self, request):
-        serializer = serializers.AddGoogleAccountSerializer(user=request.user, data=request.data)
+        serializer = serializers.AddDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
 
-        serializer.save(user=request.user)
+        account = serializer.save(organization=request.user.organization)
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response({
+            'account_uid': account.uid
+        }, status=status.HTTP_201_CREATED)
 
 
+class DeleteDriveFileAccountView(generics.GenericAPIView):
 
-class GetGoogleSpreadsheetsView(views.APIView):
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.DeleteDriveFileSerializer
+
+    def post(self, request):
+        serializer = serializers.DeleteDriveFileSerializer(data=request.data)
+        serializer.is_valid(True)
+
+        account_uid = serializer.data['account_uid']
+
+        try:
+            account = DriveFileAccount.objects.get(uid=account_uid)
+        except:
+            return Response({
+                'error': 'account_does_not_exist',
+                'message': 'account does not exist'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if account.organization != request.user.organization and not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        account.is_active = False
+        account.save()
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class GetDriveFileAccountsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.GetDriveFileAccountsSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        drives = DriveFileAccount.objects.filter(organization=organization, is_active=True)
+        return drives
+
+
+class GetGoogleDriveFilesView(views.APIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        serializer = serializers.GetGoogleDriveFilesSerializer(data=request.query_params)
+        serializer.is_valid(True)
+
+        file_type = serializer.data['file_type']
+
         user = request.user
 
         # TODO: make this more efficient!
@@ -46,7 +94,7 @@ class GetGoogleSpreadsheetsView(views.APIView):
             if access_token is not None:
                 user.organization.google_oauth_access_token = access_token
                 user.organization.save()
-                documents = google_utils.get_google_drive_spreadsheets(user.organization.google_oauth_access_token)
+                documents = google_utils.get_google_drive_files(file_type, user.organization.google_oauth_access_token)
 
                 data = {
                     "count": len(documents),
@@ -83,19 +131,26 @@ class GetGoogleSpreadsheetSheetsView(views.APIView):
                 user.organization.save()
 
                 spreadsheet = google_utils.get_google_drive_spreadsheet(file_id, access_token=access_token)
-                sheets = spreadsheet['sheets']
+                if spreadsheet is not None:
+                    sheets = spreadsheet['sheets']
 
-                data = {
-                    "count": len(sheets),
-                    "next": None,
-                    "previous": None,
-                    "results": [{ # list comprehension!
-                        'id': sheet['properties']['sheetId'],
-                        'title': sheet['properties']['title']
-                    } for sheet in sheets]
-                }
+                    data = {
+                        "count": len(sheets),
+                        "next": None,
+                        "previous": None,
+                        "results": [{ # list comprehension!
+                            'id': sheet['properties']['sheetId'],
+                            'title': sheet['properties']['title']
+                        } for sheet in sheets]
+                    }
 
-                return Response(data=data, status=status.HTTP_200_OK)
+                    return Response(data=data, status=status.HTTP_200_OK)
+
+                else:
+                    return Response({
+                        'error': 'invalid_file',
+                        'message': 'the file you have request may not be the correct type'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             'error': 'invalid_credentials',
@@ -117,13 +172,13 @@ class GetGoogleOauthRequestUrlView(views.APIView):
         user = request.user
         if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
 
-            access_token = refresh_google_token(user.organization.google_oauth_refresh_token)
+            access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
             if access_token is not None:
                 user.organization.google_oauth_access_token = access_token
                 user.organization.save()
 
                 if action == 'drive':
-                    files = get_google_drive_spreadsheets(access_token)
+                    files = google_utils.get_google_drive_files('google_sheet', access_token)
                     if files is not None:
                         return Response({
                             'message': 'google drive already connected'

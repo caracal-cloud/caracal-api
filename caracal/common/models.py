@@ -20,13 +20,20 @@ class BaseAsset(models.Model):
         abstract = True
 
 
-class RealTimeAccount(BaseAsset):
+class BaseAccount(models.Model):
 
-    # generic account fields
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='rt_accounts')
     status = models.CharField(choices=constants.ACCOUNT_STATUSES, max_length=50, default='pending')
     title = models.CharField(max_length=100, blank=True, null=True)
     outputs = models.TextField(blank=False, null=True) # outputs as json
+
+
+    class Meta:
+        abstract = True
+
+
+class RealTimeAccount(BaseAsset, BaseAccount):
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='rt_accounts')
 
     # real-time accounts specific
     source = models.CharField(choices=constants.RT_ACCOUNT_SOURCES, max_length=50, blank=False, null=False)

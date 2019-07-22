@@ -34,7 +34,7 @@ def get_google_drive_spreadsheet(file_id, access_token):
 
 
 
-def get_google_drive_spreadsheets(access_token):
+def get_google_drive_files(file_type, access_token):
 
     # TODO: look into enumeration...
 
@@ -43,11 +43,18 @@ def get_google_drive_spreadsheets(access_token):
         'Authorization': f'Bearer {access_token}'
     }
 
+    if file_type == 'google_sheet':
+        mime_type = 'application/vnd.google-apps.spreadsheet'
+    elif file_type == 'csv':
+        mime_type = 'text/csv'
+    else:
+        mime_type = 'application/vnd.google-apps.spreadsheet'
+
     params = {
         'fields': 'files(id,name)',
         'orderBy': 'modifiedTime desc',
         'pageSize': 100,
-        'q': "mimeType = 'application/vnd.google-apps.spreadsheet'"
+        'q': f"mimeType = '{mime_type}'"
     }
 
     res = requests.get(url, headers=headers, params=params)

@@ -1,16 +1,19 @@
 
-
+import json
 from rest_framework import serializers
 
 from caracal.common import constants
+from drives.models import DriveFileAccount
 
-class AddGoogleAccountSerializer(serializers.Serializer):
+
+class AddDriveFileSerializer(serializers.Serializer):
 
     # drive
-    drive_provider = serializers.ChoiceField(choices=constants.DRIVE_PROVIDERS)
+    provider = serializers.ChoiceField(choices=constants.DRIVE_PROVIDERS)
 
     # file
     file_id = serializers.CharField(max_length=250, required=True)
+    file_type = serializers.ChoiceField(choices=constants.DRIVE_FILETYPES, required=True)
     title = serializers.CharField(max_length=250)
     sheet_ids = serializers.CharField(max_length=250, default='*') # * means all
     header_row_index = serializers.IntegerField(required=False, min_value=0, default=0)
@@ -21,18 +24,17 @@ class AddGoogleAccountSerializer(serializers.Serializer):
     output_database = serializers.BooleanField(default=False)
     output_kml = serializers.BooleanField(default=False)
 
-
     def create(self, validated_data):
 
-        # TODO: finish me!
+        outputs = {
+            'output_agol': validated_data.pop('output_agol', False),
+            'output_database': validated_data.pop('output_database', False),
+            'output_kml': validated_data.pop('output_kml', False)
+        }
+        outputs = json.dumps(outputs)
 
-        # TODO: initialize title
-
-        user = validated_data['user']
-
-        print(validated_data)
-
-        return None
+        drive = DriveFileAccount.objects.create(outputs=outputs, **validated_data)
+        return drive
 
 
     def validate(self, attrs):
@@ -43,8 +45,26 @@ class AddGoogleAccountSerializer(serializers.Serializer):
         return attrs
 
 
+class DeleteDriveFileSerializer(serializers.Serializer):
+    account_uid = serializers.UUIDField(required=True)
+
+
+class GetDriveFileAccountsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DriveFileAccount
+        fields = ['uid', 'datetime_created', 'datetime_updated',
+                  'status', 'title', 'outputs',
+                  'provider', 'file_type']
+
+
 class GetGoogleDocumentSheetsQueryParamsSerializer(serializers.Serializer):
     file_id = serializers.CharField(required=True)
+
+
+class GetGoogleDriveFilesSerializer(serializers.Serializer):
+
+    file_type = serializers.ChoiceField(choices=constants.DRIVE_PROVIDER_FILETYPES['google'], default='google_sheet')
 
 
 class GetGoogleOauthRequestUrlQueryParamsSerializer(serializers.Serializer):
