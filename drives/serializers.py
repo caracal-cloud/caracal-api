@@ -77,3 +77,21 @@ class ReceiveGoogleOauthResponseUrlQueryParamsSerializer(serializers.Serializer)
     code = serializers.CharField(required=False)
     state = serializers.CharField()
 
+
+class UpdateDriveFileAccountSerializer(serializers.Serializer):
+
+    account_uid = serializers.UUIDField(required=True)
+    title = serializers.CharField(max_length=100, required=False)
+
+    output_agol = serializers.BooleanField(required=False)
+    output_database = serializers.BooleanField(required=False)
+    output_kml = serializers.BooleanField(required=False)
+
+    def validate(self, attrs):
+        unknown =  set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
+        return attrs
+
+
+

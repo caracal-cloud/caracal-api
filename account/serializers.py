@@ -61,6 +61,7 @@ class ForceOrganizationUpdateSerializer(serializers.Serializer):
 
         return account
 
+
 class ForcedPasswordResetSerializer(serializers.Serializer):
 
     email = CaseInsensitiveEmailField(required=True, max_length=200)

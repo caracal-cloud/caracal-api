@@ -278,3 +278,45 @@ class GoogleOauthResponseView(views.APIView):
             return Response(status=status.HTTP_200_OK)
 
 
+class UpdateDriveFileAccountView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateDriveFileAccountSerializer
+
+    def post(self, request):
+        user = request.user
+        serializer = serializers.UpdateDriveFileAccountSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        update_data = serializer.data
+        account_uid = update_data.pop('account_uid')
+
+        try:
+            account = DriveFileAccount.objects.get(uid=account_uid)
+        except:
+            return Response({
+                'error': 'account_does_not_exist',
+                'message': 'account does not exist'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if account.organization != user.organization and not user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        outputs = json.loads(account.outputs)
+        outputs['output_agol'] = update_data.pop('output_agol', outputs['output_agol'])
+        outputs['output_database'] = update_data.pop('output_database', outputs['output_database'])
+        outputs['output_kml'] = update_data.pop('output_kml', outputs['output_kml'])
+        outputs = json.dumps(outputs)
+
+        DriveFileAccount.objects.filter(uid=account_uid).update(outputs=outputs, **update_data)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
