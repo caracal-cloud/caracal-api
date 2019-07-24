@@ -47,7 +47,7 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
 
         try:
             account = DriveFileAccount.objects.get(uid=account_uid)
-        except:
+        except DriveFileAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'account does not exist'
@@ -294,7 +294,7 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
 
         try:
             account = DriveFileAccount.objects.get(uid=account_uid)
-        except:
+        except DriveFileAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'account does not exist'

@@ -117,7 +117,7 @@ class RefreshResponseSerializer(serializers.Serializer):
 class RegisterSerializer(serializers.Serializer):
 
     organization_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
-    organization_short_name = serializers.CharField(max_length=50, required=True, allow_blank=False)
+    organization_short_name = serializers.CharField(min_length=4, max_length=50, required=True, allow_blank=False)
     account_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
     account_email = CaseInsensitiveEmailField(min_length=5, max_length=200, required=True, allow_blank=False)
     account_password = serializers.CharField(min_length=7, max_length=50, required=True, allow_blank=False)
