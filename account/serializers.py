@@ -1,5 +1,6 @@
 
 from django.conf import settings
+from django.db import IntegrityError
 from django.utils import timezone
 from io import BytesIO
 import pytz
@@ -143,15 +144,12 @@ class RegisterSerializer(serializers.Serializer):
         account_phone_number = validated_data.get('account_phone_number')
 
         try:
-            Organization.objects.get(short_name=organization_short_name)
+            organization = Organization.objects.create(name=organization_name, short_name=organization_short_name)
+        except IntegrityError:
             raise serializers.ValidationError({
-                'error': 'organization_short_name already exists',
+                'error': 'organization_short_name_already_exists',
                 'message': 'organization short name already exists'
             })
-        except Organization.DoesNotExist:
-            pass
-
-        organization = Organization.objects.create(name=organization_name, short_name=organization_short_name)
 
         cognito_idp_client = cognito.get_cognito_idp_client()
 
@@ -169,12 +167,12 @@ class RegisterSerializer(serializers.Serializer):
             aws.create_dynamo_credentials(validated_data['organization_short_name'], 'admin', password, ['all'])
             return account
 
-        except cognito_idp_client.exceptions.UsernameExistsException:
+        except (IntegrityError, cognito_idp_client.exceptions.UsernameExistsException):
             organization.delete()
-            return Response({
+            raise serializers.ValidationError({
                 'error': 'email_already_exists',
                 'message': 'email already exists'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            })
 
         except ParamValidationError:
             organization.delete()
