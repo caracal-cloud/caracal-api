@@ -11,7 +11,7 @@ COLLAR_ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savan
 
 COORDINATE_SYSTEMS = [('decimal degrees', 'decimal degrees'),
                       ('degrees minutes seconds', 'degrees minutes seconds'),
-                      ('mgrs', 'mgrs')]
+                      ('utm', 'utm')]
 
 DEFAULT_IMAGE_FORMAT = 'png'
 

@@ -2,6 +2,7 @@ from caracal.settings.base import *
 
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import ignore_logger
 
 DEBUG = False
 TESTING = False
@@ -54,3 +55,4 @@ sentry_sdk.init(
     dsn="https://07c4110769a945c18d4395adf1bce4bd@sentry.io/1419868",
     integrations=[DjangoIntegration()]
 )
+ignore_logger("django.security.DisallowedHost")

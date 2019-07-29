@@ -26,7 +26,6 @@ class BaseAccount(models.Model):
     title = models.CharField(max_length=100, blank=True, null=True)
     outputs = models.TextField(blank=False, null=True) # outputs as json
 
-
     class Meta:
         abstract = True
 
