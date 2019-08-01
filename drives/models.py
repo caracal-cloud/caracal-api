@@ -23,7 +23,7 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     x_column_index = models.IntegerField(null=True) # longitude, easting
     y_column_index = models.IntegerField(null=True) # latitude, northing
     grid_zone_column_index = models.IntegerField(null=True) # utm ex. 35N, 35M
-    date_column_index = models.IntegerField(null=True) # todo: is this necessary?
+    date_column_index = models.IntegerField(null=True)
 
     class Meta:
         ordering = ['-datetime_created']

@@ -108,10 +108,20 @@ class UpdateDriveFileAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = DriveFileAccount
         fields = ['account_uid', 'title',
-                  'header_row_index',
+                  'header_row_index', 'sheet_ids',
                   'x_column_index', 'y_column_index',
                   'grid_zone_column_index', 'date_column_index',
                   'output_agol', 'output_database', 'output_kml']
+
+    def validate_sheet_ids(self, value):
+        try:
+            js_value = json.loads(value)
+            if not isinstance(js_value, list):
+                raise serializers.ValidationError('invalid sheet_ids, must be JSON formatted list')
+        except json.JSONDecodeError:
+            raise serializers.ValidationError('invalid sheet_ids, must be JSON formatted')
+
+        return value
 
     def validate(self, attrs):
         unknown =  set(self.initial_data) - set(self.fields)
