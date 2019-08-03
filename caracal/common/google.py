@@ -22,6 +22,21 @@ def refresh_google_token(refresh_token):
         return None
 
 
+def get_google_client_config():
+    return {
+        "web": {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "project_id": "caracal",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uris": ["https://api.caracal.cloud/drives/google/oauth/response",
+                              "http://localhost:8000/drives/google/oauth/response"]
+        }
+    }
+
+
 def get_google_drive_spreadsheet(file_id, access_token):
 
     url = f'https://sheets.googleapis.com/v4/spreadsheets/{file_id}'

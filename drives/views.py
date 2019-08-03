@@ -170,6 +170,8 @@ class GetGoogleOauthRequestUrlView(views.APIView):
         action = serializer.data['action']
 
         user = request.user
+
+        """
         if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
 
             access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
@@ -188,6 +190,7 @@ class GetGoogleOauthRequestUrlView(views.APIView):
                     return Response({
                         'message': 'google login already connected'
                     }, status=status.HTTP_204_NO_CONTENT)
+        """
 
         state = {
             'account_uid': str(user.uid_cognito),
@@ -202,10 +205,13 @@ class GetGoogleOauthRequestUrlView(views.APIView):
                       'https://www.googleapis.com/auth/userinfo.email',
                       'https://www.googleapis.com/auth/userinfo.profile']
 
-        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-            os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
-            scopes=scopes
-        )
+        client_config = google_utils.get_google_client_config()
+        flow = google_auth_oauthlib.flow.Flow.from_client_config(client_config=client_config, scopes=scopes)
+
+        #flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+        #    os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
+        #    scopes=scopes
+        #)
 
         # TODO: move to settings
         #flow.redirect_uri = 'https://api.caracal.cloud/drives/google/oauth/response'
@@ -253,9 +259,12 @@ class GoogleOauthResponseView(views.APIView):
                           'https://www.googleapis.com/auth/userinfo.email',
                           'https://www.googleapis.com/auth/userinfo.profile']
 
-            flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-                os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
-                scopes=scopes)
+            client_config = google_utils.get_google_client_config()
+            flow = google_auth_oauthlib.flow.Flow.from_client_config(client_config=client_config, scopes=scopes)
+
+            #flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+            #    os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
+            #    scopes=scopes)
 
             flow.redirect_uri = 'https://api.caracal.cloud/drives/google/oauth/response'
             flow.redirect_uri = 'http://localhost:8000/drives/google/oauth/response'
