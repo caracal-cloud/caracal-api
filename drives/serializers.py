@@ -73,7 +73,7 @@ class GetDriveFileAccountsSerializer(serializers.ModelSerializer):
         fields = ['uid', 'datetime_created', 'datetime_updated',
                   'status', 'title',
                   'provider', 'file_type',
-                  'x_column_index', 'y_column_index',
+                  'x_column_index', 'y_column_index', 'header_row_index',
                   'grid_zone_column_index', 'date_column_index',
                   'output_agol', 'output_database', 'output_kml']
 

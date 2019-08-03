@@ -9,9 +9,9 @@ BLOOD_TYPES = [('', '')]
 
 COLLAR_ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savannah_tracking')]
 
-COORDINATE_SYSTEMS = [('decimal degrees', 'decimal degrees'),
-                      ('degrees minutes seconds', 'degrees minutes seconds'),
-                      ('utm', 'utm')]
+COORDINATE_SYSTEMS = [('dd', 'dd'), # decimal degrees
+                      ('dms', 'dms'), # degrees minutes seconds
+                      ('utm', 'utm')] # universal transverse mercator
 
 DEFAULT_IMAGE_FORMAT = 'png'
 

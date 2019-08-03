@@ -25,6 +25,8 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     grid_zone_column_index = models.IntegerField(null=True) # utm ex. 35N, 35M
     date_column_index = models.IntegerField(null=True)
 
+    output_notes = models.BooleanField(default=False) # markup drive file with comments (i.e. invalid value)
+
     class Meta:
         ordering = ['-datetime_created']
         #unique_together = ['organization', 'file_id']
