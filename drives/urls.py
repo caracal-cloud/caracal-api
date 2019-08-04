@@ -14,7 +14,7 @@ urlpatterns = [
         path('get_spreadsheet_sheets/', views.GetGoogleSpreadsheetSheetsView.as_view()),
         path('oauth/', include([
             path('get_request_url/', views.GetGoogleOauthRequestUrlView.as_view()),
-            path('response/', views.GoogleOauthResponseView.as_view()),
+            path('response/', views.GoogleOauthResponseView.as_view(), name='google-oauth-response'),
         ])),
 
         path('update_account/', views.UpdateDriveFileAccountView.as_view()),

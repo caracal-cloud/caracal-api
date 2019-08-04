@@ -11,6 +11,8 @@ COGNITO_APP_ID = os.environ['CARACAL_TEST_COGNITO_APP_ID']
 GOOGLE_CLIENT_ID = os.environ['CARACAL_DEV_GOOGLE_CLIENT_ID']
 GOOGLE_CLIENT_SECRET = os.environ['CARACAL_DEV_GOOGLE_CLIENT_SECRET']
 
+HOSTNAME = 'http://localhost:8000'
+
 S3_FILES_BUCKET = "caracal-user-testing"
 
 LOGIN_ENDPOINT = '/account/login/'
