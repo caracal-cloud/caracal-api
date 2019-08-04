@@ -173,7 +173,6 @@ class GetGoogleOauthRequestUrlView(views.APIView):
 
         user = request.user
 
-        """
         if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
 
             access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
@@ -192,7 +191,6 @@ class GetGoogleOauthRequestUrlView(views.APIView):
                     return Response({
                         'message': 'google login already connected'
                     }, status=status.HTTP_204_NO_CONTENT)
-        """
 
         state = {
             'account_uid': str(user.uid_cognito),
