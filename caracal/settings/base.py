@@ -5,6 +5,9 @@ import os
 APPLICATION_NAME = 'Caracal'
 APPLICATION_SHORT_NAME = 'caracal'
 
+AGOL_CLIENT_ID = os.environ['CARACAL_AGOL_CLIENT_ID']
+AGOL_CLIENT_SECRET = os.environ['CARACAL_AGOL_CLIENT_SECRET']
+
 # tuma-admin
 AWS_ACCESS_KEY_ID = os.environ['TUMA_AWS_KEY']
 AWS_SECRET_ACCESS_KEY = os.environ['TUMA_AWS_SECRET']

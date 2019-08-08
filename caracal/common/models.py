@@ -40,6 +40,8 @@ class RealTimeAccount(BaseAsset, BaseAccount):
     type = models.CharField(max_length=100) # i.e. elephant
     device_indexes = models.TextField(blank=True, null=True) # last position indexes as json
 
+    agol_layer_id = models.CharField(max_length=100, null=True)
+
     class Meta:
         app_label = 'account'
         ordering = ['-datetime_created']

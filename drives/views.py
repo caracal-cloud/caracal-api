@@ -208,16 +208,7 @@ class GetGoogleOauthRequestUrlView(views.APIView):
         client_config = google_utils.get_google_client_config()
         flow = google_auth_oauthlib.flow.Flow.from_client_config(client_config=client_config, scopes=scopes)
 
-        #flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-        #    os.path.join('drives', 'resources', 'google_oauth_client_secret.json'),
-        #    scopes=scopes
-        #)
-
         flow.redirect_uri = settings.HOSTNAME + reverse('google-oauth-response')
-
-        print(settings.GOOGLE_CLIENT_ID)
-
-        print(flow.redirect_uri)
 
         authorization_url, state = flow.authorization_url(
             access_type='offline',

@@ -28,7 +28,14 @@ class Organization(m.Model):
     google_oauth_access_token = m.TextField(null=True)
     google_oauth_refresh_token = m.TextField(null=True)
 
-    update_required = m.BooleanField(default=False, null=True)
+    # todo: consider putting in 1to1 object
+    agol_oauth_access_token = m.TextField(null=True)
+    agol_oauth_refresh_token = m.TextField(null=True)
+    agol_group_id = m.CharField(max_length=255, null=True)
+    agol_feature_service_url = m.CharField(max_length=200, null=True)
+    agol_username = m.CharField(max_length=200, null=True)
+
+    update_required = m.BooleanField(default=False, null=True) # organization update required to complete registration
 
     class Meta:
         ordering = ['name']

@@ -1,5 +1,6 @@
 from datetime import timedelta
-from django.utils import timezone
+from django.conf import settings
+from django.urls import reverse
 import json
 import os
 import requests
@@ -7,8 +8,9 @@ from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 from urllib.parse import urlencode
 
-from outputs import serializers
+from account.models import Account
 from auth.backends import CognitoAuthentication
+from outputs import serializers
 
 AGOL_BASE_URL = "https://www.arcgis.com/sharing/rest/oauth2"
 
@@ -20,18 +22,16 @@ class GetAgolOauthRequestUrlView(views.APIView):
     def get(self, request):
         user = request.user
 
-        client_id = 'mco5mcKtQ7f0Mvjd' # fixme: move to envars
-        # client_secret = '09c98ddb4ea84f78bb948ba3d7c45b97'
-
         state = {
-            'account_uid': str(user.uid)
+            'account_uid': str(user.uid_cognito)
         }
 
+        redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
+
         params = {
-            'client_id': client_id,
+            'client_id': settings.AGOL_CLIENT_ID,
             'response_type': 'code',
-            #'redirect_uri': 'https://api.caracal.cloud/outputs/agol/oauth/response',
-            'redirect_uri': 'http://localhost:8000/outputs/agol/oauth/response',
+            'redirect_uri': redirect_uri,
             'state': json.dumps(state)
         }
         authorization_url = f'{AGOL_BASE_URL}/authorize?{urlencode(params)}'
@@ -50,10 +50,6 @@ class AgolOauthResponseView(views.APIView):
         serializer = serializers.ReceiveAgolOauthResponseUrlQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        print(serializer.data.keys())
-
-        print(serializer.data)
-
         error = serializer.data.get('error')
         if error is not None:
             return Response({
@@ -63,17 +59,16 @@ class AgolOauthResponseView(views.APIView):
             code = serializer.data['code']
             state = serializer.data['state']
             state = json.loads(state)
-            account_uid = state['account_uid'] # user account uid
+            account_uid = state['account_uid'] #refresh_token user account uid
 
-            client_id = 'mco5mcKtQ7f0Mvjd'  # fixme: move to envars
+            redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
 
             # exchange code for tokens
             token_url = f'{AGOL_BASE_URL}/token'
             data = {
-                'client_id': client_id,
+                'client_id': settings.AGOL_CLIENT_ID,
                 'code': code,
-                #'redirect_uri': 'https://api.caracal.cloud/outputs/agol/oauth/response',
-                'redirect_uri': 'http://localhost:8000/outputs/agol/oauth/response',
+                'redirect_uri': redirect_uri,
                 'grant_type': 'authorization_code'
             }
 
@@ -84,6 +79,17 @@ class AgolOauthResponseView(views.APIView):
             refresh_token = tokens['refresh_token']
             username = tokens['username']
 
-            # TODO: save to account
+            try:
+                user = Account.objects.get(uid_cognito=account_uid)
+            except Account.DoesNotExist:
+                return Response({
+                    'error': 'account_not_found'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                user.organization.agol_username = username
+                user.organization.agol_oauth_access_token = access_token
+                if refresh_token:
+                    user.organization.agol_oauth_refresh_token = refresh_token
+                user.organization.save()
 
             return Response(status=status.HTTP_200_OK)
