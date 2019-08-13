@@ -8,11 +8,12 @@ from caracal.common.models import RealTimeAccount, RealTimeIndividual
 
 class AddCollarAccountSerializer(serializers.ModelSerializer):
 
-    title = serializers.CharField(max_length=100)
+    #title = serializers.CharField(max_length=100)
     provider = serializers.ChoiceField(choices=constants.COLLAR_ACCOUNT_PROVIDERS, required=True) # i.e. orbcomm
     type = serializers.CharField(max_length=100) # i.e. elephant
 
     # Orbcomm/Skygistics
+
     orbcomm_timezone = serializers.CharField(max_length=20, required=False)
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)
 
@@ -27,7 +28,7 @@ class AddCollarAccountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RealTimeAccount
-        fields = ['title', 'provider', 'type',
+        fields = ['provider', 'type',
                   'orbcomm_timezone', 'orbcomm_company_id',
                   'savannah_tracking_username', 'savannah_tracking_password',
                   'output_agol', 'output_database', 'output_kml']
@@ -67,7 +68,7 @@ class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
 
 class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
 
-    url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='rt-individual-detail')
+    url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-individual-detail')
 
     # TODO: calculate distances with monthly_paths
 

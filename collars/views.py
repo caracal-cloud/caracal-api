@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import aws
+from caracal.common.fields import get_updated_outputs
 from caracal.common.models import RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 
@@ -36,11 +37,15 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         fetch_rule_input = dict()
         if provider == 'orbcomm':
+            title = f'{species.capitalize()} - Orbcomm'
             fetch_rule_input['orbcomm_timezone'] = data.pop('orbcomm_timezone')
             fetch_rule_input['orbcomm_company_id'] = data.pop('orbcomm_company_id')
         elif provider == 'savannah_tracking':
+            title = f'{species.capitalize()} - Savannah Tracking'
             fetch_rule_input['savannah_tracking_username'] = data.pop('savannah_tracking_username')
             fetch_rule_input['savannah_tracking_password'] = data.pop('savannah_tracking_password')
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST) # validated in serializer
 
         # outputs
         outputs = {
@@ -52,7 +57,7 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         try:
             account = RealTimeAccount.objects.create(organization=user.organization, source='collar',
-                                                     outputs=outputs, **data)
+                                                     outputs=outputs, title=title, **data)
         except IntegrityError:
             return Response({
                 'error': 'account_already_added',
@@ -210,7 +215,10 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
+        outputs = get_updated_outputs(account, update_data)
+
+        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(),
+                                                               outputs=outputs, **update_data)
 
         message = f'{account.type} collar account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)

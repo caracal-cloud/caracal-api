@@ -14,6 +14,9 @@ AWS_SECRET_ACCESS_KEY = os.environ['TUMA_AWS_SECRET']
 AWS_REGION = "us-east-1"
 DYNAMO_CONFIG_TABLE_NAME = 'caracal-global-configuration'
 
+DUMMY_EMAIL = 'dummy@caracal.cloud'
+DUMMY_SHORT_NAME = 'dummy3141592'
+
 DEFAULT_EMAIL_SENDER = "noreply@caracal.cloud"
 DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
 OVERLORD_EMAIL = os.environ['CARACAL_OVERLORD_EMAIL']

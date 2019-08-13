@@ -69,6 +69,10 @@ class UpdateRtAccountSerializer(serializers.Serializer):
     account_uid = serializers.UUIDField(required=True)
     title = serializers.CharField(max_length=100, required=False)
 
+    output_agol = serializers.BooleanField(default=False)
+    output_database = serializers.BooleanField(default=False)
+    output_kml = serializers.BooleanField(default=False)
+
     def validate(self, attrs):
         unknown =  set(self.initial_data) - set(self.fields)
         if unknown:

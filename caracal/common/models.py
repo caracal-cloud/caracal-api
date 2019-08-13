@@ -76,6 +76,7 @@ class RealTimeIndividual(BaseAsset):
 
     class Meta:
         app_label = 'account'
+        ordering = ['-datetime_created']
         unique_together = ['account', 'device_id']
 
     def __str__(self):

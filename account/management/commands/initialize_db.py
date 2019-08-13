@@ -2,9 +2,12 @@
 from django.conf import settings
 from django.core.management.base import BaseCommand
 import os
+import uuid
 
-from account.models import Account
+from account.models import Account, Organization
 from activity.models import ActivityAlert, ActivityChange
+from auth import cognito
+from caracal.common import aws
 
 from .utils import common
 
@@ -14,7 +17,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
 
         try:
-            x = os.environ['DEPLOYED']
+            os.environ['DEPLOYED']
             print('You must run this locally')
             return
         except:
@@ -41,11 +44,25 @@ class Command(BaseCommand):
         common.clear_all_content()
 
         # create superuser
-        superuser = Account.objects.create_superuser(os.environ['CARACAL_OVERLORD_EMAIL'],
-                                                     os.environ['CARACAL_OVERLORD_PASSWORD'])
+        Account.objects.create_superuser(os.environ['CARACAL_OVERLORD_EMAIL'], os.environ['CARACAL_OVERLORD_PASSWORD'])
 
-        common.add_dummy_alerts(superuser)
-        common.add_dummy_changes(superuser)
+        # create dummy user
+        dummy_org = Organization.objects.create(name='Dummy Inc.', short_name=settings.DUMMY_SHORT_NAME)
+        dummy_user = Account.objects.create_user(settings.DUMMY_EMAIL, 'Kigali123',
+                                                 cognito.get_cognito_idp_client(),
+                                                 organization=dummy_org,
+                                                 name='Dummy Dumbo',
+                                                 phone_number='+250780177234',
+                                                 is_admin=True)
+        cognito.confirm_user(settings.DUMMY_EMAIL)
+
+        # create credentials for S3
+        password = str(uuid.uuid4()).split('-')[0]
+        aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
+
+        common.add_dummy_alerts(dummy_user)
+        common.add_dummy_changes(dummy_user)
+        common.add_dummy_collars(dummy_user)
 
 
 

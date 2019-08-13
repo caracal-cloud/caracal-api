@@ -13,6 +13,7 @@ from rest_framework.response import Response
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
+from caracal.common.fields import get_updated_outputs
 from caracal.common import google as google_utils
 from drives import serializers
 from drives.models import DriveFileAccount
@@ -300,11 +301,7 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        outputs = json.loads(account.outputs)
-        outputs['output_agol'] = update_data.pop('output_agol', outputs['output_agol'])
-        outputs['output_database'] = update_data.pop('output_database', outputs['output_database'])
-        outputs['output_kml'] = update_data.pop('output_kml', outputs['output_kml'])
-        outputs = json.dumps(outputs)
+        outputs = get_updated_outputs(account, update_data)
 
         DriveFileAccount.objects.filter(uid=account_uid).update(outputs=outputs, **update_data)
 
