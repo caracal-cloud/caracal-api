@@ -1,5 +1,6 @@
 from datetime import timedelta
 from django.conf import settings
+from django.shortcuts import redirect
 from django.urls import reverse
 import json
 import os
@@ -10,9 +11,38 @@ from urllib.parse import urlencode
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
+from caracal.common import agol
 from outputs import serializers
 
 AGOL_BASE_URL = "https://www.arcgis.com/sharing/rest/oauth2"
+
+
+class GetAgolAccountView(views.APIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        organization = user.organization
+
+        access_token = agol.refresh_access_token(organization.agol_oauth_refresh_token)
+        organization.agol_oauth_access_token = access_token
+        organization.save()
+
+        if access_token is not None:
+            data = {
+                'is_connected': True,
+                'username': organization.agol_username
+            }
+        else:
+            data = {
+                'is_connected': False
+            }
+
+        return Response(data=data, status=status.HTTP_200_OK)
+
+
 
 class GetAgolOauthRequestUrlView(views.APIView):
 
@@ -92,4 +122,5 @@ class AgolOauthResponseView(views.APIView):
                     user.organization.agol_oauth_refresh_token = refresh_token
                 user.organization.save()
 
-            return Response(status=status.HTTP_200_OK)
+            #return Response(status=status.HTTP_200_OK)
+            return redirect('https://caracal.cloud')

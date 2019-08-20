@@ -46,8 +46,6 @@ class AddCollarAccountSerializer(serializers.ModelSerializer):
         return attrs
 
 
-
-
 class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-account-detail')

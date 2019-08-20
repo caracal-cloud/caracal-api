@@ -55,6 +55,9 @@ class AddCollarAccountView(generics.GenericAPIView):
         }
         outputs = json.dumps(outputs)
 
+        # fixme: if you add an account, delete it, and add it again a validationerror will occur
+        # todo: remove unique constraint and check manually using is_active
+
         try:
             account = RealTimeAccount.objects.create(organization=user.organization, source='collar',
                                                      outputs=outputs, title=title, **data)
@@ -208,8 +211,8 @@ class UpdateCollarAccountView(generics.GenericAPIView):
             account = RealTimeAccount.objects.get(uid=account_uid)
         except RealTimeAccount.DoesNotExist:
             return Response({
-                'error': 'rt_account_does_not_exist',
-                'message': 'real-time account does not exist'
+                'error': 'account_does_not_exist',
+                'message': 'collar account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if account.organization != user.organization and not user.is_superuser:
@@ -244,8 +247,8 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
             individual = RealTimeIndividual.objects.get(uid=individual_uid)
         except RealTimeIndividual.DoesNotExist:
             return Response({
-                'error': 'rt_individual_does_not_exist',
-                'message': 'real-time individual does not exist'
+                'error': 'individual_does_not_exist',
+                'message': 'individual does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         if individual.account.organization != user.organization and not user.is_superuser:

@@ -8,7 +8,7 @@ urlpatterns = [
             path('get_request_url/', views.GetAgolOauthRequestUrlView.as_view()),
             path('response/', views.AgolOauthResponseView.as_view(), name='agol-oauth-response'),
         ])),
-        # path('add_account/', views.AddAgolAccountView.as_view())
+        path('get_account/', views.GetAgolAccountView.as_view())
     ]))
 
 ]

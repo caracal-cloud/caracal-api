@@ -181,10 +181,13 @@ class RegisterSerializer(serializers.Serializer):
                 'message': 'invalid parameter, min password length 7'
             })
 
-        except:
+        except cognito_idp_client.exceptions.InvalidPasswordException:
             organization.delete()
-            sentry_sdk.capture_exception()
-            traceback.print_exc()
+            return Response({
+                'error': 'invalid_password',
+                'message': 'invalid password, min length 7'
+            })
+
 
 
 class SocialAuthGoogleSerializer(serializers.Serializer):

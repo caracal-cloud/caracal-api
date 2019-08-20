@@ -43,13 +43,8 @@ class GetEventsView(generics.ListAPIView):
     serializer_class = serializers.GetEventsSerializer
 
     def get_queryset(self):
-        #user = self.request.user
-        #return ActivityAlert.objects.filter(is_active=True, organization=user.organization)
-
-        # todo: this is temporary
-        from account.models import Account
-        superuser = Account.objects.get(is_superuser=True)
-        return ActivityAlert.objects.filter(is_active=True, organization=superuser.organization)
+        user = self.request.user
+        return ActivityAlert.objects.filter(is_active=True, organization=user.organization)
 
 
 class GetChangesView(generics.ListAPIView):
@@ -59,13 +54,8 @@ class GetChangesView(generics.ListAPIView):
     serializer_class = serializers.GetChangesSerializer
 
     def get_queryset(self):
-        #user = self.request.user
-        #return ActivityChange.objects.filter(is_active=True, organization=user.organization)
-
-        # todo: this is temporary
-        from account.models import Account
-        superuser = Account.objects.get(is_superuser=True)
-        return ActivityChange.objects.filter(is_active=True, organization=superuser.organization)
+        user = self.request.user
+        return ActivityChange.objects.filter(is_active=True, organization=user.organization)
 
 
 class GetOverviewMetricsView(views.APIView):
