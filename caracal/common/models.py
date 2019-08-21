@@ -40,7 +40,11 @@ class RealTimeAccount(BaseAsset, BaseAccount):
     type = models.CharField(max_length=100) # i.e. elephant, random string for radio
     device_indexes = models.TextField(blank=True, null=True) # last position indexes as json
 
+    # ArcGIS Online
     agol_layer_id = models.CharField(max_length=100, null=True)
+
+    # Caracal Sync
+    is_synced = models.NullBooleanField(default=False) # has this account been paired with a Caracal Sync instance
 
     class Meta:
         app_label = 'account'
