@@ -4,7 +4,7 @@ from django.urls import include, path
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 
-from account.views import password, outputs, profile, register, social_auth, tokens
+from account.views import password, profile, register, social_auth, tokens
 from account import serializers
 
 
@@ -22,7 +22,6 @@ urlpatterns = [
     path('forgot_password/', password.ForgotPasswordView.as_view()),
     path('forgot_password_confirm/', password.ForgotPasswordConfirmView.as_view()),
     path('get_profile/', decorated_get_profile_view),
-    #path('get_kmz_hrefs/', outputs.GetKmzHrefsView.as_view()),
     path('login/', tokens.LoginView.as_view()),
     path('logout/', tokens.LogoutView.as_view()),
     path('refresh/', tokens.RefreshView.as_view()),

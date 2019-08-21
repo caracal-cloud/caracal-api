@@ -1,13 +1,9 @@
 
 from django.conf import settings
+from django.shortcuts import redirect
 from django.urls import reverse
-import google.oauth2.credentials
 import google_auth_oauthlib.flow
-from googleapiclient.discovery import build
 import json
-import jwt
-import os
-import requests
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 
@@ -273,7 +269,8 @@ class GoogleOauthResponseView(views.APIView):
                     user.organization.google_oauth_refresh_token = credentials.refresh_token
                 user.organization.save()
 
-            return Response(status=status.HTTP_200_OK)
+            #return Response(status=status.HTTP_200_OK)
+            return redirect('https://caracal.cloud') # TODO: modify this
 
 
 class UpdateDriveFileAccountView(generics.GenericAPIView):

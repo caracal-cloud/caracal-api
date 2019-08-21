@@ -86,7 +86,7 @@ class GetProfileSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
     def get_logo_url(self, obj):
         if obj.organization.logo_object_key:
-            url = aws.get_presigned_url(obj.organization.logo_object_key, settings.S3_USER_DATA_TABLE, 7200)
+            url = aws.get_presigned_url(obj.organization.logo_object_key, settings.S3_USER_DATA_BUCKET, 7200)
             return url
 
     class Meta:
@@ -239,7 +239,7 @@ def save_logo(logo, account):
     png_logo_buffer = image.get_image_bufer(png_logo)
     # standardizing ending so Lambda can use suffix filter
     object_key = f'{account.organization.short_name}/static/logo.{constants.DEFAULT_IMAGE_FORMAT}'
-    aws.put_s3_item(png_logo_buffer.getvalue(), settings.S3_USER_DATA_TABLE, object_key)
+    aws.put_s3_item(png_logo_buffer.getvalue(), settings.S3_USER_DATA_BUCKET, object_key)
     return object_key
 
 

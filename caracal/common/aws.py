@@ -79,6 +79,7 @@ def get_dynamo_credentials(short_name):
     item = dynamodb_json_util.loads(item)['Item']
     return item['credentials']
 
+
 def get_global_config():
 
     client = get_boto_client('dynamodb')
@@ -106,8 +107,11 @@ def get_s3_files(suffix, prefix, bucket_name):
     is_truncated = response['IsTruncated']
     next_marker = response.get('NextMarker') # if is_truncated, use next_marker
     contents = response.get('Contents', None)
-    objects = [c['Key'] for c in contents if c['Key'].endswith(suffix)]
-    return objects
+    if contents is not None:
+        objects = [c['Key'] for c in contents if c['Key'].endswith(suffix)]
+        return objects
+    else:
+        return []
 
 
 def get_lambda_function(function_name):

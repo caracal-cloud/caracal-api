@@ -16,7 +16,7 @@ GOOGLE_CLIENT_SECRET = os.environ['CARACAL_DEV_GOOGLE_CLIENT_SECRET']
 
 HOSTNAME = 'http://localhost:8000'
 
-S3_FILES_BUCKET = "caracal-user-development"
+S3_USER_DATA_BUCKET = "caracal-user-development"
 
 DATABASE_NAME = 'caracal_dev'
 DATABASES = {

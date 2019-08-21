@@ -43,7 +43,6 @@ class GetAgolAccountView(views.APIView):
         return Response(data=data, status=status.HTTP_200_OK)
 
 
-
 class GetAgolOauthRequestUrlView(views.APIView):
 
     authentication_classes = [CognitoAuthentication]
@@ -123,4 +122,6 @@ class AgolOauthResponseView(views.APIView):
                 user.organization.save()
 
             #return Response(status=status.HTTP_200_OK)
-            return redirect('https://caracal.cloud')
+            return redirect('https://caracal.cloud') # TODO: modify this
+
+

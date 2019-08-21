@@ -19,7 +19,7 @@ GOOGLE_CLIENT_SECRET = os.environ['CARACAL_GOOGLE_CLIENT_SECRET']
 
 HOSTNAME = 'https://api.caracal.cloud'
 
-S3_FILES_BUCKET = "caracal-user-prod"
+S3_USER_DATA_BUCKET = "caracal-user-prod"
 
 ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 

@@ -36,8 +36,8 @@ class RealTimeAccount(BaseAsset, BaseAccount):
 
     # real-time accounts specific
     source = models.CharField(choices=constants.RT_ACCOUNT_SOURCES, max_length=50, blank=False, null=False)
-    provider = models.CharField(choices=constants.COLLAR_ACCOUNT_PROVIDERS, max_length=100, blank=False, null=False) # i.e. orbcomm
-    type = models.CharField(max_length=100) # i.e. elephant
+    provider = models.CharField(choices=constants.RT_ACCOUNT_PROVIDERS, max_length=100, blank=False, null=False) # orbcomm, trbonet
+    type = models.CharField(max_length=100) # i.e. elephant, random string for radio
     device_indexes = models.TextField(blank=True, null=True) # last position indexes as json
 
     agol_layer_id = models.CharField(max_length=100, null=True)

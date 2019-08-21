@@ -1,0 +1,41 @@
+
+from django.conf import settings
+import os
+from rest_framework import permissions, status, generics, views
+from rest_framework.response import Response
+
+from auth.backends import CognitoAuthentication
+from caracal.common import aws
+
+
+class GetKmzHrefsView(views.APIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        kmz_object_keys = aws.get_s3_files('.kmz', f'{user.organization.short_name}/kmz', settings.S3_USER_DATA_BUCKET)
+
+        # [{'p': 'cd13ed3c', 'u': 'admin', 'permissions': ['all']}]
+        # todo: returning all for now...
+        credentials = aws.get_dynamo_credentials(user.organization.short_name)
+
+        hrefs = dict()
+        for object_key in kmz_object_keys:
+
+            category = os.path.split(object_key)[0].split('/')[-1]
+            if category == 'kmz':
+                category = 'other'
+
+            if category not in hrefs.keys():
+                hrefs[category] = list()
+
+            base_href = f'https://data.caracal.cloud/{object_key}'
+            for creds in credentials:
+                href = f'{base_href}?u={creds["u"]}&p={creds["p"]}'
+                hrefs[category].append(href)
+
+        return Response(data=hrefs, status=status.HTTP_200_OK)
+

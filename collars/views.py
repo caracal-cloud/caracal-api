@@ -119,7 +119,7 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         try:
-            account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'])
+            account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
@@ -208,7 +208,7 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         account_uid = update_data.pop('account_uid')
 
         try:
-            account = RealTimeAccount.objects.get(uid=account_uid)
+            account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
@@ -244,7 +244,7 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         individual_uid = update_data.pop('individual_uid')
 
         try:
-            individual = RealTimeIndividual.objects.get(uid=individual_uid)
+            individual = RealTimeIndividual.objects.get(uid=individual_uid, is_active=True)
         except RealTimeIndividual.DoesNotExist:
             return Response({
                 'error': 'individual_does_not_exist',

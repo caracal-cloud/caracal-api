@@ -5,9 +5,9 @@ ACCOUNT_STATUSES = [('healthy', 'healthy'), ('unhealthy', 'unhealthy'), ('pendin
 # ALERT_FEEDBACK = [('confirm', 'confirm'), ('deny', 'deny')]
 ALERT_LEVELS = [('low', 'low'), ('medium', 'medium'), ('high', 'high')]
 
-BLOOD_TYPES = [('', '')]
+BLOOD_TYPES = [('AB+', 'AB+')]
 
-COLLAR_ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savannah_tracking')]
+RT_ACCOUNT_PROVIDERS = [('orbcomm', 'orbcomm'), ('savannah_tracking', 'savannah_tracking'), ('trbonet', 'trbonet')]
 
 COORDINATE_SYSTEMS = [('dd', 'dd'), # decimal degrees
                       ('dms', 'dms'), # degrees minutes seconds
@@ -25,7 +25,7 @@ INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 
 
 REGISTRATION_METHODS = [('email', 'email'), ('google', 'google')]
 
-RT_ACCOUNT_SOURCES = [('collar', 'collar')]
+RT_ACCOUNT_SOURCES = [('collar', 'collar'), ('radio', 'radio')]
 
 SEXES = [('male', 'male'), ('female', 'female')]
 

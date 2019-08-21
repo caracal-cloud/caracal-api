@@ -23,7 +23,6 @@ OVERLORD_EMAIL = os.environ['CARACAL_OVERLORD_EMAIL']
 OVERLORD_PASSWORD = os.environ['CARACAL_OVERLORD_PASSWORD']
 
 S3_USER_CREDENTIALS_TABLE = 'caracal-user-access-credentials'
-S3_USER_DATA_TABLE = 'caracal-user-data'
 
 SRID = 4326 # Spatial Reference System Identifier - still using this over global config.
 
@@ -53,7 +52,8 @@ INSTALLED_APPS = [
     'collars',
     'drives',
     'outputs',
-    'public'
+    'public',
+    'radios'
 ]
 
 MIDDLEWARE = [
