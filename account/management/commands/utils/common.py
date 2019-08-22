@@ -132,6 +132,52 @@ def add_dummy_collars(account):
 def add_dummy_radios(account):
     print('...adding dummy radios')
 
+    names = ['Jonie', 'Mitchel', 'Bill', 'Jerry', 'Mick',
+             'Keith', 'Ronnie', 'Tobias', 'Jed', 'Alfred',
+             'Katherine', 'Monique', 'Thor', 'Robin', 'Isaac', 'Louis',
+             'Xenu', 'Webster', 'Quora', 'Bright', 'Rachel']
+
+    providers = ['trbonet']
+
+    for i in range(random.randint(1, 3)):
+
+        provider = random.choice(providers)
+        title = f'Radios - {provider}'
+
+        account_data = {
+            'source': 'radio',
+            'provider': provider,
+            'type': str(uuid.uuid4()),
+            'title': title,
+            'outputs': json.dumps({
+                'output_agol': True,
+                'output_database': True,
+                'output_kml': True
+            })
+        }
+
+        try:
+            account = RealTimeAccount.objects.create(organization=account.organization, **account_data)
+        except:
+            pass
+        else:
+            # add individuals
+            for i in range(random.randint(5, 10)):
+
+                individual = {
+                    'account': account,
+                    'device_id': str(uuid.uuid4()).split('-')[0],
+                    'status': random.choice(constants.INDIVIDUAL_STATUSES)[0],
+                    'name': random.choice(names),
+                    'subtype': 'staff',
+                    'sex': random.choice(constants.SEXES)[0],
+                    'blood_type': random.choice(constants.BLOOD_TYPES)[0],
+                    'call_sign': f'{chr(random.randint(65, 90))}{random.randint(10, 99)}',
+                    'datetime_last_position': timezone.now() - datetime.timedelta(hours=random.randint(0, 36))
+                }
+
+                RealTimeIndividual.objects.create(**individual)
+
 
 
 def clear_all_content():
@@ -149,3 +195,12 @@ def clear_all_content():
     cognito.remove_all_users()
 
 
+def clear_dummy_content(account):
+    print("...clearing all content")
+    ActivityAlert.objects.filter(organization=account.organization).delete()
+    ActivityChange.objects.filter(account=account).delete()
+    DriveFileAccount.objects.filter(organization=account.organization).delete()
+    RealTimePosition.objects.filter(account__organization=account.organization).delete()
+    RealTimePositionHash.objects.filter(account__organization=account.organization).delete()
+    RealTimeIndividual.objects.filter(account__organization=account.organization).delete()
+    RealTimeAccount.objects.filter(organization=account.organization).delete()

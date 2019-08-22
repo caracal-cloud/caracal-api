@@ -38,31 +38,45 @@ class Command(BaseCommand):
               "Postgres Database: %s\n" %
               (stage, settings.COGNITO_USER_POOL_NAME, settings.DATABASES['default']['HOST'], settings.DATABASE_NAME))
 
-        if input("Are you sure you want to clear the database and reinitialize it? [y/n]\n").lower() != "y":
+        response = input("Do you sure you want to clear the database and update dummy it? [clear/update/exit]\n").lower()
+
+        if response == 'clear':
+
+            common.clear_all_content()
+
+            # create superuser
+            Account.objects.create_superuser(os.environ['CARACAL_OVERLORD_EMAIL'],
+                                             os.environ['CARACAL_OVERLORD_PASSWORD'])
+
+            # create dummy user
+            dummy_org = Organization.objects.create(name='Dummy Inc.', short_name=settings.DUMMY_SHORT_NAME)
+            dummy_user = Account.objects.create_user(settings.DUMMY_EMAIL, 'Kigali123',
+                                                     cognito.get_cognito_idp_client(),
+                                                     organization=dummy_org,
+                                                     name='Dummy Dumbo',
+                                                     phone_number='+250780177234',
+                                                     is_admin=True)
+            cognito.confirm_user(settings.DUMMY_EMAIL)
+
+            # create credentials for S3
+            password = str(uuid.uuid4()).split('-')[0]
+            aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
+
+        elif response == 'update':
+            try:
+                dummy_user = Account.objects.get(email=settings.DUMMY_EMAIL)
+            except Account.DoesNotExist:
+                print("dummy account does not exist. clear first")
+                return
+            else:
+                common.clear_dummy_content(dummy_user)
+        else:
             return
-
-        common.clear_all_content()
-
-        # create superuser
-        Account.objects.create_superuser(os.environ['CARACAL_OVERLORD_EMAIL'], os.environ['CARACAL_OVERLORD_PASSWORD'])
-
-        # create dummy user
-        dummy_org = Organization.objects.create(name='Dummy Inc.', short_name=settings.DUMMY_SHORT_NAME)
-        dummy_user = Account.objects.create_user(settings.DUMMY_EMAIL, 'Kigali123',
-                                                 cognito.get_cognito_idp_client(),
-                                                 organization=dummy_org,
-                                                 name='Dummy Dumbo',
-                                                 phone_number='+250780177234',
-                                                 is_admin=True)
-        cognito.confirm_user(settings.DUMMY_EMAIL)
-
-        # create credentials for S3
-        password = str(uuid.uuid4()).split('-')[0]
-        aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
 
         common.add_dummy_alerts(dummy_user)
         common.add_dummy_changes(dummy_user)
         common.add_dummy_collars(dummy_user)
+        common.add_dummy_radios(dummy_user)
 
 
 
