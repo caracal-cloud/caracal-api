@@ -1,5 +1,7 @@
 
+import random
 from rest_framework import serializers
+
 from caracal.common import constants
 # from collars.models import CollarAccount, CollarIndividual
 
@@ -68,23 +70,29 @@ class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-individual-detail')
 
-    # TODO: calculate distances with monthly_paths
+    # TODO: temporary... calculate distances with monthly_paths
+    distance_day = serializers.SerializerMethodField()
+    def get_distance_day(self, individual): # kms
+        return random.randint(5, 50)
 
     class Meta:
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'status', 'name', 'subtype', 'sex',
+                  'status', 'name', 'subtype', 'sex', 'distance_day',
                   'datetime_last_position']
 
 
 class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 
-    # TODO: calculate distances with monthly_paths
+    # TODO: temporary... calculate distances with monthly_paths
+    distance_day = serializers.SerializerMethodField()
+    def get_distance_day(self, individual): # kms
+        return random.randint(5, 50)
 
     class Meta:
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'status', 'name', 'subtype', 'sex',
+                  'status', 'name', 'subtype', 'sex', 'distance_day',
                   'datetime_last_position']
 
 
