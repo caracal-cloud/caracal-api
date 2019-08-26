@@ -7,7 +7,7 @@ from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimeP
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
     list_display = ['uid_cognito', 'email', 'organization', 'name',
-                    'phone_number', 'datetime_created']
+                    'phone_number', 'registration_method', 'datetime_created']
     search_fields = ['uid_cognito', 'uid_google', 'email', 'organization__name']
     list_filter = ['is_active', 'is_superuser', 'is_staff', 'is_admin']
     ordering = ['-datetime_created']

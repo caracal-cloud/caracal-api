@@ -29,6 +29,31 @@ def create_dynamo_credentials(org_short_name, username, password, permissions):
         Item=dynamodb_json
     )
 
+def create_cognito_user(email, name, password, registration_method='email'):
+
+    client = get_boto_client('cognito-idp')
+    response = client.sign_up(
+        ClientId=settings.COGNITO_APP_ID,
+        #SecretHash=None,
+        Username=email,
+        Password=password,
+        UserAttributes=[
+            {
+                'Name': 'email',
+                'Value': email
+            }
+        ],
+        ValidationData=[
+            {
+                'Name': 'registration_method',
+                'Value': registration_method
+            },
+        ],
+    )
+
+    sub = response['UserSub']
+    return sub
+
 
 def get_boto_client(service):
     params = {

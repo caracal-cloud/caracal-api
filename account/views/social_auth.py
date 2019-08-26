@@ -14,6 +14,7 @@ import uuid
 from account import serializers
 from account.models import Account, Organization
 from auth import cognito, tokens
+from caracal.common import aws, names
 
 
 class GoogleAuthView(generics.GenericAPIView):
@@ -60,21 +61,22 @@ class GoogleAuthView(generics.GenericAPIView):
                 print('Email match found, not Google')
             except Account.DoesNotExist:
                 print('Creating new user: ', name, email)
-                # create user
-                # set temp short_name
-                organization = Organization.objects.create(short_name=str(uuid.uuid4()), update_required=True)
 
-                # create user in Cognito - set temp password
+                short_name = names.generate_unique_short_name()
+                organization = Organization.objects.create(short_name=short_name, update_required=True)
+
+                # create verified user in Cognito - set temp password - pass registration_method for pre-signup
+                # pre-signup will verify and confirm the user
                 pwd = str(uuid.uuid4()).split('-')[0]
-                cognito_client = cognito.get_warrant_wrapper_client()
-                user = Account.objects.create_user(email, pwd, cognito_client.client,
-                                                   organization=organization, name=name, is_admin=True,
-                                                   uid_google=uid_google, registration_method='google')
+                uid_cognito = aws.create_cognito_user(email, name, pwd, registration_method='google')
 
-                # force the user to update their organization's name and short_name
+                # do not use create_user to avoid going through Cognito again
+                user = Account.objects.create(uid_cognito=uid_cognito, uid_google=uid_google,
+                                              email=email, name=name, is_admin=True,
+                                              organization=organization, registration_method='google')
 
         # invalidate previous cognito token
-        #cognito.sign_out_user(email)
+        cognito.sign_out_user(email)
 
         access_token, access_jwt_id  = tokens.generate_access_token(str(user.uid_cognito))
         refresh_token, refresh_jwt_id = tokens.generate_refresh_token(str(user.uid_cognito))
