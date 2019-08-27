@@ -1,7 +1,8 @@
 
+import json
 from rest_framework import serializers
-from caracal.common import constants
 
+from caracal.common import constants
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition
 
 
@@ -29,18 +30,32 @@ class GetRadioAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='radio-account-detail')
 
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, account):
+        if account.outputs is not None:
+            return json.loads(account.outputs)
+        else:
+            return None
+
     class Meta:
         model = RealTimeAccount
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'status', 'title', 'source', 'provider']
+                  'status', 'title', 'source', 'provider', 'outputs']
 
 
 class GetRadioAccountDetailSerializer(serializers.ModelSerializer):
 
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, account):
+        if account.outputs is not None:
+            return json.loads(account.outputs)
+        else:
+            return None
+
     class Meta:
         model = RealTimeAccount
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'status', 'title', 'source', 'provider']
+                  'status', 'title', 'source', 'provider', 'outputs']
 
 
 class GetRadioIndividualsSerializer(serializers.HyperlinkedModelSerializer):

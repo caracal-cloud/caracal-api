@@ -1,4 +1,5 @@
 
+import json
 import random
 from rest_framework import serializers
 
@@ -15,7 +16,6 @@ class AddCollarAccountSerializer(serializers.ModelSerializer):
     type = serializers.CharField(max_length=100) # i.e. elephant
 
     # Orbcomm/Skygistics
-
     orbcomm_timezone = serializers.CharField(max_length=20, required=False)
     orbcomm_company_id = serializers.CharField(max_length=50, required=False)
 
@@ -52,18 +52,32 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-account-detail')
 
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, account):
+        if account.outputs is not None:
+            return json.loads(account.outputs)
+        else:
+            return None
+
     class Meta:
         model = RealTimeAccount
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'status', 'title', 'source', 'provider', 'type']
+                  'status', 'title', 'source', 'provider', 'type', 'outputs']
 
 
 class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
 
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, account):
+        if account.outputs is not None:
+            return json.loads(account.outputs)
+        else:
+            return None
+
     class Meta:
         model = RealTimeAccount
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'status', 'title', 'source', 'provider', 'type']
+                  'status', 'title', 'source', 'provider', 'type', 'outputs']
 
 
 class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
