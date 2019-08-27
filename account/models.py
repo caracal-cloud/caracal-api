@@ -3,13 +3,13 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 import django.db.models as m
 from django.utils import timezone
-
-
 from sentry_sdk import capture_message
 import uuid
 
 from auth import cognito
 from caracal.common import constants
+from caracal.common.aws_utils import exceptions
+from caracal.common.aws_utils.cognito import create_user, confirm_account
 
 
 class Organization(m.Model):
@@ -88,6 +88,11 @@ class UserManager(BaseUserManager):
 
         email = self.normalize_email(email).lower()
         user = self.model(email=email, **extra_fields)
+
+        # create superuser in Cognito, will use Cognito auth later with admin dashboard
+        sub = create_user(email, password, registration_method="superuser")
+
+        user.uid_cognito = sub
         user.set_password(password)
         user.save(using=self._db)
         return user

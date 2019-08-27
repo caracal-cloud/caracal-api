@@ -88,6 +88,7 @@ class GetGoogleDriveFilesSerializer(serializers.Serializer):
 
 class GetGoogleOauthRequestUrlQueryParamsSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=[('login', 'login'), ('drive', 'drive')])
+    callback = serializers.CharField(required=False)
 
 
 class ReceiveGoogleOauthResponseUrlQueryParamsSerializer(serializers.Serializer):

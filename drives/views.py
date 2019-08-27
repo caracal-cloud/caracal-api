@@ -167,6 +167,7 @@ class GetGoogleOauthRequestUrlView(views.APIView):
         serializer.is_valid(True)
 
         action = serializer.data['action']
+        callback = serializer.data.get('callback', 'https://caracal.cloud')
 
         user = request.user
 
@@ -191,7 +192,8 @@ class GetGoogleOauthRequestUrlView(views.APIView):
 
         state = {
             'account_uid': str(user.uid_cognito),
-            'action': action
+            'action': action,
+            'callback': callback
         }
 
         if action == 'login':
@@ -269,8 +271,7 @@ class GoogleOauthResponseView(views.APIView):
                     user.organization.google_oauth_refresh_token = credentials.refresh_token
                 user.organization.save()
 
-            #return Response(status=status.HTTP_200_OK)
-            return redirect('https://caracal.cloud') # TODO: modify this
+            return redirect(state['callback'])
 
 
 class UpdateDriveFileAccountView(generics.GenericAPIView):

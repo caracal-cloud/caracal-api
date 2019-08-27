@@ -6,7 +6,6 @@ from rest_framework import serializers
 class GetAgolOauthRequestUrlQueryParamsSerializer(serializers.Serializer):
     pass
 
-
 class ReceiveAgolOauthResponseUrlQueryParamsSerializer(serializers.Serializer):
 
     error = serializers.CharField(required=False)

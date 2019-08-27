@@ -38,7 +38,7 @@ class Command(BaseCommand):
               "Postgres Database: %s\n" %
               (stage, settings.COGNITO_USER_POOL_NAME, settings.DATABASES['default']['HOST'], settings.DATABASE_NAME))
 
-        response = input("Do you sure you want to clear the database and update dummy it? [clear/update/exit]\n").lower()
+        response = input("Do you want to clear the database and update dummy data? [clear/update/exit]\n").lower()
 
         if response == 'clear':
 
