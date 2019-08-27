@@ -4,7 +4,8 @@ from rest_framework import serializers
 
 
 class GetAgolOauthRequestUrlQueryParamsSerializer(serializers.Serializer):
-    pass
+    callback = serializers.CharField(required=False)
+
 
 class ReceiveAgolOauthResponseUrlQueryParamsSerializer(serializers.Serializer):
 

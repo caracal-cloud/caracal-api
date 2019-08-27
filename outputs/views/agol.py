@@ -49,11 +49,16 @@ class GetAgolOauthRequestUrlView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
+        serializer = serializers.GetAgolOauthRequestUrlQueryParamsSerializer(data=request.query_params)
+        serializer.is_valid(True)
+
+        callback = serializer.data.get('callback', 'https://caracal.cloud')
 
         user = request.user
 
         state = {
-            'account_uid': str(user.uid_cognito)
+            'account_uid': str(user.uid_cognito),
+            'callback': callback
         }
 
         redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
@@ -122,7 +127,6 @@ class AgolOauthResponseView(views.APIView):
                     user.organization.agol_oauth_refresh_token = refresh_token
                 user.organization.save()
 
-            #return Response(status=status.HTTP_200_OK)
-            return redirect('https://caracal.cloud') # TODO: modify this
+            return redirect(state['callback'])
 
 

@@ -213,6 +213,7 @@ class GetGoogleOauthRequestUrlView(views.APIView):
             access_type='offline',
             include_granted_scopes='true',
             login_hint=request.user.email,
+            prompt='consent',
             state=json.dumps(state)
         )
 
@@ -266,6 +267,8 @@ class GoogleOauthResponseView(views.APIView):
                     'error': 'user_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
+                # fixme: error where there is no refresh token!
+
                 user.organization.google_oauth_access_token = credentials.token
                 if credentials.refresh_token:
                     user.organization.google_oauth_refresh_token = credentials.refresh_token
