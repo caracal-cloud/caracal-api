@@ -1,4 +1,5 @@
 
+from datetime import datetime, timezone
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -6,6 +7,7 @@ import google_auth_oauthlib.flow
 import json
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
+from sentry_sdk import capture_message
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
@@ -25,7 +27,7 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         serializer = serializers.AddDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
 
-        account = serializer.save(organization=request.user.organization)
+        account = serializer.save(user=request.user)
 
         return Response({
             'account_uid': account.uid
@@ -166,29 +168,10 @@ class GetGoogleOauthRequestUrlView(views.APIView):
         serializer = serializers.GetGoogleOauthRequestUrlQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(True)
 
-        action = serializer.data['action']
-        callback = serializer.data.get('callback', 'https://caracal.cloud')
-
         user = request.user
 
-        if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
-
-            access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
-            if access_token is not None:
-                user.organization.google_oauth_access_token = access_token
-                user.organization.save()
-
-                if action == 'drive':
-                    files = google_utils.get_google_drive_files('google_sheet', access_token)
-                    if files is not None:
-                        return Response({
-                            'message': 'google drive already connected'
-                        }, status=status.HTTP_204_NO_CONTENT)
-
-                else:
-                    return Response({
-                        'message': 'google login already connected'
-                    }, status=status.HTTP_204_NO_CONTENT)
+        action = serializer.data['action']
+        callback = serializer.data.get('callback', 'https://caracal.cloud')
 
         state = {
             'account_uid': str(user.uid_cognito),
@@ -212,7 +195,7 @@ class GetGoogleOauthRequestUrlView(views.APIView):
         authorization_url, state = flow.authorization_url(
             access_type='offline',
             include_granted_scopes='true',
-            login_hint=request.user.email,
+            login_hint=user.email,
             prompt='consent',
             state=json.dumps(state)
         )
@@ -231,9 +214,7 @@ class GoogleOauthResponseView(views.APIView):
         serializer = serializers.ReceiveGoogleOauthResponseUrlQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        state = serializer.data['state']
-        state = json.loads(state)
-
+        state = json.loads(serializer.data['state'])
         action = state['action']
 
         error = serializer.data.get('error')
@@ -267,12 +248,15 @@ class GoogleOauthResponseView(views.APIView):
                     'error': 'user_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                # fixme: error where there is no refresh token!
-
-                user.organization.google_oauth_access_token = credentials.token
+                # save temporary tokens which will be copied to the drive account when added
+                # possibly fixed with prompt=consent, but if authenticating a second time it only returns access_token
+                user.temp_google_oauth_access_token = credentials.token
+                user.temp_google_oauth_access_token_expiry = credentials.expiry.replace(tzinfo=timezone.utc)
                 if credentials.refresh_token:
-                    user.organization.google_oauth_refresh_token = credentials.refresh_token
-                user.organization.save()
+                    user.temp_google_oauth_refresh_token = credentials.refresh_token
+                else:
+                    capture_message(f'ERROR: refresh_token is None: {user.email}')
+                user.save()
 
             return redirect(state['callback'])
 

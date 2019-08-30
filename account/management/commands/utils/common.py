@@ -62,6 +62,12 @@ def add_dummy_changes(account):
         },
         {
             'message': 'Roger Green added connected a Google Drive account'
+        },
+        {
+            'message': 'Martin Ishimwe edited elephant Julie'
+        },
+        {
+            'message': 'Roger Green edited radio C50'
         }
     ]
 
@@ -83,7 +89,7 @@ def add_dummy_collars(account):
     specieses = ['elephant', 'giraffe', 'lion']
     providers = ['orbcomm', 'savannah_tracking']
 
-    for i in range(random.randint(3, 6)):
+    for i in range(random.randint(4, 7)):
 
         provider = random.choice(providers)
         species = random.choice(specieses).capitalize()
@@ -107,7 +113,7 @@ def add_dummy_collars(account):
             pass
         else:
             # add individuals
-            for i in range(random.randint(5, 10)):
+            for i in range(random.randint(7, 12)):
 
                 subtype = random.choice(species_subtypes[account.type]) if account.type in species_subtypes.keys() else None
 
@@ -139,7 +145,7 @@ def add_dummy_radios(account):
 
     providers = ['trbonet']
 
-    for i in range(random.randint(1, 3)):
+    for i in range(random.randint(3, 6)):
 
         provider = random.choice(providers)
         title = f'Radios - {provider}'
@@ -162,7 +168,7 @@ def add_dummy_radios(account):
             pass
         else:
             # add individuals
-            for i in range(random.randint(5, 10)):
+            for i in range(random.randint(7, 12)):
 
                 individual = {
                     'account': account,

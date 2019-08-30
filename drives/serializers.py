@@ -22,6 +22,8 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
 
+        user = validated_data.pop('user')
+
         outputs = {
             'output_agol': validated_data.pop('output_agol', False),
             'output_database': validated_data.pop('output_database', False),
@@ -29,7 +31,11 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
         }
         outputs = json.dumps(outputs)
 
-        drive = DriveFileAccount.objects.create(outputs=outputs, **validated_data)
+        drive = DriveFileAccount.objects.create(organization=user.organization, outputs=outputs,
+                                                google_oauth_access_token=user.temp_google_oauth_access_token,
+                                                google_oauth_access_token_expiry=user.temp_google_oauth_access_token_expiry,
+                                                google_oauth_refresh_token=user.temp_google_oauth_refresh_token,
+                                                **validated_data)
         return drive
 
     def validate(self, attrs):

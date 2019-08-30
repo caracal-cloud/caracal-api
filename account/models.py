@@ -25,10 +25,7 @@ class Organization(m.Model):
     timezone = m.CharField(max_length=50, default='Africa/Kigali')
     logo_object_key = m.CharField(max_length=255, blank=True, null=True)
 
-    google_oauth_access_token = m.TextField(null=True)
-    google_oauth_refresh_token = m.TextField(null=True)
-    google_oauth_access_token_expiry = m.DateTimeField(null=True)
-
+    # ArcGIS Online
     # todo: consider putting in 1to1 object
     agol_oauth_access_token = m.TextField(null=True)
     agol_oauth_refresh_token = m.TextField(null=True)
@@ -121,6 +118,12 @@ class Account(AbstractBaseUser, PermissionsMixin):
     registration_method = m.CharField(max_length=50, choices=constants.REGISTRATION_METHODS, default='email', null=True)
     custom_access_jwt_id = m.UUIDField(null=True)
     custom_refresh_jwt_id = m.UUIDField(null=True)
+
+    # Temp Google tokens
+    temp_google_oauth_access_token = m.TextField(null=True)
+    temp_google_oauth_access_token_expiry = m.DateTimeField(null=True) # UTC
+    temp_google_oauth_refresh_token = m.TextField(null=True)
+
 
     objects = UserManager()
 

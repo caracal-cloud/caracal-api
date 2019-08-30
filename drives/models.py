@@ -25,6 +25,11 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     grid_zone_column_index = models.IntegerField(null=True) # utm ex. 35N, 35M
     date_column_index = models.IntegerField(null=True)
 
+    # Google
+    google_oauth_access_token = models.TextField(null=True)
+    google_oauth_refresh_token = models.TextField(null=True)
+    google_oauth_access_token_expiry = models.DateTimeField(null=True) # UTC
+
     output_notes = models.BooleanField(default=False) # markup drive file with comments (i.e. invalid value)
 
     class Meta:
