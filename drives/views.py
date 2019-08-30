@@ -27,7 +27,15 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         serializer = serializers.AddDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
 
+        user = request.user
+
         account = serializer.save(user=request.user)
+
+        # remove temporary google tokens...
+        user.temp_google_oauth_access_token = None
+        user.temp_google_oauth_access_token_expiry = None
+        user.temp_google_oauth_refresh_token = None
+        user.save()
 
         return Response({
             'account_uid': account.uid
@@ -88,28 +96,24 @@ class GetGoogleDriveFilesView(views.APIView):
 
         user = request.user
 
-        # TODO: make this more efficient!
-        # TODO: should try google api first, if error then refresh access_token and save to org
-        if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
-            access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
-            if access_token is not None:
-                user.organization.google_oauth_access_token = access_token
-                user.organization.save()
-                documents = google_utils.get_google_drive_files(file_type, user.organization.google_oauth_access_token)
+        access_token_expiry = user.temp_google_oauth_access_token_expiry
 
-                data = {
-                    "count": len(documents),
-                    "next": None,
-                    "previous": None,
-                    "results": documents
-                }
+        # test this expiry stuff
+        if access_token_expiry and access_token_expiry <= datetime.utcnow().replace(tzinfo=timezone.utc):
+            # TODO update expiry
+            user.temp_google_oauth_access_token = google_utils.refresh_google_token(user.temp_google_oauth_refresh_token)
+            user.save()
 
-                return Response(data=data, status=status.HTTP_200_OK)
+        documents = google_utils.get_google_drive_files(file_type, user.temp_google_oauth_access_token)
 
-        return Response({
-            'error': 'invalid_credentials',
-            'message': 'get google drive oauth request url and obtain new credentials'
-        }, status=status.HTTP_403_FORBIDDEN)
+        data = {
+            "count": len(documents),
+            "next": None,
+            "previous": None,
+            "results": documents
+        }
+
+        return Response(data=data, status=status.HTTP_200_OK)
 
 
 class GetGoogleSpreadsheetSheetsView(views.APIView):
@@ -125,38 +129,33 @@ class GetGoogleSpreadsheetSheetsView(views.APIView):
 
         file_id = serializer.data['file_id']
 
-        if user.organization.google_oauth_access_token and user.organization.google_oauth_refresh_token:
-            access_token = google_utils.refresh_google_token(user.organization.google_oauth_refresh_token)
-            if access_token is not None:
-                user.organization.google_oauth_access_token = access_token
-                user.organization.save()
+        if user.temp_google_oauth_access_token_expiry <= datetime.utcnow().replace(tzinfo=timezone.utc):
+            user.temp_google_oauth_access_token = google_utils.refresh_google_token(user.temp_google_oauth_refresh_token)
+            user.save()
 
-                spreadsheet = google_utils.get_google_drive_spreadsheet(file_id, access_token=access_token)
-                if spreadsheet is not None:
-                    sheets = spreadsheet['sheets']
+        spreadsheet = google_utils.get_google_drive_spreadsheet(file_id, access_token=user.temp_google_oauth_access_token)
+        if spreadsheet is not None:
+            sheets = spreadsheet['sheets']
 
-                    data = {
-                        "count": len(sheets),
-                        "next": None,
-                        "previous": None,
-                        "results": [{ # list comprehension!
-                            'id': sheet['properties']['sheetId'],
-                            'title': sheet['properties']['title']
-                        } for sheet in sheets]
-                    }
+            data = {
+                "count": len(sheets),
+                "next": None,
+                "previous": None,
+                "results": [{ # list comprehension!
+                    'id': sheet['properties']['sheetId'],
+                    'title': sheet['properties']['title']
+                } for sheet in sheets]
+            }
 
-                    return Response(data=data, status=status.HTTP_200_OK)
+            return Response(data=data, status=status.HTTP_200_OK)
 
-                else:
-                    return Response({
-                        'error': 'invalid_file',
-                        'message': 'the file you have request may not be the correct type'
-                    }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({
+                'error': 'invalid_file',
+                'message': 'the file you have request may not be the correct type'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({
-            'error': 'invalid_credentials',
-            'message': 'get google drive oauth request url and obtain new credentials'
-        }, status=status.HTTP_403_FORBIDDEN)
+
 
 
 class GetGoogleOauthRequestUrlView(views.APIView):

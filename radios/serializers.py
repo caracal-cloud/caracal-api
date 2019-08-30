@@ -66,7 +66,7 @@ class GetRadioIndividualsSerializer(serializers.HyperlinkedModelSerializer):
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'sex', 'subtype', 'blood_type', 'call_sign',
-                  'datetime_last_position']
+                  'datetime_last_position', 'phone_number']
 
 
 class GetRadioIndividualDetailSerializer(serializers.ModelSerializer):
@@ -74,7 +74,7 @@ class GetRadioIndividualDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'status', 'name', 'subtype', 'sex',
+                  'status', 'name', 'subtype', 'sex', 'phone_number',
                   'blood_type', 'call_sign','datetime_last_position']
 
 
@@ -87,6 +87,7 @@ class UpdateRadioIndividualSerializer(serializers.Serializer):
     sex = serializers.ChoiceField(choices=constants.SEXES, required=False)
     blood_type = serializers.ChoiceField(choices=constants.BLOOD_TYPES, required=False)
     call_sign = serializers.CharField(max_length=100, required=False)
+    phone_number = serializers.CharField(max_length=50, required=False)
 
     def validate(self, attrs):
         unknown =  set(self.initial_data) - set(self.fields)

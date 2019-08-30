@@ -70,6 +70,7 @@ class RealTimeIndividual(BaseAsset):
     # human
     blood_type = models.CharField(choices=constants.BLOOD_TYPES, max_length=100, null=True, blank=True)
     call_sign = models.CharField(max_length=100, null=True, blank=True)
+    phone_number = models.CharField(max_length=50, null=True, blank=True)
 
     # animal
 

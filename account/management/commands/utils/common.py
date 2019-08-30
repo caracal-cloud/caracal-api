@@ -179,7 +179,8 @@ def add_dummy_radios(account):
                     'sex': random.choice(constants.SEXES)[0],
                     'blood_type': random.choice(constants.BLOOD_TYPES)[0],
                     'call_sign': f'{chr(random.randint(65, 90))}{random.randint(10, 99)}',
-                    'datetime_last_position': timezone.now() - datetime.timedelta(hours=random.randint(0, 36))
+                    'datetime_last_position': timezone.now() - datetime.timedelta(hours=random.randint(0, 36)),
+                    'phone_number': f'+{random.randint(1, 255)}{random.randint(100000, 999999)}'
                 }
 
                 RealTimeIndividual.objects.create(**individual)
