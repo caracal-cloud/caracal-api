@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
@@ -7,6 +7,7 @@ import os
 import requests
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
+from sentry_sdk import capture_message
 from urllib.parse import urlencode
 
 from account.models import Account
@@ -15,6 +16,25 @@ from caracal.common import agol
 from outputs import serializers
 
 AGOL_BASE_URL = "https://www.arcgis.com/sharing/rest/oauth2"
+
+
+class DisconnectAgolView(views.APIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        organization = user.organization
+
+        organization.agol_oauth_access_token = None
+        organization.agol_oauth_access_token_expiry = None
+        organization.agol_oauth_refresh_token = None
+        organization.save()
+
+        # TODO: remove agol sync tasks...
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class GetAgolAccountView(views.APIView):
@@ -61,12 +81,12 @@ class GetAgolOauthRequestUrlView(views.APIView):
             'callback': callback
         }
 
-        redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
+        agol_redirect_ui = settings.HOSTNAME + reverse('agol-oauth-response')
 
         params = {
             'client_id': settings.AGOL_CLIENT_ID,
             'response_type': 'code',
-            'redirect_uri': redirect_uri,
+            'redirect_uri': agol_redirect_ui,
             'state': json.dumps(state)
         }
         authorization_url = f'{AGOL_BASE_URL}/authorize?{urlencode(params)}'
@@ -85,34 +105,55 @@ class AgolOauthResponseView(views.APIView):
         serializer = serializers.ReceiveAgolOauthResponseUrlQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        error = serializer.data.get('error')
+        data = serializer.data
+
+        error = data.get('error')
         if error is not None:
             return Response({
                 'error': 'access_denied'
             }, status=status.HTTP_401_UNAUTHORIZED)
         else:
-            code = serializer.data['code']
-            state = serializer.data['state']
+            # code or state occasionally missing
+            if 'code' not in data.keys() or 'state' not in data.keys():
+                print(data)
+                capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
+                return Response({
+                    'error': 'access_denied',
+                    'message': 'code or state missing'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+            code = data['code']
+            state = data['state']
             state = json.loads(state)
             account_uid = state['account_uid'] #refresh_token user account uid
 
-            redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
+            agol_redirect_ui = settings.HOSTNAME + reverse('agol-oauth-response')
 
             # exchange code for tokens
             token_url = f'{AGOL_BASE_URL}/token'
             data = {
                 'client_id': settings.AGOL_CLIENT_ID,
                 'code': code,
-                'redirect_uri': redirect_uri,
+                'redirect_uri': agol_redirect_ui,
                 'grant_type': 'authorization_code'
             }
 
             res = requests.post(token_url, data=data)
             tokens = res.json()
 
+            # access token occasionaly missing
+            if 'access_token' not in tokens:
+                capture_message(f'WARNING: access_token missing - {json.dumps(tokens)}')
+                return Response({
+                    'error': 'access_denied',
+                    'message': 'access_token missing'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
             access_token = tokens['access_token']
             refresh_token = tokens['refresh_token']
             username = tokens['username']
+            expires_in = tokens['expires_in']
+            expiry = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(seconds=expires_in)
 
             try:
                 user = Account.objects.get(uid_cognito=account_uid)
@@ -123,6 +164,7 @@ class AgolOauthResponseView(views.APIView):
             else:
                 user.organization.agol_username = username
                 user.organization.agol_oauth_access_token = access_token
+                user.organization.agol_oauth_access_token_expiry = expiry
                 if refresh_token:
                     user.organization.agol_oauth_refresh_token = refresh_token
                 user.organization.save()

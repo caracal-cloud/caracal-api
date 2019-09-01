@@ -1,4 +1,9 @@
 
+
+# TODO: create table of account/organization to background tasks...
+# TODO: this will make it easier to stop certain tasks if say a user disconnect AGOL
+
+
 deploy to eb
 --------------------------------------------------------------------------------
 eb deploy caracal-api-prod --profile=tuma-admin

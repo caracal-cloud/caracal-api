@@ -28,6 +28,7 @@ class Organization(m.Model):
     # ArcGIS Online
     # todo: consider putting in 1to1 object
     agol_oauth_access_token = m.TextField(null=True)
+    agol_oauth_access_token_expiry = m.DateTimeField(null=True)
     agol_oauth_refresh_token = m.TextField(null=True)
     agol_group_id = m.CharField(max_length=255, null=True)
     agol_feature_service_url = m.CharField(max_length=200, null=True)
