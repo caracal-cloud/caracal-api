@@ -62,6 +62,19 @@ class Command(BaseCommand):
             password = str(uuid.uuid4()).split('-')[0]
             aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
 
+            # create demo user
+            demo_org = Organization.objects.create(name='Caracal Demo', short_name=settings.DEMO_SHORT_NAME)
+            demo_user = Account.objects.create_user(settings.DEMO_EMAIL, 'Kigali123',
+                                                     cognito.get_cognito_idp_client(),
+                                                     organization=demo_org,
+                                                     name='Caracal Demo User',
+                                                     phone_number='+18055551234',
+                                                     is_admin=True, is_demo=True)
+            cognito.confirm_user(settings.DEMO_EMAIL)
+
+            password = str(uuid.uuid4()).split('-')[0]
+            aws.create_dynamo_credentials(settings.DEMO_SHORT_NAME, 'admin', password, ['all'])
+
         elif response == 'update':
             try:
                 dummy_user = Account.objects.get(email=settings.DUMMY_EMAIL)
@@ -70,6 +83,15 @@ class Command(BaseCommand):
                 return
             else:
                 common.clear_dummy_content(dummy_user)
+
+            try:
+                demo_user = Account.objects.get(email=settings.DEMO_EMAIL)
+            except Account.DoesNotExist:
+                print("demo account does not exist. clear first")
+                return
+            else:
+                common.clear_dummy_content(demo_user)
+
         else:
             return
 
@@ -77,6 +99,11 @@ class Command(BaseCommand):
         common.add_dummy_changes(dummy_user)
         common.add_dummy_collars(dummy_user)
         common.add_dummy_radios(dummy_user)
+
+        common.add_dummy_alerts(demo_user)
+        common.add_dummy_changes(demo_user)
+        common.add_dummy_collars(demo_user)
+        common.add_dummy_radios(demo_user)
 
 
 

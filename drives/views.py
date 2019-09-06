@@ -28,6 +28,8 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         serializer.is_valid(True)
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_201_CREATED)
 
         account = serializer.save(user=request.user)
 
@@ -51,6 +53,9 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
     def post(self, request):
         serializer = serializers.DeleteDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
+
+        if request.user.is_demo:
+            return Response(status=status.HTTP_200_OK)
 
         account_uid = serializer.data['account_uid']
 
@@ -104,6 +109,7 @@ class GetGoogleDriveFilesView(views.APIView):
             user.temp_google_oauth_access_token = google_utils.refresh_google_token(user.temp_google_oauth_refresh_token)
             user.save()
 
+        # fixme: documents is None sometimes - possibly to do with the temp tokens?
         documents = google_utils.get_google_drive_files(file_type, user.temp_google_oauth_access_token)
 
         data = {
@@ -213,16 +219,24 @@ class GoogleOauthResponseView(views.APIView):
         serializer = serializers.ReceiveGoogleOauthResponseUrlQueryParamsSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        state = json.loads(serializer.data['state'])
-        action = state['action']
+        data = serializer.data
 
-        error = serializer.data.get('error')
+        error = data.get('error')
         if error is not None:
             return Response({
                 'error': error
             }, status=status.HTTP_401_UNAUTHORIZED)
         else:
-            code = serializer.data['code']
+            if 'code' not in data.keys() or 'state' not in data.keys():
+                capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
+                return Response({
+                    'error': 'access_denied',
+                    'message': 'code or state missing'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+
+            code = data['code']
+            state = json.loads(data['state'])
+            action = state['action']
 
             if action == 'login':
                 scopes = ['openid', 'https://www.googleapis.com/auth/userinfo.email',
@@ -271,8 +285,11 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         serializer = serializers.UpdateDriveFileAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        update_data = serializer.data
-        account_uid = update_data.pop('account_uid')
+        if request.user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
+        data = serializer.data
+        account_uid = data.pop('account_uid')
 
         try:
             account = DriveFileAccount.objects.get(uid=account_uid)
@@ -285,9 +302,9 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        outputs = get_updated_outputs(account, update_data)
+        outputs = get_updated_outputs(account, data)
 
-        DriveFileAccount.objects.filter(uid=account_uid).update(outputs=outputs, **update_data)
+        DriveFileAccount.objects.filter(uid=account_uid).update(outputs=outputs, **data)
 
         return Response(status=status.HTTP_200_OK)
 

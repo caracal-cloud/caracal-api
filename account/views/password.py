@@ -6,6 +6,7 @@ from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 import warrant
 
+from account.models import Account
 from auth import cognito
 from account import serializers
 
@@ -71,6 +72,12 @@ class ForgotPasswordView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         email = serializer.data['email']
+
+        try: # check if demo account
+            Account.objects.get(email=email, is_demo=True)
+            return Response(status=status.HTTP_200_OK)
+        except Account.DoesNotExist:
+            pass
 
         warrant_client = cognito.get_warrant_wrapper_client(email)
         try:

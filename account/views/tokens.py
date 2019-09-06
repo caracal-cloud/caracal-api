@@ -99,6 +99,12 @@ class LogoutView(views.APIView):
     def post(self, request):
         access_token = get_authorization_header(request).split()[1].decode('utf-8')
         client = cognito.get_cognito_idp_client()
+
+        if request.user.is_demo:
+            # fixme: Cognito does not have the ability to invalidate just one token
+            # frontend should just simulate a logout
+            return Response(status=status.HTTP_200_OK)
+
         response = client.global_sign_out(AccessToken=access_token)
 
         if response['ResponseMetadata']['HTTPStatusCode'] == 200:

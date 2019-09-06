@@ -114,7 +114,8 @@ class Account(AbstractBaseUser, PermissionsMixin):
 
     is_superuser = m.BooleanField(default=False) # project-wide superuser
     is_staff = m.BooleanField(default=False) # super user or agent
-    is_admin = m.BooleanField(default=False) # is this the organization-admin?
+    is_admin = m.BooleanField(default=False) # is this the organization-admin
+    is_demo = m.BooleanField(default=False) # is this account used for demo non-editing purpose
 
     registration_method = m.CharField(max_length=50, choices=constants.REGISTRATION_METHODS, default='email', null=True)
     custom_access_jwt_id = m.UUIDField(null=True)

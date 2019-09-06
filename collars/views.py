@@ -31,6 +31,9 @@ class AddCollarAccountView(generics.GenericAPIView):
         # TODO: don't save creds to account, just use in rule...
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_201_CREATED)
+
         data = serializer.data
         species = data['type']
         provider = data['provider']
@@ -118,6 +121,9 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        if request.user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
         try:
             account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
         except RealTimeAccount.DoesNotExist:
@@ -204,6 +210,9 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
@@ -240,6 +249,9 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
         update_data = serializer.data
         individual_uid = update_data.pop('individual_uid')
 

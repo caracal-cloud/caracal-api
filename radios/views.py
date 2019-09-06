@@ -29,6 +29,9 @@ class AddAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_201_CREATED)
+
         data = serializer.data
 
         # enforce max number of accounts
@@ -75,7 +78,10 @@ class AddPositionView(generics.GenericAPIView):
         serializer = radios_serializers.AddPositionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        return Response(status=status.HTTP_200_OK)
+        if request.user.is_demo:
+            return Response(status=status.HTTP_201_CREATED)
+
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class DeleteAccountView(generics.GenericAPIView):
@@ -87,6 +93,9 @@ class DeleteAccountView(generics.GenericAPIView):
     def post(self, request):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        if request.user.is_demo:
+            return Response(status=status.HTTP_200_OK)
 
         try:
             account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
@@ -171,6 +180,9 @@ class UpdateRadioAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
@@ -209,6 +221,9 @@ class UpdateRadioIndividualView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        if user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
         update_data = serializer.data
         individual_uid = update_data.pop('individual_uid')
 

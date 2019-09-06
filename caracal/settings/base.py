@@ -14,6 +14,8 @@ AWS_SECRET_ACCESS_KEY = os.environ['TUMA_AWS_SECRET']
 AWS_REGION = "us-east-1"
 DYNAMO_CONFIG_TABLE_NAME = 'caracal-global-configuration'
 
+DEMO_EMAIL = 'demo@caracal.cloud'
+DEMO_SHORT_NAME = 'caracal-demo'
 DUMMY_EMAIL = 'dummy@caracal.cloud'
 DUMMY_SHORT_NAME = 'dummy3141592'
 
@@ -75,7 +77,7 @@ JWT_AUTH_HEADER_PREFIX = "JWT"
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 3,
+    'PAGE_SIZE': 50,
 
     #'DEFAULT_THROTTLE_CLASSES': (
     #    'rest_framework.throttling.AnonRateThrottle',

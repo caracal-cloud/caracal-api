@@ -23,6 +23,9 @@ DRIVE_PROVIDER_FILETYPES = {
 
 INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
 
+OUTPUT_STATUSES = [('connected', 'connected'), ('disconnected', 'disconnected'), ('pending', 'pending')]
+OUTPUT_TYPES = [('agol', 'agol'), ('google_earth', 'google_earth')]
+
 REGISTRATION_METHODS = [('email', 'email'), ('google', 'google')]
 
 RT_ACCOUNT_SOURCES = [('collar', 'collar'), ('radio', 'radio')]

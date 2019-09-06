@@ -1,7 +1,5 @@
 
 from django.contrib.gis.db import models
-from django.utils import timezone
-import uuid
 
 from account.models import Account, Organization
 from caracal.common import constants

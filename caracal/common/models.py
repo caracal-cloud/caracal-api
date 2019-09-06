@@ -8,6 +8,7 @@ from account.models import Organization
 from caracal.common import constants
 
 
+
 class BaseAsset(models.Model):
 
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)

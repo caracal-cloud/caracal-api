@@ -27,6 +27,9 @@ class DisconnectAgolView(views.APIView):
         user = request.user
         organization = user.organization
 
+        if user.is_demo:
+            return Response(status=status.HTTP_200_OK)
+
         organization.agol_oauth_access_token = None
         organization.agol_oauth_access_token_expiry = None
         organization.agol_oauth_refresh_token = None
@@ -45,6 +48,12 @@ class GetAgolAccountView(views.APIView):
     def get(self, request):
         user = request.user
         organization = user.organization
+
+        if user.is_demo:
+            return Response({
+                'is_connected': True,
+                'username': 'Caracal Demo'
+            }, status=status.HTTP_200_OK)
 
         access_token = agol.refresh_access_token(organization.agol_oauth_refresh_token)
         organization.agol_oauth_access_token = access_token
@@ -115,7 +124,6 @@ class AgolOauthResponseView(views.APIView):
         else:
             # code or state occasionally missing
             if 'code' not in data.keys() or 'state' not in data.keys():
-                print(data)
                 capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
                 return Response({
                     'error': 'access_denied',
@@ -123,8 +131,7 @@ class AgolOauthResponseView(views.APIView):
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
             code = data['code']
-            state = data['state']
-            state = json.loads(state)
+            state = json.loads(data['state'])
             account_uid = state['account_uid'] #refresh_token user account uid
 
             agol_redirect_ui = settings.HOSTNAME + reverse('agol-oauth-response')
@@ -162,6 +169,9 @@ class AgolOauthResponseView(views.APIView):
                     'error': 'account_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
+                if user.is_demo: # do not save user's credentials if demo
+                    return redirect(state['callback'])
+
                 user.organization.agol_username = username
                 user.organization.agol_oauth_access_token = access_token
                 user.organization.agol_oauth_access_token_expiry = expiry
