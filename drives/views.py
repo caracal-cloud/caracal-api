@@ -11,6 +11,7 @@ from sentry_sdk import capture_message
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
+from caracal.common import connections
 from caracal.common.fields import get_updated_outputs
 from caracal.common import google as google_utils
 from drives import serializers
@@ -28,9 +29,12 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         serializer.is_valid(True)
 
         user = request.user
+        organization = user.organization
         if user.is_demo:
             return Response(status=status.HTTP_201_CREATED)
 
+        # boolean fields are modified after save for some reason...
+        add_data = serializer.validated_data
         account = serializer.save(user=request.user)
 
         # remove temporary google tokens...
@@ -38,6 +42,8 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         user.temp_google_oauth_access_token_expiry = None
         user.temp_google_oauth_refresh_token = None
         user.save()
+
+        connections.create_connections(organization, add_data, {'drive_account': account})
 
         return Response({
             'account_uid': account.uid
@@ -72,6 +78,8 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
 
         account.is_active = False
         account.save()
+
+        connections.delete_connections(account)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -160,8 +168,6 @@ class GetGoogleSpreadsheetSheetsView(views.APIView):
                 'error': 'invalid_file',
                 'message': 'the file you have request may not be the correct type'
             }, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 
 class GetGoogleOauthRequestUrlView(views.APIView):
@@ -282,6 +288,7 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
 
     def post(self, request):
         user = request.user
+        organization = user.organization
         serializer = serializers.UpdateDriveFileAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -303,8 +310,9 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         outputs = get_updated_outputs(account, data)
-
         DriveFileAccount.objects.filter(uid=account_uid).update(outputs=outputs, **data)
+
+        connections.update_connections(organization, serializer.data, {'drive_account': account})
 
         return Response(status=status.HTTP_200_OK)
 

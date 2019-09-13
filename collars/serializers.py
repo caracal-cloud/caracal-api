@@ -3,8 +3,7 @@ import json
 import random
 from rest_framework import serializers
 
-from caracal.common import constants
-# from collars.models import CollarAccount, CollarIndividual
+from caracal.common import connections, constants
 
 from caracal.common.models import RealTimeAccount, RealTimeIndividual
 
@@ -54,10 +53,8 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
     outputs = serializers.SerializerMethodField()
     def get_outputs(self, account):
-        if account.outputs is not None:
-            return json.loads(account.outputs)
-        else:
-            return None
+        outputs = connections.get_outputs(account)
+        return outputs
 
     class Meta:
         model = RealTimeAccount
@@ -69,10 +66,8 @@ class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
 
     outputs = serializers.SerializerMethodField()
     def get_outputs(self, account):
-        if account.outputs is not None:
-            return json.loads(account.outputs)
-        else:
-            return None
+        outputs = connections.get_outputs(account)
+        return outputs
 
     class Meta:
         model = RealTimeAccount

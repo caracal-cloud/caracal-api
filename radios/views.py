@@ -1,20 +1,17 @@
 
-from django.conf import settings
-from django.db.utils import IntegrityError
+
 from django.utils import timezone
 import json
-import requests
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 import uuid
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import aws
+from caracal.common import connections
 from caracal.common.fields import get_updated_outputs
 from caracal.common.models import RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
-
 from radios import serializers as radios_serializers
 
 
@@ -29,6 +26,7 @@ class AddAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        organization = user.organization
         if user.is_demo:
             return Response(status=status.HTTP_201_CREATED)
 
@@ -59,6 +57,8 @@ class AddAccountView(generics.GenericAPIView):
         account = RealTimeAccount.objects.create(organization=user.organization, source='radio',
                                                  type=str(uuid.uuid4()),
                                                  outputs=outputs, title=title, **data)
+
+        connections.create_connections(organization, serializer.data, {'realtime_account': account})
 
         message = f'{provider} radio account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -109,6 +109,8 @@ class DeleteAccountView(generics.GenericAPIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         RealTimeAccount.objects.filter(uid=account.uid).update(datetime_updated=timezone.now(), is_active=False)
+
+        connections.delete_connections(account)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -180,6 +182,7 @@ class UpdateRadioAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        organization = user.organization
         if user.is_demo:
             return Response(status=status.HTTP_200_OK)
 
@@ -203,6 +206,8 @@ class UpdateRadioAccountView(generics.GenericAPIView):
 
         RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(),
                                                                outputs=outputs, **update_data)
+
+        connections.update_connections(organization, serializer.data, {'realtime_account': account})
 
         message = f'{provider} radio account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)

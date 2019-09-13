@@ -13,6 +13,7 @@ from auth import cognito
 from caracal.common import aws, constants
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 from drives.models import DriveFileAccount
+from outputs.models import DataConnection, DataOutput
 
 
 def add_dummy_alerts(account):
@@ -78,6 +79,8 @@ def add_dummy_changes(account):
 def add_dummy_collars(account):
     print('...adding dummy collar accounts and individuals')
 
+    organization = account.organization
+
     global_config = aws.get_global_config()
     species_subtypes = global_config['SPECIES_SUBTYPES']
 
@@ -86,7 +89,7 @@ def add_dummy_collars(account):
              'Tamara', 'Alex', 'Gaby', 'Malia', 'Hannah', 'Emma',
              'Bruce', 'Laura', 'Andrew', 'Ashley', 'Connor']
 
-    specieses = ['elephant', 'giraffe', 'lion']
+    specieses = ['elephant', 'giraffe', 'lion'] # weird name intentional
     providers = ['orbcomm', 'savannah_tracking']
 
     for i in range(random.randint(4, 7)):
@@ -95,20 +98,22 @@ def add_dummy_collars(account):
         species = random.choice(specieses).capitalize()
         title = f'{species} - Orbcomm' if provider == 'orbcomm' else f'{species} - Savannah Tracking'
 
+        outputs = {
+            'output_agol': True,
+            'output_database': True,
+            'output_kml': True
+        }
+
         account_data = {
             'source': 'collar',
             'provider': provider,
             'type': species,
             'title': title,
-            'outputs': json.dumps({
-                'output_agol': True,
-                'output_database': True,
-                'output_kml': True
-            })
+            'outputs': json.dumps(outputs)
         }
 
         try:
-            account = RealTimeAccount.objects.create(organization=account.organization, **account_data)
+            account = RealTimeAccount.objects.create(organization=organization, **account_data)
         except:
             pass
         else:
@@ -129,8 +134,16 @@ def add_dummy_collars(account):
 
                 RealTimeIndividual.objects.create(**individual)
 
+        # setup connections and outputs
+        output_types = [output[0] for output in constants.OUTPUT_TYPES]
+        for output_type in output_types:
+            if output_type in outputs.keys() and outputs[output_type]:
+                try:
+                    output = DataOutput.objects.get(organization=organization, type=output_type)
+                except DataOutput.DoesNotExist:
+                    output = DataOutput.objects.create(organization=organization, type=output_type)
 
-
+                DataConnection.objects.create(organization=organization, realtime_account=account, output=output)
 
 
 # add dummy drives or only stuff that user can't receive anonymous data?

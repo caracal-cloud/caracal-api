@@ -2,7 +2,7 @@
 import json
 from rest_framework import serializers
 
-from caracal.common import constants
+from caracal.common import connections, constants
 from drives.models import DriveFileAccount
 
 
@@ -59,29 +59,18 @@ class DeleteDriveFileSerializer(serializers.Serializer):
 
 class GetDriveFileAccountsSerializer(serializers.ModelSerializer):
 
-    output_agol = serializers.SerializerMethodField()
-    def get_output_agol(self, account):
-        outputs = json.loads(account.outputs)
-        return outputs.get('output_agol', False)
-
-    output_database = serializers.SerializerMethodField()
-    def get_output_database(self, account):
-        outputs = json.loads(account.outputs)
-        return outputs.get('output_database', False)
-
-    output_kml = serializers.SerializerMethodField()
-    def get_output_kml(self, account):
-        outputs = json.loads(account.outputs)
-        return outputs.get('output_kml', False)
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, account):
+        outputs = connections.get_outputs(account)
+        return outputs
 
     class Meta:
         model = DriveFileAccount
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'status', 'title',
-                  'provider', 'file_type',
+                  'status', 'title', 'provider', 'file_type',
                   'x_column_index', 'y_column_index', 'header_row_index',
                   'grid_zone_column_index', 'date_column_index',
-                  'output_agol', 'output_database', 'output_kml']
+                  'outputs']
 
 
 class GetGoogleDocumentSheetsQueryParamsSerializer(serializers.Serializer):

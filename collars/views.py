@@ -1,5 +1,4 @@
 
-
 from django.conf import settings
 from django.db.utils import IntegrityError
 from django.utils import timezone
@@ -10,11 +9,10 @@ from rest_framework.response import Response
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import aws
+from caracal.common import aws, connections
 from caracal.common.fields import get_updated_outputs
 from caracal.common.models import RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
-
 from collars import serializers as collar_serializers
 
 
@@ -31,6 +29,7 @@ class AddCollarAccountView(generics.GenericAPIView):
         # TODO: don't save creds to account, just use in rule...
 
         user = request.user
+        organization = user.organization
         if user.is_demo:
             return Response(status=status.HTTP_201_CREATED)
 
@@ -56,14 +55,14 @@ class AddCollarAccountView(generics.GenericAPIView):
             'output_database': data.pop('output_database', False),
             'output_kml': data.pop('output_kml', False)
         }
-        outputs = json.dumps(outputs)
+        outputs_json = json.dumps(outputs)
 
         # fixme: if you add an account, delete it, and add it again a validationerror will occur
         # todo: remove unique constraint and check manually using is_active
 
         try:
-            account = RealTimeAccount.objects.create(organization=user.organization, source='collar',
-                                                     outputs=outputs, title=title, **data)
+            account = RealTimeAccount.objects.create(organization=organization, source='collar',
+                                                     outputs=outputs_json, title=title, **data)
         except IntegrityError:
             return Response({
                 'error': 'account_already_added',
@@ -72,6 +71,7 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         fetch_rule_input['account_uid'] = str(account.uid)
 
+        connections.create_connections(organization, serializer.data, {'realtime_account': account})
 
         """
         
@@ -137,6 +137,8 @@ class DeleteCollarAccountView(generics.GenericAPIView):
 
         # doing this instead of .save() to avoid validate_unique error
         RealTimeAccount.objects.filter(uid=account.uid).update(datetime_updated=timezone.now(), is_active=False)
+
+        connections.delete_connections(account)
 
         # TODO: remove cloudwatch rules...
 
@@ -210,6 +212,7 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        organization = user.organization
         if user.is_demo:
             return Response(status=status.HTTP_200_OK)
 
@@ -227,10 +230,12 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        outputs = get_updated_outputs(account, update_data)
+        outputs_json = get_updated_outputs(account, update_data)
 
         RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(),
-                                                               outputs=outputs, **update_data)
+                                                               outputs=outputs_json, **update_data)
+
+        connections.update_connections(organization, serializer.data, {'realtime_account': account})
 
         message = f'{account.type} collar account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)

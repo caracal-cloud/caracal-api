@@ -2,7 +2,7 @@
 import json
 from rest_framework import serializers
 
-from caracal.common import constants
+from caracal.common import connections, constants
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition
 
 
@@ -32,10 +32,8 @@ class GetRadioAccountsSerializer(serializers.HyperlinkedModelSerializer):
 
     outputs = serializers.SerializerMethodField()
     def get_outputs(self, account):
-        if account.outputs is not None:
-            return json.loads(account.outputs)
-        else:
-            return None
+        outputs = connections.get_outputs(account)
+        return outputs
 
     class Meta:
         model = RealTimeAccount
@@ -47,10 +45,8 @@ class GetRadioAccountDetailSerializer(serializers.ModelSerializer):
 
     outputs = serializers.SerializerMethodField()
     def get_outputs(self, account):
-        if account.outputs is not None:
-            return json.loads(account.outputs)
-        else:
-            return None
+        outputs = connections.get_outputs(account)
+        return outputs
 
     class Meta:
         model = RealTimeAccount

@@ -113,6 +113,9 @@ SHELL_PLUS_PRE_IMPORTS = (
     ('account.serializers', '*'),
     ('collars.models', '*'),
     ('collars.serializers', '*'),
+    ('outputs.models', '*'),
+    ('outputs.serializers', '*'),
+
 )
 
 TEMPLATES = [

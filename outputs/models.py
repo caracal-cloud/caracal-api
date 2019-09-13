@@ -11,10 +11,20 @@ class DataConnection(BaseAsset):
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
 
     # Input - only one will be non-null
-    realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, null=True)
-    drive_account = models.ForeignKey(DriveFileAccount, on_delete=models.CASCADE, null=True)
+    realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, null=True, related_name='connections')
+    realtime_alert = models.ForeignKey('RealtimeAlert', on_delete=models.CASCADE, null=True, related_name='connections')
+    drive_account = models.ForeignKey(DriveFileAccount, on_delete=models.CASCADE, null=True, related_name='connections')
 
     output = models.ForeignKey('DataOutput', on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        if self.realtime_account:
+            source = 'rt account'
+        elif self.realtime_alert:
+            source = 'rt alert'
+        else:
+            source = 'drive account'
+        return f'{self.organization.name} - {source} - {self.output.type}'
 
 
 class DataOutput(BaseAsset):
@@ -24,11 +34,14 @@ class DataOutput(BaseAsset):
 
     status = models.CharField(choices=constants.OUTPUT_STATUSES, max_length=50, default='pending', blank=False, null=False)
 
+    def __str__(self):
+        return f'{self.organization.name} - {self.type} - {self.status}'
+
 
 class RealtimeAlert(BaseAsset):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE)
+    realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE) # simplifies queries from account to alert
 
     # Recipients
     emails = models.TextField(blank=True, null=True) # json encoded list, email recipients
