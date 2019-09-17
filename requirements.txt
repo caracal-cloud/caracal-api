@@ -60,6 +60,7 @@ semantic-version==2.5.0
 sentry-sdk==0.10.2
 simplejson==3.16.0
 six==1.11.0
+stripe==2.36.2
 termcolor==1.1.0
 texttable==0.9.1
 uritemplate==3.0.0
