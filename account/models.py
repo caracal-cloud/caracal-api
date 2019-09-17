@@ -8,7 +8,6 @@ import uuid
 
 from auth import cognito
 from caracal.common import constants
-from caracal.common.aws_utils import exceptions
 from caracal.common.aws_utils.cognito import create_user, confirm_account
 
 
@@ -24,6 +23,9 @@ class Organization(m.Model):
     short_name = m.CharField(max_length=50, blank=False, null=False, unique=True)
     timezone = m.CharField(max_length=50, default='Africa/Kigali')
     logo_object_key = m.CharField(max_length=255, blank=True, null=True)
+
+    # billing
+    stripe_customer_id = m.CharField(max_length=100, blank=True, null=True)
 
     # ArcGIS Online
     # todo: consider putting in 1to1 object

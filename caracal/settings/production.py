@@ -21,6 +21,8 @@ HOSTNAME = 'https://api.caracal.cloud'
 
 S3_USER_DATA_BUCKET = "caracal-user-prod"
 
+stripe.api_key = os.environ['CARACAL_LIVE_STRIPE_API_KEY']
+
 ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 
 DATABASE_NAME = 'caracal_prod'

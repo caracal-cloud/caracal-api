@@ -1,6 +1,6 @@
 from corsheaders.defaults import default_methods, default_headers
-from datetime import timedelta
 import os
+import stripe # imported in child settings
 
 APPLICATION_NAME = 'Caracal'
 APPLICATION_SHORT_NAME = 'caracal'
@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'drf_yasg',
 
     'account',
+    'billing',
     'activity',
     'collars',
     'drives',

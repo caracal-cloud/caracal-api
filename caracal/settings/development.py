@@ -18,6 +18,8 @@ HOSTNAME = 'http://localhost:8000'
 
 S3_USER_DATA_BUCKET = "caracal-user-development"
 
+stripe.api_key = os.environ['CARACAL_TEST_STRIPE_API_KEY']
+
 DATABASE_NAME = 'caracal_dev'
 DATABASES = {
     'default': {

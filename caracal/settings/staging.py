@@ -20,6 +20,8 @@ HOSTNAME = 'https://api.staging.caracal.cloud'
 
 S3_USER_DATA_BUCKET = "caracal-user-staging"
 
+stripe.api_key = os.environ['CARACAL_TEST_STRIPE_API_KEY']
+
 ALLOWED_HOSTS = ['127.0.0.1', 'api.staging.caracal.cloud'] # TODO: add EB
 
 DATABASE_NAME = 'caracal_staging'
