@@ -1,4 +1,5 @@
 
+from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from django.utils.encoding import smart_text
 import json
@@ -63,6 +64,26 @@ class CognitoAuthentication(BaseAuthentication):
         if user is None:
             raise exceptions.AuthenticationFailed({
                 'error': 'no_user_with_sub'
+            })
+
+        # allow if trying to add subscription or update payment...
+        if request.path in ['/billing/update_trial_to_paid_subscription/', '/billing/update_payment_method/']:
+            return user, jwt_value
+
+        subscription_status = user.organization.stripe_subscription_status
+
+        # trial expired, initial payment failed, subscription canceled - select plan and enter payment method
+        if subscription_status in ['incomplete', 'incomplete_expired', 'canceled']:
+            raise exceptions.AuthenticationFailed({
+                'error': 'payment_failed',
+                'message': 'Please select a plan and complete the payment procedure to resume service.'
+            })
+
+        # payment is past due - update payment method
+        elif subscription_status == 'past_due':
+            raise exceptions.AuthenticationFailed({
+                'error': 'payment_update_required',
+                'message': 'Please update your payment method to resume service.'
             })
 
         return user, jwt_value

@@ -22,6 +22,7 @@ urlpatterns = [
     path('forgot_password/', password.ForgotPasswordView.as_view()),
     path('forgot_password_confirm/', password.ForgotPasswordConfirmView.as_view()),
     path('get_profile/', decorated_get_profile_view),
+    path('get_account_status/', profile.GetAccountStatusView.as_view()),
     path('login/', tokens.LoginView.as_view()),
     path('logout/', tokens.LogoutView.as_view()),
     path('refresh/', tokens.RefreshView.as_view()),

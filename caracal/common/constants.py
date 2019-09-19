@@ -32,8 +32,6 @@ RT_ACCOUNT_SOURCES = [('collar', 'collar'), ('radio', 'radio')]
 
 SEXES = [('male', 'male'), ('female', 'female')]
 
-
-
 # COLLAR_STATUSES = [('active', 'active'), ('broken', 'broken'), ('dead', 'dead'), ('unknown', 'unknown')]
 
 # CHANGE_ACTIONS = [('create', 'create'), ('read', 'read'), ('update', 'update'), ('delete', 'delete')]

@@ -26,6 +26,9 @@ class Organization(m.Model):
 
     # billing
     stripe_customer_id = m.CharField(max_length=100, blank=True, null=True)
+    stripe_plan_id = m.CharField(max_length=100, blank=True, null=True)
+    stripe_subscription_id = m.CharField(max_length=100, blank=True, null=True)
+    stripe_subscription_status = m.CharField(max_length=100, blank=True, null=True)
 
     # ArcGIS Online
     # todo: consider putting in 1to1 object

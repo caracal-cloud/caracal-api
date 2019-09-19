@@ -116,6 +116,7 @@ SHELL_PLUS_PRE_IMPORTS = (
     ('collars.serializers', '*'),
     ('outputs.models', '*'),
     ('outputs.serializers', '*'),
+    ('caracal.common.stripe_utils', '*')
 
 )
 

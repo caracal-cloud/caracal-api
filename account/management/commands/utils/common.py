@@ -10,7 +10,7 @@ from activity.models import ActivityAlert, ActivityChange
 from account.models import Account, Organization
 from auth import cognito
 
-from caracal.common import aws, constants
+from caracal.common import aws, constants, stripe_utils
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 from drives.models import DriveFileAccount
 from outputs.models import DataConnection, DataOutput
@@ -199,9 +199,14 @@ def add_dummy_radios(account):
                 RealTimeIndividual.objects.create(**individual)
 
 
-
 def clear_all_content():
     print("...clearing all content")
+
+    # delete customers from Stripe
+    organizations = Organization.objects.all()
+    for organization in organizations:
+        stripe_utils.delete_customer(organization.stripe_customer_id)
+
     ActivityAlert.objects.all().delete()
     ActivityChange.objects.all().delete()
     DriveFileAccount.objects.all().delete()

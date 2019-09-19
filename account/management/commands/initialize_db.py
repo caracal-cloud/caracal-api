@@ -5,9 +5,9 @@ import os
 import uuid
 
 from account.models import Account, Organization
-from activity.models import ActivityAlert, ActivityChange
 from auth import cognito
-from caracal.common import aws
+from caracal.common import aws, stripe_utils
+
 
 from .utils import common
 
@@ -58,19 +58,19 @@ class Command(BaseCommand):
                                                      is_admin=True)
             cognito.confirm_user(settings.DUMMY_EMAIL)
 
+            # create Stripe Customer
+            customer = stripe_utils.create_customer(dummy_user.email, dummy_user.name, dummy_user.phone_number)
+            trial_plan = stripe_utils.get_plan('Trial')
+            subscription = stripe_utils.create_trial_subscription(customer['customer_id'], plan_id=trial_plan['id'])
+            dummy_org.stripe_customer_id = customer['customer_id']
+            dummy_org.stripe_plan_id = trial_plan['id']
+            dummy_org.stripe_subscription_id = subscription['id']
+            dummy_org.stripe_subscription_status = subscription['status']
+            dummy_org.save()
+
             # create credentials for S3
             password = str(uuid.uuid4()).split('-')[0]
             aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
-
-            # create demo user
-            demo_org = Organization.objects.create(name='Caracal Demo', short_name=settings.DEMO_SHORT_NAME)
-            demo_user = Account.objects.create_user(settings.DEMO_EMAIL, 'Kigali123',
-                                                     cognito.get_cognito_idp_client(),
-                                                     organization=demo_org,
-                                                     name='Caracal Demo User',
-                                                     phone_number='+18055551234',
-                                                     is_admin=True, is_demo=True)
-            cognito.confirm_user(settings.DEMO_EMAIL)
 
             password = str(uuid.uuid4()).split('-')[0]
             aws.create_dynamo_credentials(settings.DEMO_SHORT_NAME, 'admin', password, ['all'])
@@ -84,14 +84,6 @@ class Command(BaseCommand):
             else:
                 common.clear_dummy_content(dummy_user)
 
-            try:
-                demo_user = Account.objects.get(email=settings.DEMO_EMAIL)
-            except Account.DoesNotExist:
-                print("demo account does not exist. clear first")
-                return
-            else:
-                common.clear_dummy_content(demo_user)
-
         else:
             return
 
@@ -100,10 +92,6 @@ class Command(BaseCommand):
         common.add_dummy_collars(dummy_user)
         common.add_dummy_radios(dummy_user)
 
-        common.add_dummy_alerts(demo_user)
-        common.add_dummy_changes(demo_user)
-        common.add_dummy_collars(demo_user)
-        common.add_dummy_radios(demo_user)
 
 
 

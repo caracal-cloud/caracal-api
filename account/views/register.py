@@ -5,7 +5,7 @@ from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 
 from account import serializers
-from caracal.common import stripe
+from caracal.common import stripe_utils
 
 
 class RegisterView(generics.GenericAPIView):
@@ -28,16 +28,22 @@ class RegisterView(generics.GenericAPIView):
             return account
 
         # create a Stripe customer and save id to organization
-        customer_res = stripe.create_customer(account)
+        customer_res = stripe_utils.create_customer(account.email, account.name, account.phone_number)
         if 'error' in customer_res.keys():
             return Response(customer_res, status=status.HTTP_400_BAD_REQUEST)
 
         customer_id = customer_res['customer_id']
         account.organization.stripe_customer_id = customer_id
-        account.organization.save()
+        account.organization.save() # save customer_id for webhooks
 
-        # subscribe customer to Complete plan with trial
-        stripe.create_complete_trial_subscription(customer_id)
+        # subscribe customer to Trial plan
+        trial_plan = stripe_utils.get_plan('Trial')
+        subscription = stripe_utils.create_trial_subscription(customer_id, plan_id=trial_plan['id'])
+
+        account.organization.stripe_plan_id = trial_plan['id']
+        account.organization.stripe_subscription_id = subscription['id']
+        account.organization.stripe_subscription_status = subscription['status']
+        account.organization.save()
 
         return Response(status=status.HTTP_201_CREATED)
 
