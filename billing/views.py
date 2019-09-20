@@ -43,21 +43,29 @@ class StripeWebhookView(views.APIView):
             organization = Organization.objects.get(stripe_customer_id=event.data.object.customer)
         except Organization.DoesNotExist:
             print('Organization not found: ' + event.data.object.customer)
-            # TODO: capture error
             return Response(status=status.HTTP_400_BAD_REQUEST)
         else:
             previous_status = organization.stripe_subscription_status
 
         if event.type == 'customer.subscription.updated':
 
+            new_status = event.data.object.status
             if event.data.object.id == organization.stripe_subscription_id:
-                print(f'{organization.name} changing from {previous_status} to {event.data.object.status}')
-                organization.stripe_subscription_status = event.data.object.status
+                print(f'{organization.name} changing from {previous_status} to {new_status}')
+                organization.stripe_subscription_status = new_status
                 organization.save()
 
             return Response(status=status.HTTP_200_OK)
 
-        elif event.type == 'invoice.payment_failed':
+        elif event.type == 'invoice.payment_succeeded':
+            # if the organization has paid a non-0 invoice (even with discount),
+            # mark their account as not trialing (current or expired trial)
+            subtotal = event.data.object.subtotal
+            if subtotal > 0:
+                print(f'{organization.name} changing is_trialing to False')
+                organization.is_trialing = False
+                organization.save()
+
             return Response(status=status.HTTP_200_OK)
 
         else:
@@ -78,15 +86,16 @@ class UpdatePaidSubscriptionView(generics.GenericAPIView):
         organization = user.organization
         subscription_id = organization.stripe_subscription_id
 
+        if organization.is_trialing:
+            return Response({
+                'error': 'plan_error',
+                'message': 'You cannot change plans if you are still trialing.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         new_plan_id = serializer.data['new_plan_id']
 
         current_subscription = stripe_utils.get_subscription(subscription_id)
-        if current_subscription['plan_name'] == 'Trial':
-            return Response({
-                'error': 'plan_error',
-                'message': 'Paid plan required.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        elif current_subscription['plan_id'] == new_plan_id:
+        if current_subscription['plan_id'] == new_plan_id:
             return Response({
                 'error': 'plan_error',
                 'message': 'Please select a different plan.'
@@ -106,7 +115,6 @@ class UpdatePaymentMethodView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.UpdatePaymentMethodSerializer
 
-
     def post(self, request):
         serializer = serializers.UpdatePaymentMethodSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -123,26 +131,19 @@ class UpdatePaymentMethodView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class UpdateTrialToPaidSubscriptionView(generics.GenericAPIView):
+class UpdatePlanAndPaymentMethodView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = serializers.UpdateTrialToPaidSubscriptionSerializer
+    serializer_class = serializers.UpdatePlanAndPaymentMethodSerializer
 
     def post(self, request):
-        serializer = serializers.UpdateTrialToPaidSubscriptionSerializer(data=request.data)
+        serializer = serializers.UpdatePlanAndPaymentMethodSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
         organization = user.organization
-
-        # make sure currently trialing
-        current_subscription = stripe_utils.get_subscription(organization.stripe_subscription_id)
-        if current_subscription['plan_name'] != 'Trial':
-            return Response({
-                'error': 'plan_error',
-                'message': 'Must have Trial account.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        subscription_id = organization.stripe_subscription_id
 
         card_token = serializer.data['card_token']
         plan_id = serializer.data['plan_id']
@@ -152,21 +153,21 @@ class UpdateTrialToPaidSubscriptionView(generics.GenericAPIView):
         if 'error' in card_res.keys():
             return Response(card_res, status=status.HTTP_400_BAD_REQUEST)
 
-        # create a new paid subscription
-        subscription_res = stripe_utils.create_paid_subscription(organization.stripe_customer_id, plan_id)
-        if 'error' in subscription_res.keys():
-            stripe_utils.delete_subscription(subscription_res['id'])
-            del subscription_res['id']
-            return Response(subscription_res, status=status.HTTP_400_BAD_REQUEST)
+        # update subscription
+        current_subscription = stripe_utils.get_subscription(subscription_id)
 
-        # remove trial subscription
-        stripe_utils.delete_subscription(organization.stripe_subscription_id)
+        if plan_id != organization.stripe_plan_id:
+            # handle immediate payment failure
+            subscription_res = stripe_utils.update_subscription(subscription_id, plan_id, current_subscription['item_id'])
+            if 'error' in subscription_res:
+                # if it fails, then revert to previous subscription
+                trial_end = int(current_subscription['trial_end'].timestamp()) if 'trial_end' in current_subscription.keys() else 'now'
+                print('previous trial_end', trial_end)
+                stripe_utils.update_subscription(subscription_id, current_subscription['plan_id'], current_subscription['item_id'], trial_end=trial_end)
+                return Response(subscription_res, status=status.HTTP_400_BAD_REQUEST)
 
-        # update new paid subscription and plan
-        organization.stripe_plan_id = plan_id
-        organization.stripe_subscription_id = subscription_res['id']
-        organization.stripe_subscription_status = subscription_res['status']
-        organization.save()
+            organization.stripe_plan_id = plan_id
+            organization.save()
 
         return Response(status=status.HTTP_201_CREATED)
 

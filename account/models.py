@@ -25,6 +25,7 @@ class Organization(m.Model):
     logo_object_key = m.CharField(max_length=255, blank=True, null=True)
 
     # billing
+    is_trialing = m.BooleanField(default=True) # is currently trialing, or expired trial account
     stripe_customer_id = m.CharField(max_length=100, blank=True, null=True)
     stripe_plan_id = m.CharField(max_length=100, blank=True, null=True)
     stripe_subscription_id = m.CharField(max_length=100, blank=True, null=True)

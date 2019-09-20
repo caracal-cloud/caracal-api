@@ -60,10 +60,10 @@ class Command(BaseCommand):
 
             # create Stripe Customer
             customer = stripe_utils.create_customer(dummy_user.email, dummy_user.name, dummy_user.phone_number)
-            trial_plan = stripe_utils.get_plan('Trial')
-            subscription = stripe_utils.create_trial_subscription(customer['customer_id'], plan_id=trial_plan['id'])
+            plan = stripe_utils.get_plan('Individual')
+            subscription = stripe_utils.create_subscription(customer['customer_id'], plan['id'])
             dummy_org.stripe_customer_id = customer['customer_id']
-            dummy_org.stripe_plan_id = trial_plan['id']
+            dummy_org.stripe_plan_id = plan['id']
             dummy_org.stripe_subscription_id = subscription['id']
             dummy_org.stripe_subscription_status = subscription['status']
             dummy_org.save()

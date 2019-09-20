@@ -8,9 +8,13 @@ urlpatterns = [
 
     path('stripe_webhook/', views.StripeWebhookView.as_view()),
 
+    # update payment method if past due
     path('update_payment_method/', views.UpdatePaymentMethodView.as_view()),
 
-    path('update_paid_subscription/', views.UpdatePaidSubscriptionView.as_view()),
-    path('update_trial_to_paid_subscription/', views.UpdateTrialToPaidSubscriptionView.as_view()),
+    # update plan if not trialing
+    path('update_plan/', views.UpdatePaidSubscriptionView.as_view()),
+
+    # upgrade from trial account, reactivate account trial expired, reactivate account after canceled
+    path('update_plan_and_payment_method/', views.UpdatePlanAndPaymentMethodView.as_view()),
 
 ]

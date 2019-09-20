@@ -10,7 +10,7 @@ class UpdatePaymentMethodSerializer(serializers.Serializer):
     card_token = serializers.CharField()
 
 
-class UpdateTrialToPaidSubscriptionSerializer(serializers.Serializer):
+class UpdatePlanAndPaymentMethodSerializer(serializers.Serializer):
 
     card_token = serializers.CharField()
     plan_id = serializers.CharField()

@@ -67,30 +67,39 @@ class CognitoAuthentication(BaseAuthentication):
             })
 
         # allow if trying to add subscription or update payment...
-        if request.path in ['/billing/update_trial_to_paid_subscription/', '/billing/update_payment_method/']:
+        if request.path in ['/billing/update_plan_and_payment_method/', '/billing/update_payment_method/']:
             return user, jwt_value
 
         subscription_status = user.organization.stripe_subscription_status
 
-        # trial expired, initial payment failed, subscription canceled - select plan and enter payment method
-        if subscription_status in ['incomplete', 'incomplete_expired', 'canceled']:
+        if subscription_status == 'past_due':
+            # If organization is trialing, enforce a hard stop if past due.
+            # is_trialing means the user is currently trialing or their trial expired.
+            # is_trialing is False if the user has successfully paid for a non-zero invoice.
+            if user.organization.is_trialing:
+                raise exceptions.AuthenticationFailed({
+                    'error': 'trial_expired',
+                    'message': 'Your trial has expired. Please select a plan to continue.'
+                })
+            else:
+                return user, jwt_value
+
+        elif subscription_status in ['incomplete', 'incomplete_expired']:
             raise exceptions.AuthenticationFailed({
                 'error': 'payment_failed',
-                'message': 'Please select a plan and complete the payment procedure to resume service.'
+                'message': 'Please update your payment details to resume service.'
             })
 
-        # payment is past due - update payment method
-        elif subscription_status == 'past_due':
+        elif subscription_status == 'canceled':
             raise exceptions.AuthenticationFailed({
-                'error': 'payment_update_required',
-                'message': 'Please update your payment method to resume service.'
+                'error': 'subscription_canceled',
+                'message': 'Your subscription has been canceled. Please select a plan to continue.'
             })
 
         return user, jwt_value
 
 
-    # this cannot be static
-    def get_jwt_value(self, request):
+    def get_jwt_value(self, request): # this cannot be static
 
         auth = get_authorization_header(request).split()
         auth_header_prefix = settings.JWT_AUTH_HEADER_PREFIX.lower()

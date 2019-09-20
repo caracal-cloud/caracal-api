@@ -37,10 +37,10 @@ class RegisterView(generics.GenericAPIView):
         account.organization.save() # save customer_id for webhooks
 
         # subscribe customer to Trial plan
-        trial_plan = stripe_utils.get_plan('Trial')
-        subscription = stripe_utils.create_trial_subscription(customer_id, plan_id=trial_plan['id'])
+        plan = stripe_utils.get_plan('Individual')
+        subscription = stripe_utils.create_subscription(customer_id, plan_id=plan['id'])
 
-        account.organization.stripe_plan_id = trial_plan['id']
+        account.organization.stripe_plan_id = plan['id']
         account.organization.stripe_subscription_id = subscription['id']
         account.organization.stripe_subscription_status = subscription['status']
         account.organization.save()

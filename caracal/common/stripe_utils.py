@@ -22,7 +22,7 @@ def create_customer(email, name, phone_number):
         }
 
 
-def create_trial_subscription(customer_id, plan_id='plan_FntBno8sVRuQrU'):
+def create_subscription(customer_id, plan_id):
 
     subscription = stripe.Subscription.create(
         customer = customer_id,
@@ -32,6 +32,7 @@ def create_trial_subscription(customer_id, plan_id='plan_FntBno8sVRuQrU'):
             }
         ],
         trial_period_days = 14
+        #trial_end=int(time.time()) + 30  # testing
     )
 
     return {
@@ -50,17 +51,10 @@ def create_paid_subscription(customer_id, plan_id):
             },
         ],
         expand = ['latest_invoice.payment_intent'],
-        trial_end = int(time.time()) + 60 # FIXME: TESTING, USE CHARGE FAIL TOKEN
     )
 
     subscription_status = subscription.status
-    try:
-        payment_status = subscription.latest_invoice.payment_intent.charges.data[0].status
-    except AttributeError: # FIXME: TESTING
-        return {
-            'id': subscription.id,
-            'status': subscription_status
-        }
+    payment_status = subscription.latest_invoice.payment_intent.charges.data[0].status
 
     if subscription_status == 'incomplete':
 
@@ -192,8 +186,7 @@ def update_customer_payment_method(card_token, customer_id):
         }
 
 
-
-def update_subscription(subscription_id, plan_id, item_id):
+def update_subscription(subscription_id, plan_id, item_id, trial_end='now'):
 
     subscription = stripe.Subscription.modify(
         subscription_id,
@@ -202,15 +195,55 @@ def update_subscription(subscription_id, plan_id, item_id):
             'id': item_id,
             'plan': plan_id,
         }],
+        trial_end=trial_end,
         expand = ['latest_invoice.payment_intent'],
     )
 
     subscription_status = subscription.status
-    is_paid = subscription.latest_invoice.payment_intent.charges.data[0].paid
-    payment_status = subscription.latest_invoice.payment_intent.charges.data[0].status
 
-    # past_due False failed
-    print(subscription_status, is_paid, payment_status)
+    try: # immediate payment required
+        is_paid = subscription.latest_invoice.payment_intent.charges.data[0].paid
+        payment_status = subscription.latest_invoice.payment_intent.charges.data[0].status
+        print('immediate payment required')
+
+    except AttributeError: # immediate payment not required
+        print('immediate payment not required')
+        return {
+            'id': subscription.id,
+            'status': subscription_status
+        }
+
+    else:
+        # past_due False failed
+        print(subscription_status, is_paid, payment_status)
+
+        if subscription_status in ['past_due', 'incomplete']:
+
+            if payment_status in ['failed', 'requires_payment_method']:
+                return {
+                    'error': 'payment_error',
+                    'message': 'There was an error charging your card. Please try again or use another card.'
+                }
+
+            elif payment_status == 'requires_action':
+                return {
+                    'error': 'payment_error',
+                    'message': 'Additional action required.'
+                }
+
+            else:
+                raise ValueError('unknown payment_status: ' + payment_status)
+
+        elif subscription_status == 'active':
+            return {
+                'id': subscription.id,
+                'status': subscription_status
+            }
+
+        else:
+            raise ValueError('unknown subscription status: ' + subscription_status)
+
+
 
 
 
