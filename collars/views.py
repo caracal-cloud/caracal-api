@@ -213,8 +213,6 @@ class UpdateCollarAccountView(generics.GenericAPIView):
 
         user = request.user
         organization = user.organization
-        if user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')

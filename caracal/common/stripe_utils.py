@@ -172,8 +172,6 @@ def get_subscription(subscription_id):
     }
 
 
-
-
 def update_customer_payment_method(card_token, customer_id):
     # Whenever you attach a card to a customer, Stripe will automatically validate the card.
     try:
@@ -181,7 +179,7 @@ def update_customer_payment_method(card_token, customer_id):
     except stripe.error.CardError as e:
         err = e.json_body.get('error', {})
         return {
-            'error': 'payment_error',
+            'error': 'card_error',
             'message': err.get('message')
         }
 
@@ -214,8 +212,6 @@ def update_subscription(subscription_id, plan_id, item_id, trial_end='now'):
         }
 
     else:
-        # past_due False failed
-        print(subscription_status, is_paid, payment_status)
 
         if subscription_status in ['past_due', 'incomplete']:
 
@@ -244,7 +240,25 @@ def update_subscription(subscription_id, plan_id, item_id, trial_end='now'):
             raise ValueError('unknown subscription status: ' + subscription_status)
 
 
+def update_subscription_coupon(subscription_id, coupon):
 
+    try:
+        subscription = stripe.Subscription.modify(
+            subscription_id,
+            coupon = coupon
+        )
+
+    except stripe.error.InvalidRequestError:
+        return {
+            'error': 'coupon_error',
+            'message': 'The voucher you have entered is invalid or has already been redeemed.'
+        }
+
+    else:
+        return {
+            'id': subscription['status'],
+            'status': subscription['status']
+        }
 
 
 

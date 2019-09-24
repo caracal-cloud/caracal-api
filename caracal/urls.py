@@ -26,5 +26,6 @@ urlpatterns = [
     path('outputs/', include('outputs.urls')),
     path('public/', include('public.urls')),
     path('radios/', include('radios.urls')),
+    path('source/', include('custom_source.urls')),
     re_path(r'^$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
 ]

@@ -1,18 +1,21 @@
 
+from datetime import datetime, timezone
 from django.conf import settings
 from django.contrib.gis.db import models
-from django.utils import timezone
 import uuid
 
 from account.models import Organization
 from caracal.common import constants
 
 
+def get_utc_datetime_now():
+    return datetime.utcnow().replace(tzinfo=timezone.utc)
+
 
 class BaseAsset(models.Model):
 
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
-    datetime_created = models.DateTimeField(default=timezone.now)
+    datetime_created = models.DateTimeField(default=get_utc_datetime_now)
     datetime_updated = models.DateTimeField(null=True)
     datetime_deleted = models.DateTimeField(null=True)
     is_active = models.BooleanField(default=True)
@@ -105,7 +108,7 @@ class RealTimePosition(BaseAsset):
 
 class RealTimePositionHash(models.Model):
 
-    datetime_created = models.DateTimeField(default=timezone.now)
+    datetime_created = models.DateTimeField(default=get_utc_datetime_now)
     account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, related_name='rt_hash_positions')
     individual = models.ForeignKey(RealTimeIndividual, on_delete=models.CASCADE, related_name='rt_hash_positions', null=True)
     datetime_recorded = models.DateTimeField()

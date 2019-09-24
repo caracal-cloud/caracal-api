@@ -7,12 +7,15 @@ class GetPlansUrlQueryParamsSerializer(serializers.Serializer):
 
 
 class UpdatePaymentMethodSerializer(serializers.Serializer):
+
     card_token = serializers.CharField()
+    coupon = serializers.CharField(required=False)
 
 
 class UpdatePlanAndPaymentMethodSerializer(serializers.Serializer):
 
     card_token = serializers.CharField()
+    coupon = serializers.CharField(required=False)
     plan_id = serializers.CharField()
 
 

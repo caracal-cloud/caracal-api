@@ -50,9 +50,10 @@ INSTALLED_APPS = [
     'drf_yasg',
 
     'account',
-    'billing',
     'activity',
+    'billing',
     'collars',
+    'custom_source',
     'drives',
     'outputs',
     'public',

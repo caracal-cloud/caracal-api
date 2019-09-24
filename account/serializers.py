@@ -12,7 +12,7 @@ import uuid
 
 from account.models import Account, Organization
 from auth import cognito
-from caracal.common import aws, constants, image
+from caracal.common import aws, constants, image, names
 from caracal.common.fields import CaseInsensitiveEmailField
 from botocore.exceptions import ParamValidationError
 
@@ -118,38 +118,42 @@ class RefreshResponseSerializer(serializers.Serializer):
 class RegisterSerializer(serializers.Serializer):
 
     organization_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
-    organization_short_name = serializers.CharField(min_length=4, max_length=50, required=True, allow_blank=False)
     account_name = serializers.CharField(max_length=100, required=True, allow_blank=False)
     account_email = CaseInsensitiveEmailField(min_length=5, max_length=200, required=True, allow_blank=False)
     account_password = serializers.CharField(min_length=7, max_length=50, required=True, allow_blank=False)
-    account_phone_number = serializers.CharField(max_length=25, required=True, allow_blank=False)
 
-    def validate_organization_short_name(self, value):
+    # TODO: remove later...
+    account_phone_number = serializers.CharField(max_length=25, required=False, allow_blank=False)
+    organization_short_name = serializers.CharField(min_length=4, max_length=50, required=False, allow_blank=False)
 
-        short_name = value.strip()
-        if len(short_name.split(' ')) > 1:
-            raise serializers.ValidationError({
-                'error': 'invalid_organization_short_name',
-                'message': 'organization short name must be one word'
-            })
-        return value
+    def validate(self, attrs):
+
+        short_name = attrs.get('organization_short_name')
+        if short_name is not None:
+            short_name = short_name.strip()
+            if len(short_name.split(' ')) > 1:
+                raise serializers.ValidationError({
+                    'error': 'invalid_organization_short_name',
+                    'message': 'organization short name must be one word'
+                })
+
+        unknown =  set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
+        return attrs
+
 
     def create(self, validated_data):
 
         organization_name = validated_data['organization_name']
-        organization_short_name = validated_data['organization_short_name'].split(' ')[0].lower() # must be one word, alphanumeric
         account_name = validated_data['account_name']
         account_email = validated_data['account_email']
         account_password = validated_data['account_password']
-        account_phone_number = validated_data.get('account_phone_number')
 
-        try:
-            organization = Organization.objects.create(name=organization_name, short_name=organization_short_name)
-        except IntegrityError:
-            raise serializers.ValidationError({
-                'error': 'organization_short_name_already_exists',
-                'message': 'organization short name already exists'
-            })
+        account_phone_number = validated_data.get('account_phone_number')
+        organization_short_name = names.generate_unique_short_name()
+
+        organization = Organization.objects.create(name=organization_name, short_name=organization_short_name)
 
         cognito_idp_client = cognito.get_cognito_idp_client()
 
@@ -164,7 +168,7 @@ class RegisterSerializer(serializers.Serializer):
 
             # create credentials for S3
             password = str(uuid.uuid4()).split('-')[0]
-            aws.create_dynamo_credentials(validated_data['organization_short_name'], 'admin', password, ['all'])
+            aws.create_dynamo_credentials(organization_short_name, 'admin', password, ['all'])
             return account
 
         except (IntegrityError, cognito_idp_client.exceptions.UsernameExistsException):
@@ -187,7 +191,6 @@ class RegisterSerializer(serializers.Serializer):
                 'error': 'invalid_password',
                 'message': 'invalid password, min length 7'
             })
-
 
 
 class SocialAuthGoogleSerializer(serializers.Serializer):

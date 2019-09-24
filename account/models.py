@@ -13,11 +13,12 @@ from caracal.common.aws_utils.cognito import create_user, confirm_account
 
 class Organization(m.Model):
 
+    # fixme: clean up circular import when using BaseAsset
     uid = m.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = m.DateTimeField(default=timezone.now)
     datetime_updated = m.DateTimeField(null=True)
     datetime_deleted = m.DateTimeField(null=True)
-    is_active = m.BooleanField(default=True) # alias for deleted
+    is_active = m.BooleanField(default=True)
 
     name = m.CharField(max_length=150, blank=False, null=True)
     short_name = m.CharField(max_length=50, blank=False, null=False, unique=True)

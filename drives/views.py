@@ -60,9 +60,6 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
         serializer = serializers.DeleteDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
 
-        if request.user.is_demo:
-            return Response(status=status.HTTP_200_OK)
-
         account_uid = serializer.data['account_uid']
 
         try:

@@ -1,4 +1,5 @@
 
+import base64
 import boto3
 from django.conf import settings
 from dynamodb_json import json_util as dynamodb_json_util
@@ -152,6 +153,20 @@ def get_presigned_url(object_key, bucket, expiration_secs):
     client = get_boto_client('s3')
     url = client.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': object_key}, ExpiresIn=expiration_secs)
     return url
+
+
+def put_firehose_record(payload, stream_name):
+
+    # newline is the record deliminator so remove it from inside the record
+    data = json.dumps(payload).replace('\n', '')
+
+    client = get_boto_client('firehose')
+    client.put_record(
+        DeliveryStreamName=stream_name,
+        Record={
+            'Data': data + '\n'
+        }
+    )
 
 
 def put_s3_item(body, bucket, object_key):

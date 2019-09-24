@@ -123,6 +123,14 @@ class UpdatePaymentMethodView(generics.GenericAPIView):
         organization = user.organization
 
         card_token = serializer.data['card_token']
+        coupon = serializer.data.get('coupon')
+
+        # coupon must be applied before adding payment method to avoid charge
+        if coupon is not None:
+            coupon_res = stripe_utils.update_subscription_coupon(organization.stripe_subscription_id, coupon)
+            if 'error' in coupon_res:
+                return Response(coupon_res, status=status.HTTP_400_BAD_REQUEST)
+
 
         card_res = stripe_utils.update_customer_payment_method(card_token, organization.stripe_customer_id)
         if 'error' in card_res.keys():
@@ -146,7 +154,14 @@ class UpdatePlanAndPaymentMethodView(generics.GenericAPIView):
         subscription_id = organization.stripe_subscription_id
 
         card_token = serializer.data['card_token']
+        coupon = serializer.data.get('coupon')
         plan_id = serializer.data['plan_id']
+
+        # coupon must be applied before adding payment method to avoid charge
+        if coupon is not None:
+            coupon_res = stripe_utils.update_subscription_coupon(subscription_id, coupon)
+            if 'error' in coupon_res:
+                return Response(coupon_res, status=status.HTTP_400_BAD_REQUEST)
 
         # add new card
         card_res = stripe_utils.update_customer_payment_method(card_token, organization.stripe_customer_id)
