@@ -72,9 +72,6 @@ class Command(BaseCommand):
             password = str(uuid.uuid4()).split('-')[0]
             aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
 
-            password = str(uuid.uuid4()).split('-')[0]
-            aws.create_dynamo_credentials(settings.DEMO_SHORT_NAME, 'admin', password, ['all'])
-
         elif response == 'update':
             try:
                 dummy_user = Account.objects.get(email=settings.DUMMY_EMAIL)

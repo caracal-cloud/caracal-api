@@ -1,5 +1,4 @@
 
-
 from django.utils import timezone
 import json
 from rest_framework import permissions, status, generics
@@ -10,7 +9,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import connections
 from caracal.common.fields import get_updated_outputs
-from caracal.common.models import RealTimeAccount, RealTimeIndividual
+from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from radios import serializers as radios_serializers
 
@@ -27,8 +26,13 @@ class AddAccountView(generics.GenericAPIView):
 
         user = request.user
         organization = user.organization
-        if user.is_demo:
-            return Response(status=status.HTTP_201_CREATED)
+
+        num_sources = get_num_sources(organization) # unlimited source_limit is -1
+        if 0 < organization.source_limit <= num_sources:
+            return Response({
+                'error': 'source_limit_reached',
+                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.data
 
@@ -78,9 +82,6 @@ class AddPositionView(generics.GenericAPIView):
         serializer = radios_serializers.AddPositionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if request.user.is_demo:
-            return Response(status=status.HTTP_201_CREATED)
-
         return Response(status=status.HTTP_201_CREATED)
 
 
@@ -93,9 +94,6 @@ class DeleteAccountView(generics.GenericAPIView):
     def post(self, request):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        if request.user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         try:
             account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
@@ -183,8 +181,6 @@ class UpdateRadioAccountView(generics.GenericAPIView):
 
         user = request.user
         organization = user.organization
-        if user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
@@ -226,8 +222,6 @@ class UpdateRadioIndividualView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        if user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         update_data = serializer.data
         individual_uid = update_data.pop('individual_uid')

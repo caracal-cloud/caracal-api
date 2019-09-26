@@ -27,9 +27,6 @@ class DisconnectAgolView(views.APIView):
         user = request.user
         organization = user.organization
 
-        if user.is_demo:
-            return Response(status=status.HTTP_200_OK)
-
         organization.agol_oauth_access_token = None
         organization.agol_oauth_access_token_expiry = None
         organization.agol_oauth_refresh_token = None
@@ -48,12 +45,6 @@ class GetAgolAccountView(views.APIView):
     def get(self, request):
         user = request.user
         organization = user.organization
-
-        if user.is_demo:
-            return Response({
-                'is_connected': True,
-                'username': 'Caracal Demo'
-            }, status=status.HTTP_200_OK)
 
         access_token = agol.refresh_access_token(organization.agol_oauth_refresh_token)
         organization.agol_oauth_access_token = access_token
@@ -169,9 +160,6 @@ class AgolOauthResponseView(views.APIView):
                     'error': 'account_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                if user.is_demo: # do not save user's credentials if demo
-                    return redirect(state['callback'])
-
                 user.organization.agol_username = username
                 user.organization.agol_oauth_access_token = access_token
                 user.organization.agol_oauth_access_token_expiry = expiry

@@ -110,9 +110,8 @@ class UpdateAccountView(generics.GenericAPIView):
         status.HTTP_400_BAD_REQUEST: '',
     }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - update account')
     def post(self, request):
+
         user = request.user
-        if user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         serializer = serializers.UpdateAccountSerializer(user, data=request.data)
         serializer.is_valid(raise_exception=True)

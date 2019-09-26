@@ -73,12 +73,6 @@ class ForgotPasswordView(generics.GenericAPIView):
 
         email = serializer.data['email']
 
-        try: # check if demo account
-            Account.objects.get(email=email, is_demo=True)
-            return Response(status=status.HTTP_200_OK)
-        except Account.DoesNotExist:
-            pass
-
         warrant_client = cognito.get_warrant_wrapper_client(email)
         try:
             warrant_client.initiate_forgot_password()

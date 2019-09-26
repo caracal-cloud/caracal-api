@@ -12,8 +12,9 @@ from sentry_sdk import capture_message
 from account.models import Account
 from auth.backends import CognitoAuthentication
 from caracal.common import connections
-from caracal.common.fields import get_updated_outputs
 from caracal.common import google as google_utils
+from caracal.common.fields import get_updated_outputs
+from caracal.common.models import get_num_sources
 from drives import serializers
 from drives.models import DriveFileAccount
 
@@ -30,8 +31,13 @@ class AddDriveFileAccountView(generics.GenericAPIView):
 
         user = request.user
         organization = user.organization
-        if user.is_demo:
-            return Response(status=status.HTTP_201_CREATED)
+
+        num_sources = get_num_sources(organization) # unlimited source_limit is -1
+        if 0 < organization.source_limit <= num_sources:
+            return Response({
+                'error': 'source_limit_reached',
+                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # boolean fields are modified after save for some reason...
         add_data = serializer.validated_data
@@ -284,13 +290,11 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
     serializer_class = serializers.UpdateDriveFileAccountSerializer
 
     def post(self, request):
-        user = request.user
-        organization = user.organization
         serializer = serializers.UpdateDriveFileAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if request.user.is_demo:
-            return Response(status=status.HTTP_200_OK)
+        user = request.user
+        organization = user.organization
 
         data = serializer.data
         account_uid = data.pop('account_uid')

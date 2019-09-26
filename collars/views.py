@@ -11,7 +11,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import aws, connections
 from caracal.common.fields import get_updated_outputs
-from caracal.common.models import RealTimeAccount, RealTimeIndividual
+from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from collars import serializers as collar_serializers
 
@@ -30,8 +30,14 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         user = request.user
         organization = user.organization
-        if user.is_demo:
-            return Response(status=status.HTTP_201_CREATED)
+
+        num_sources = get_num_sources(organization) # unlimited source_limit is -1
+        if 0 < organization.source_limit <= num_sources:
+            return Response({
+                'error': 'source_limit_reached',
+                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
 
         data = serializer.data
         species = data['type']
@@ -120,9 +126,6 @@ class DeleteCollarAccountView(generics.GenericAPIView):
     def post(self, request):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        if request.user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         try:
             account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
@@ -252,8 +255,6 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        if user.is_demo:
-            return Response(status=status.HTTP_200_OK)
 
         update_data = serializer.data
         individual_uid = update_data.pop('individual_uid')

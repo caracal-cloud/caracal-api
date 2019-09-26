@@ -8,6 +8,7 @@ from account.models import Account, Organization
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common.aws import put_firehose_record
+from caracal.common.models import get_num_sources
 from custom_source import serializers
 from custom_source.models import Source
 
@@ -22,7 +23,15 @@ class AddSourceView(generics.GenericAPIView):
         serializer = serializers.AddSourceSerializer(data=request.data)
         serializer.is_valid(True)
 
-        # TODO: check user's limits
+        organization = request.user.organization
+
+        num_sources = get_num_sources(organization) # unlimited source_limit is -1
+        if 0 < organization.source_limit <= num_sources:
+            return Response({
+                'error': 'source_limit_reached',
+                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         source = serializer.save(account=request.user)
 
         return Response({
@@ -154,7 +163,7 @@ class TempAddRecordView(views.APIView):
             'temp_c': serializer.data.get('temp_c')
         }
 
-        put_firehose_record(payload, 'caracal-custom-sources')
+        put_firehose_record(payload, 'caracal_realtime_user')
 
         return Response(status=status.HTTP_200_OK)
 

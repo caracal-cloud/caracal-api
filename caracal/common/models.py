@@ -8,6 +8,14 @@ from account.models import Organization
 from caracal.common import constants
 
 
+def get_num_sources(organization):
+
+    num_sources = organization.rt_accounts.filter(is_active=True).count() + \
+                  organization.drive_files.filter(is_active=True).count() + \
+                  organization.custom_sources.filter(is_active=True).count()
+    return num_sources
+
+
 def get_utc_datetime_now():
     return datetime.utcnow().replace(tzinfo=timezone.utc)
 
@@ -99,7 +107,7 @@ class RealTimePosition(BaseAsset):
 
     position = models.PointField(srid=settings.SRID, null=False)
     datetime_recorded = models.DateTimeField(null=True)
-    temp_celcius = models.DecimalField(max_digits=5, decimal_places=1, null=True)
+    temp_c = models.DecimalField(max_digits=5, decimal_places=1, null=True)
 
     class Meta:
         app_label = 'account'

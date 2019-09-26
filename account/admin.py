@@ -49,7 +49,7 @@ class RealTimePositionAdmin(admin.ModelAdmin):
     list_filter = ['is_active']
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_updated', 'datetime_deleted',
-                       'position', 'datetime_recorded', 'temp_celcius']
+                       'position', 'datetime_recorded', 'temp_c']
 
 
 @admin.register(RealTimePositionHash)

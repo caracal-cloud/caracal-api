@@ -26,6 +26,9 @@ class Organization(m.Model):
     logo_object_key = m.CharField(max_length=255, blank=True, null=True)
 
     # billing
+    custom_records_limit = m.IntegerField(default=settings.BILLING_CUSTOM_RECORDS_LIMIT_INDIV)
+    destinations_limit = m.IntegerField(default=settings.BILLING_DESTINATIONS_LIMIT_INDIV)
+    source_limit = m.IntegerField(default=settings.BILLING_SOURCE_LIMIT_INDIV)
     is_trialing = m.BooleanField(default=True) # is currently trialing, or expired trial account
     stripe_customer_id = m.CharField(max_length=100, blank=True, null=True)
     stripe_plan_id = m.CharField(max_length=100, blank=True, null=True)
@@ -122,7 +125,6 @@ class Account(AbstractBaseUser, PermissionsMixin):
     is_superuser = m.BooleanField(default=False) # project-wide superuser
     is_staff = m.BooleanField(default=False) # super user or agent
     is_admin = m.BooleanField(default=False) # is this the organization-admin
-    is_demo = m.BooleanField(default=False) # is this account used for demo non-editing purpose
 
     registration_method = m.CharField(max_length=50, choices=constants.REGISTRATION_METHODS, default='email', null=True)
     custom_access_jwt_id = m.UUIDField(null=True)
