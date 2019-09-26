@@ -23,7 +23,7 @@ class Record(models.Model):
     alt_m = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     device_id = models.CharField(max_length=100, blank=True, null=True)
     speed_kmh = models.DecimalField(max_digits=12, decimal_places=2, null=True)
-    temp_c = models.DecimalField(max_digits=5, decimal_places=1, null=True)
+    temp_c = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 
     class Meta:
         ordering = ['-datetime_created']

@@ -38,7 +38,7 @@ class GetSourcesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'name', 'description']
+                  'name', 'description', 'write_key']
 
 
 class GetSourceDetailSerializer(serializers.ModelSerializer):
@@ -68,4 +68,4 @@ class TempAddRecordSerializer(serializers.Serializer):
     alt_m = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     device_id = serializers.CharField(max_length=100, required=False)
     speed_kmh = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    temp_c = serializers.DecimalField(max_digits=5, decimal_places=1, required=False)
+    temp_c = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
