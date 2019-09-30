@@ -34,7 +34,7 @@ class AddAccountView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        data = serializer.data
+        add_data = serializer.data
 
         # enforce max number of accounts
         accounts = RealTimeAccount.objects.filter(organization=user.organization, source='radio', is_active=True)
@@ -44,25 +44,19 @@ class AddAccountView(generics.GenericAPIView):
                 'message': 'max number of radio accounts is 5'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-
-        provider = data['provider']
-        if provider == 'trbonet':
-            provider = 'TRBOnet'
-
-        outputs = {
-            'output_agol': data.pop('output_agol', False),
-            'output_database': data.pop('output_database', False),
-            'output_kml': data.pop('output_kml', False)
-        }
-        outputs = json.dumps(outputs)
-
+        provider = 'TRBOnet' if add_data['provider'] == 'trbonet' else add_data['provider']
         title = f'Radios - {provider}' # default title
 
-        account = RealTimeAccount.objects.create(organization=user.organization, source='radio',
-                                                 type=str(uuid.uuid4()),
-                                                 outputs=outputs, title=title, **data)
+        # fixme: remove outputs for now
+        add_data.pop('output_agol', None)
+        add_data.pop('output_database', None)
+        add_data.pop('output_kml', None)
 
-        connections.create_connections(organization, serializer.data, {'realtime_account': account})
+        account = RealTimeAccount.objects.create(organization=user.organization, source='radio',
+                                                 type=str(uuid.uuid4()), title=title, **add_data)
+
+        # don't add connections quite yet...
+        #connections.create_connections(organization, serializer.data, {'realtime_account': account})
 
         message = f'{provider} radio account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -196,14 +190,18 @@ class UpdateRadioAccountView(generics.GenericAPIView):
         if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        outputs = get_updated_outputs(account, update_data)
-
         provider = 'TRBOnet' if account.provider == 'trbonet' else account.provider
 
-        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(),
-                                                               outputs=outputs, **update_data)
+        # fixme: remove outputs for now
+        update_data.pop('output_agol', None)
+        update_data.pop('output_database', None)
+        update_data.pop('output_kml', None)
 
-        connections.update_connections(organization, serializer.data, {'realtime_account': account})
+        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
+
+        # don't update connections quite yet..
+        #outputs = get_updated_outputs(account, update_data)
+        #connections.update_connections(organization, serializer.data, {'realtime_account': account})
 
         message = f'{provider} radio account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)

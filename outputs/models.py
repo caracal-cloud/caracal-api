@@ -1,44 +1,52 @@
 from django.db import models
 
-from account.models import Organization
+from account.models import Account, Organization
 from caracal.common import constants
 from caracal.common.models import BaseAsset, RealTimeAccount
+from custom_source.models import Source
 from drives.models import DriveFileAccount
+
+
+# TODO: FINISHING MODELING CONNECTIONS... custom source, remove output
+
+class AgolAccount(BaseAsset):
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='agol_accounts')
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='agol_account')
+
+    oauth_access_token = models.TextField(blank=True, null=True)
+    oauth_access_token_expiry = models.DateTimeField(blank=True, null=True)
+    oauth_refresh_token = models.TextField(blank=True, null=True)
+    group_id = models.CharField(max_length=255, blank=True, null=True)
+    feature_service_url = models.CharField(max_length=200, blank=True, null=True)
+    username = models.CharField(max_length=200, blank=True, null=True)
 
 
 class DataConnection(BaseAsset):
 
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='connections')
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='connections', null=True)
 
     # Input - only one will be non-null
-    realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, null=True, related_name='connections')
-    realtime_alert = models.ForeignKey('RealtimeAlert', on_delete=models.CASCADE, null=True, related_name='connections')
+    custom_source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, related_name='connections')
     drive_account = models.ForeignKey(DriveFileAccount, on_delete=models.CASCADE, null=True, related_name='connections')
+    realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, null=True, related_name='connections')
 
-    output = models.ForeignKey('DataOutput', on_delete=models.CASCADE, null=True)
+    # Output - only one will be non-null
+    agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')
 
     def __str__(self):
         if self.realtime_account:
-            source = 'rt account'
-        elif self.realtime_alert:
-            source = 'rt alert'
+            source = 'realtime 3p'
+        elif self.custom_source:
+            source = 'realtime custom source'
         else:
             source = 'drive account'
-        return f'{self.organization.name} - {source} - {self.output.type}'
-
-
-class DataOutput(BaseAsset):
-
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    type = models.CharField(choices=constants.OUTPUT_TYPES, max_length=50, blank=False, null=False)
-
-    status = models.CharField(choices=constants.OUTPUT_STATUSES, max_length=50, default='pending', blank=False, null=False)
-
-    def __str__(self):
-        return f'{self.organization.name} - {self.type} - {self.status}'
+        return f'{self.organization.name} - {source}'
 
 
 class RealtimeAlert(BaseAsset):
+    # not exactly an "output"
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE) # simplifies queries from account to alert

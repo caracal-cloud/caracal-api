@@ -28,7 +28,7 @@ class Command(BaseCommand):
             return
 
         stage = options['settings'].split('.')[-1]
-        if stage not in ['development', 'staging', 'production']:
+        if stage not in ['development', 'staging', 'production', 'testing']:
             print("Unknown settings: " + options['settings'])
             return
 

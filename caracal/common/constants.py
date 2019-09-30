@@ -24,7 +24,9 @@ DRIVE_PROVIDER_FILETYPES = {
 INDIVIDUAL_STATUSES = [('active', 'active'), ('broken', 'broken'), ('inactive', 'inactive')]
 
 OUTPUT_STATUSES = [('connected', 'connected'), ('disconnected', 'disconnected'), ('pending', 'pending')]
-OUTPUT_TYPES = [('output_agol', 'output_agol'), ('output_database', 'output_database'), ('output_kml', 'output_kml')]
+OUTPUT_TYPES = [('output_agol', 'output_agol'),
+                ('output_database', 'output_database'),
+                ('output_kml', 'output_kml')]
 
 REGISTRATION_METHODS = [('email', 'email'), ('google', 'google')]
 

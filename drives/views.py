@@ -39,9 +39,13 @@ class AddDriveFileAccountView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # boolean fields are modified after save for some reason...
-        add_data = serializer.validated_data
-        account = serializer.save(user=request.user)
+        # fixme: removing output fields for now...
+        serializer.validated_data.pop('output_agol', None)
+        serializer.validated_data.pop('output_database', None)
+        serializer.validated_data.pop('output_kml', None)
+
+        serializer_data = serializer.validated_data # boolean fields get modified after save...?
+        drive_account = serializer.save(user=request.user)
 
         # remove temporary google tokens...
         user.temp_google_oauth_access_token = None
@@ -49,10 +53,13 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         user.temp_google_oauth_refresh_token = None
         user.save()
 
-        connections.create_connections(organization, add_data, {'drive_account': account})
+        # TODO: schedule get_static_google_sheets_data
+        # TODO: don't schedule connection yet...
+        # not adding connections quite yet...
+        #connections.create_connections(organization, serializer_data, {'drive_account': account})
 
         return Response({
-            'account_uid': account.uid
+            'account_uid': drive_account.uid
         }, status=status.HTTP_201_CREATED)
 
 
@@ -296,24 +303,33 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         user = request.user
         organization = user.organization
 
-        data = serializer.data
-        account_uid = data.pop('account_uid')
+        update_data = serializer.data
+        account_uid = update_data.pop('account_uid')
 
         try:
-            account = DriveFileAccount.objects.get(uid=account_uid)
+            drive_account = DriveFileAccount.objects.get(uid=account_uid)
         except DriveFileAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if account.organization != user.organization and not user.is_superuser:
+        # different organization
+        if drive_account.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        outputs = get_updated_outputs(account, data)
-        DriveFileAccount.objects.filter(uid=account_uid).update(outputs=outputs, **data)
+        # fixme: remove outputs for now...
+        update_data.pop('output_agol', None)
+        update_data.pop('output_database', None)
+        update_data.pop('output_kml', None)
 
-        connections.update_connections(organization, serializer.data, {'drive_account': account})
+        DriveFileAccount.objects.filter(uid=account_uid).update(**update_data)
+
+        # not updating outputs quite yet
+        # outputs = get_updated_outputs(drive_account, data)
+        # pass the drive account owner, not current user...?
+
+        #connections.update_connections(drive_account.account, serializer.data, {'drive_account': drive_account})
 
         return Response(status=status.HTTP_200_OK)
 

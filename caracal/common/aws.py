@@ -65,30 +65,6 @@ def get_boto_client(service):
     return boto3.client(service, **params)
 
 
-def get_cloudwatch_create_kml_rule_name(org_short_name, stage, species, period):
-
-    stage = stage[:4]
-    species = species[:10]
-
-    rule_name = f'{org_short_name}-{stage}-cllrs-kml-{species}-{period}'
-    rule_name = rule_name.lower()
-
-    assert len(rule_name) < 64
-    return rule_name
-
-
-def get_cloudwatch_fetch_collars_rule_name(org_short_name, stage, provider_short_name, species, collar_account_uid):
-
-    stage = stage[:4]
-    species = species[:10]
-    collar_account_uid = str(collar_account_uid).split('-')[0][:4]
-
-    rule_name = f'{org_short_name}-{stage}-cllrs-get-{provider_short_name}-{species}-{collar_account_uid}'
-    rule_name = rule_name.lower()
-
-    assert len(rule_name) < 64
-    return rule_name
-
 
 # from caracal.common.aws import get_dynamo_credentials as get_creds
 def get_dynamo_credentials(short_name):
@@ -175,6 +151,7 @@ def put_s3_item(body, bucket, object_key):
 
 
 def schedule_lambda_function(fn_arn, fn_name, rule_input, rule_name, rate_minutes):
+
     events_client = boto3.client('events')
     lambda_client = boto3.client('lambda')
 

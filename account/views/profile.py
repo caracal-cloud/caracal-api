@@ -110,10 +110,8 @@ class UpdateAccountView(generics.GenericAPIView):
         status.HTTP_400_BAD_REQUEST: '',
     }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - update account')
     def post(self, request):
-
         user = request.user
-
-        serializer = serializers.UpdateAccountSerializer(user, data=request.data)
+        serializer = self.get_serializer(user, data=request.data) # use this method to access context inside serializer
         serializer.is_valid(raise_exception=True)
 
         if 'logo' in serializer.validated_data.keys() and user.organization.update_required:

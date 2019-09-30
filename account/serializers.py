@@ -1,7 +1,8 @@
 
+from datetime import datetime
+from datetime import timezone as tz
 from django.conf import settings
 from django.db import IntegrityError
-from django.utils import timezone
 from io import BytesIO
 import pytz
 from rest_framework import serializers, status
@@ -78,8 +79,8 @@ class GetProfileSerializer(serializers.ModelSerializer):
 
     organization_name = serializers.CharField(source='organization.name')
     organization_short_name = serializers.CharField(source='organization.short_name')
-    organization_timezone = serializers.CharField(source='organization.timezone')
     organization_update_required = serializers.BooleanField(source='organization.update_required')
+    timezone = serializers.CharField(source='organization.timezone')
 
     uid = serializers.CharField(source='uid_cognito')
 
@@ -93,7 +94,7 @@ class GetProfileSerializer(serializers.ModelSerializer):
         model = Account
         fields = ['uid', 'email', 'name', 'phone_number',
                   'organization_name', 'organization_short_name',
-                  'organization_timezone', 'organization_update_required',
+                  'organization_update_required', 'timezone',
                   'logo_url']
 
 
@@ -202,26 +203,43 @@ class UpdateAccountSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=150, required=False)
     phone_number = serializers.CharField(max_length=150, required=False)
     organization_name = serializers.CharField(max_length=150, required=False)
+    organization_short_name = serializers.CharField(max_length=50, required=False)
     timezone = serializers.CharField(max_length=50, required=False)
     logo = serializers.ImageField(required=False, allow_empty_file=False)
 
     def update(self, account, validated_data):
+
         # account
         account.name = validated_data.get('name', account.name)
         account.phone_number = validated_data.get('phone_number', account.phone_number)
-        account.datetime_updated = timezone.now()
+        account.datetime_updated = datetime.utcnow().replace(tzinfo=tz.utc)
         account.save()
 
         # organization
         account.organization.name = validated_data.get('organization_name', account.organization.name)
         account.organization.timezone = validated_data.get('timezone', account.organization.timezone)
+
         logo = validated_data.get('logo')
         if logo is not None:
             object_key = save_logo(logo, account)
             account.organization.logo_object_key = object_key
+
+        short_name =  validated_data.get('organization_short_name')
+        if short_name is not None and short_name != account.organization.short_name:
+            account.organization.short_name = short_name
+            # TODO: update short_name elsewhere...
+
         account.organization.save()
 
         return account
+
+    def validate_organization_short_name(self, short_name):
+        try:
+            organization = Organization.objects.get(short_name=short_name)
+            if organization != self.context['request'].user.organization:
+                raise serializers.ValidationError('organization_short_name must be unique')
+        except Organization.DoesNotExist:
+            return short_name
 
     def validate_timezone(self, timezone_string):
         if timezone_string not in pytz.all_timezones:

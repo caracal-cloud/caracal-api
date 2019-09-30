@@ -35,15 +35,6 @@ class Organization(m.Model):
     stripe_subscription_id = m.CharField(max_length=100, blank=True, null=True)
     stripe_subscription_status = m.CharField(max_length=100, blank=True, null=True)
 
-    # ArcGIS Online
-    # todo: consider putting in 1to1 object
-    agol_oauth_access_token = m.TextField(null=True)
-    agol_oauth_access_token_expiry = m.DateTimeField(null=True)
-    agol_oauth_refresh_token = m.TextField(null=True)
-    agol_group_id = m.CharField(max_length=255, null=True)
-    agol_feature_service_url = m.CharField(max_length=200, null=True)
-    agol_username = m.CharField(max_length=200, null=True)
-
     update_required = m.BooleanField(default=False, null=True) # organization update required to complete registration
 
     class Meta:
@@ -134,7 +125,6 @@ class Account(AbstractBaseUser, PermissionsMixin):
     temp_google_oauth_access_token = m.TextField(null=True)
     temp_google_oauth_access_token_expiry = m.DateTimeField(null=True) # UTC
     temp_google_oauth_refresh_token = m.TextField(null=True)
-
 
     objects = UserManager()
 

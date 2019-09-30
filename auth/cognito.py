@@ -83,6 +83,28 @@ def remove_all_users():
         )
 
 
+def remove_testing_users():
+    assert settings.TESTING
+
+    # remove testing users that start with a digit
+    client = get_cognito_idp_client()
+    response = client.list_users(
+        UserPoolId=settings.COGNITO_USER_POOL_ID,
+        AttributesToGet=[
+            'email',
+        ],
+    )
+    users = response['Users']
+    print("...retrieving %d Cognito users" % (len(users)))
+    for user in users:
+        for attr in user['Attributes']:
+            if attr['Name'] == 'email' and attr['Value'][0].isdigit(): # if it starts with a digit
+                print("...removing %s" % attr['Value'])
+                sub = user['Username']
+                client.admin_delete_user(UserPoolId=settings.COGNITO_USER_POOL_ID, Username=sub)
+                break
+
+
 def sign_out_user(email):
     client = get_cognito_idp_client()
     client.admin_user_global_sign_out(

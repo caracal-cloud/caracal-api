@@ -1,19 +1,13 @@
 
 from caracal.common import constants
-from outputs.models import DataConnection, DataOutput
+from outputs.models import DataConnection
 
 
-def create_connections(organization, serializer_data, account_data):
+def create_connections(organization, data, account_data):
 
-    output_types = [output[0] for output in constants.OUTPUT_TYPES]
-    for output_type in output_types:
-        if output_type in serializer_data.keys() and serializer_data[output_type]:
-            try:
-                output = DataOutput.objects.get(organization=organization, type=output_type)
-            except DataOutput.DoesNotExist:
-                output = DataOutput.objects.create(organization=organization, type=output_type)
+    if data.get('output_agol', False):
+        pass
 
-            DataConnection.objects.create(organization=organization, output=output, **account_data)
 
 
 def delete_connections(account):
@@ -37,35 +31,42 @@ def get_outputs(account):
     return outputs
 
 
-def update_connections(organization, serializer_data, account_data):
+def update_connections(account_owner, serializer_data, account_data):
+
+    organization = account_owner.organization
 
     output_types = [output[0] for output in constants.OUTPUT_TYPES]
     for output_type in output_types:
-        print(output_type)
-        # user wants to update this output
+
+        # user wants to update this connection
         if output_type in serializer_data.keys():
-            # get/create output for both cases enabled/disabled
-            try:
-                output = DataOutput.objects.get(organization=organization, type=output_type)
-            except DataOutput.DoesNotExist:
-                output = DataOutput.objects.create(organization=organization, type=output_type)
 
-            # output is enabled
-            if serializer_data[output_type]:
-                try:  # user already has a connection, set is_active to True
-                    connection = DataConnection.objects.get(organization=organization,
-                                                            output=output, **account_data)
-                    connection.is_active = True
-                    connection.save()
-                except DataConnection.DoesNotExist:  # user does not have a connection, create one, is_active is True by default
-                    DataConnection.objects.create(organization=organization, output=output, **account_data)
+            if output_type == 'output_agol':
 
-            # output is disabled
+                agol_account = account_owner.agol_account
+                if agol_account is None:
+                    print('agol account is None')
+
+                # enable the connection
+                if serializer_data[output_type]:
+
+                    try:  # user already has a connection, set is_active to True
+                        connection = DataConnection.objects.get(organization=organization,
+                                                                agol_account=agol_account, **account_data)
+                        connection.is_active = True
+                        connection.save()
+                    except DataConnection.DoesNotExist:  # user does not have a connection, create one, is_active is True by default
+                        DataConnection.objects.create(organization=organization, agol_account=agol_account, **account_data)
+
+                else:
+                    try:  # user already has a connection, set is_active to False
+                        connection = DataConnection.objects.get(organization=organization,
+                                                                agol_account=agol_account, **account_data)
+                        connection.is_active = False
+                        connection.save()
+                    except:  # user does not have a connection, do nothing
+                        pass
+
             else:
-                try:  # user already has a connection, set is_active to False
-                    connection = DataConnection.objects.get(organization=organization,
-                                                            output=output, **account_data)
-                    connection.is_active = False
-                    connection.save()
-                except:  # user does not have a connection, do nothing
-                    pass
+                print(f'unknown output_type: {output_type}')
+                pass

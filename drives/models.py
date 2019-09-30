@@ -9,6 +9,7 @@ from caracal.common.models import BaseAccount, BaseAsset
 class DriveFileAccount(BaseAsset, BaseAccount):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='drive_files')
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='drive_files', null=True)
 
     provider = models.CharField(choices=constants.DRIVE_PROVIDERS, max_length=100)
     file_type = models.CharField(choices=constants.DRIVE_FILETYPES, max_length=50)
@@ -18,8 +19,8 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     # configuration
     header_row_index = models.IntegerField(default=0)
     coordinate_system = models.CharField(max_length=50, choices=constants.COORDINATE_SYSTEMS, default='decimal degrees')
-    x_column_index = models.IntegerField(null=True) # longitude, easting
-    y_column_index = models.IntegerField(null=True) # latitude, northing
+    x_column_index = models.IntegerField() # longitude, easting
+    y_column_index = models.IntegerField() # latitude, northing
     grid_zone_column_index = models.IntegerField(null=True) # utm ex. 35N, 35M
     date_column_index = models.IntegerField(null=True)
 
@@ -27,8 +28,6 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     google_oauth_access_token = models.TextField(null=True)
     google_oauth_refresh_token = models.TextField(null=True)
     google_oauth_access_token_expiry = models.DateTimeField(null=True) # UTC
-
-    output_notes = models.BooleanField(default=False) # markup drive file with comments (i.e. invalid value)
 
     class Meta:
         ordering = ['-datetime_created']

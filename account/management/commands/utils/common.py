@@ -13,7 +13,7 @@ from auth import cognito
 from caracal.common import aws, constants, stripe_utils
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 from drives.models import DriveFileAccount
-from outputs.models import DataConnection, DataOutput
+from outputs.models import DataConnection
 
 
 def add_dummy_alerts(account):
@@ -133,17 +133,6 @@ def add_dummy_collars(account):
                 }
 
                 RealTimeIndividual.objects.create(**individual)
-
-        # setup connections and outputs
-        output_types = [output[0] for output in constants.OUTPUT_TYPES]
-        for output_type in output_types:
-            if output_type in outputs.keys() and outputs[output_type]:
-                try:
-                    output = DataOutput.objects.get(organization=organization, type=output_type)
-                except DataOutput.DoesNotExist:
-                    output = DataOutput.objects.create(organization=organization, type=output_type)
-
-                DataConnection.objects.create(organization=organization, realtime_account=account, output=output)
 
 
 # add dummy drives or only stuff that user can't receive anonymous data?

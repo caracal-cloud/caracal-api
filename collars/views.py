@@ -10,9 +10,9 @@ from rest_framework.response import Response
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import aws, connections
-from caracal.common.fields import get_updated_outputs
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
+from collars import connections as collar_connections
 from collars import serializers as collar_serializers
 
 
@@ -26,8 +26,6 @@ class AddCollarAccountView(generics.GenericAPIView):
         serializer = collar_serializers.AddCollarAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # TODO: don't save creds to account, just use in rule...
-
         user = request.user
         organization = user.organization
 
@@ -38,61 +36,43 @@ class AddCollarAccountView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-
-        data = serializer.data
+        data = serializer.validated_data
         species = data['type']
         provider = data['provider']
 
-        fetch_rule_input = dict()
         if provider == 'orbcomm':
             title = f'{species.capitalize()} - Orbcomm'
-            fetch_rule_input['orbcomm_timezone'] = data.pop('orbcomm_timezone')
-            fetch_rule_input['orbcomm_company_id'] = data.pop('orbcomm_company_id')
         elif provider == 'savannah_tracking':
             title = f'{species.capitalize()} - Savannah Tracking'
-            fetch_rule_input['savannah_tracking_username'] = data.pop('savannah_tracking_username')
-            fetch_rule_input['savannah_tracking_password'] = data.pop('savannah_tracking_password')
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST) # validated in serializer
 
-        # outputs
-        outputs = {
-            'output_agol': data.pop('output_agol', False),
-            'output_database': data.pop('output_database', False),
-            'output_kml': data.pop('output_kml', False)
-        }
-        outputs_json = json.dumps(outputs)
-
-        # fixme: if you add an account, delete it, and add it again a validationerror will occur
-        # todo: remove unique constraint and check manually using is_active
-
         try:
-            account = RealTimeAccount.objects.create(organization=organization, source='collar',
-                                                     outputs=outputs_json, title=title, **data)
+            collar_account = RealTimeAccount.objects.create(organization=organization, is_active=True, source='collar',
+                                                            provider=provider, type=None, title=title)
+
         except IntegrityError:
             return Response({
                 'error': 'account_already_added',
                 'message': 'account already added'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        fetch_rule_input['account_uid'] = str(account.uid)
 
-        connections.create_connections(organization, serializer.data, {'realtime_account': account})
+        collar_connections.schedule_collars_get_data(data, collar_account, organization)
 
-        """
+        #collar_connections.schedule_collars_outputs(data, organization)
+
+        # connections.create_connections(organization, data, {'realtime_account': collar_account})
         
-        global_config = aws.get_global_config()
 
 
-        fetch_function_name = 'caracal_%s_collars_fetch_%s' % (settings.STAGE.lower(), provider)
-        fetch_lambda_function = aws.get_lambda_function(fetch_function_name)
 
-        fetch_rule_name = aws.get_cloudwatch_fetch_collars_rule_name(user.organization.short_name, settings.STAGE,
-                                                                     provider.short_name, species,
-                                                                     collar_account.uid)
 
-        aws.schedule_lambda_function(fetch_lambda_function['arn'], fetch_lambda_function['name'], fetch_rule_input,
-                                     fetch_rule_name, global_config['COLLAR_FETCH_RATE_MINUTES'])
+
+
+
+
+
 
         create_kml_function_name = 'caracal_%s_collars_create_kml' % settings.STAGE.lower()
         create_kml_function = aws.get_lambda_function(create_kml_function_name)
@@ -104,16 +84,21 @@ class AddCollarAccountView(generics.GenericAPIView):
             }
             create_kml_rule_name = aws.get_cloudwatch_create_kml_rule_name(user.organization.short_name,
                                                                            settings.STAGE, species, period)
+
             aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input,
                                          create_kml_rule_name, global_config['COLLAR_KML_CREATE_RATE_MINUTES'])
 
-        """
+
+
+
+
+
 
         message = f'{species} collar account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response({
-            'account_uid': account.uid
+            'account_uid': collar_account.uid
         }, status=status.HTTP_201_CREATED)
 
 
@@ -231,12 +216,15 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         if account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        outputs_json = get_updated_outputs(account, update_data)
+        # fixme: remove outputs for now...
+        update_data.pop('output_agol', None)
+        update_data.pop('output_database', None)
+        update_data.pop('output_kml', None)
 
-        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(),
-                                                               outputs=outputs_json, **update_data)
+        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
 
-        connections.update_connections(organization, serializer.data, {'realtime_account': account})
+        # not updating connections quite yet
+        # connections.update_connections(organization, serializer.data, {'realtime_account': account})
 
         message = f'{account.type} collar account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)

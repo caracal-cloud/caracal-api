@@ -14,6 +14,8 @@ from account.models import Account
 from auth.backends import CognitoAuthentication
 from caracal.common import agol
 from outputs import serializers
+from outputs.models import AgolAccount
+
 
 AGOL_BASE_URL = "https://www.arcgis.com/sharing/rest/oauth2"
 
@@ -24,15 +26,19 @@ class DisconnectAgolView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+
         user = request.user
-        organization = user.organization
 
-        organization.agol_oauth_access_token = None
-        organization.agol_oauth_access_token_expiry = None
-        organization.agol_oauth_refresh_token = None
-        organization.save()
+        try:
+            agol_account = user.agol_account
+            agol_account.delete()
+        except AgolAccount.DoesNotExist:
+            pass
 
-        # TODO: remove agol sync tasks...
+        user.agol_account = None
+        user.save()
+
+        # TODO: remove connections...
 
         return Response(status=status.HTTP_200_OK)
 
@@ -44,21 +50,28 @@ class GetAgolAccountView(views.APIView):
 
     def get(self, request):
         user = request.user
-        organization = user.organization
 
-        access_token = agol.refresh_access_token(organization.agol_oauth_refresh_token)
-        organization.agol_oauth_access_token = access_token
-        organization.save()
+        try:
+            agol_account = user.agol_account
+            access_token = agol.refresh_access_token(agol_account.oauth_refresh_token)
+            agol_account.oauth_access_token = access_token
+            agol_account.save()
 
-        if access_token is not None:
-            data = {
-                'is_connected': True,
-                'username': organization.agol_username
-            }
-        else:
+            if access_token is not None:
+                data = {
+                    'is_connected': True,
+                    'username': agol_account.username
+                }
+            else:
+                data = {
+                    'is_connected': False
+                }
+
+        except AgolAccount.DoesNotExist:
             data = {
                 'is_connected': False
             }
+
 
         return Response(data=data, status=status.HTTP_200_OK)
 
@@ -75,6 +88,15 @@ class GetAgolOauthRequestUrlView(views.APIView):
         callback = serializer.data.get('callback', 'https://caracal.cloud')
 
         user = request.user
+
+        try:
+            agol_account = user.agol_account
+            return Response({
+                'error': 'account_already_exists',
+                'message': 'Account already exists.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except AgolAccount.DoesNotExist:
+            pass
 
         state = {
             'account_uid': str(user.uid_cognito),
@@ -125,14 +147,14 @@ class AgolOauthResponseView(views.APIView):
             state = json.loads(data['state'])
             account_uid = state['account_uid'] #refresh_token user account uid
 
-            agol_redirect_ui = settings.HOSTNAME + reverse('agol-oauth-response')
+            agol_redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
 
             # exchange code for tokens
             token_url = f'{AGOL_BASE_URL}/token'
             data = {
                 'client_id': settings.AGOL_CLIENT_ID,
                 'code': code,
-                'redirect_uri': agol_redirect_ui,
+                'redirect_uri': agol_redirect_uri,
                 'grant_type': 'authorization_code'
             }
 
@@ -160,12 +182,11 @@ class AgolOauthResponseView(views.APIView):
                     'error': 'account_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                user.organization.agol_username = username
-                user.organization.agol_oauth_access_token = access_token
-                user.organization.agol_oauth_access_token_expiry = expiry
-                if refresh_token:
-                    user.organization.agol_oauth_refresh_token = refresh_token
-                user.organization.save()
+                agol_account = AgolAccount.objects.create(organization=user.organization, account=user,
+                                                          oauth_access_token=access_token,
+                                                          oauth_access_token_expiry=expiry,
+                                                          oauth_refresh_token=refresh_token,
+                                                          username=username)
 
             return redirect(state['callback'])
 
