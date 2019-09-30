@@ -60,6 +60,7 @@ class RealTimeAccount(BaseAsset, BaseAccount):
 
     # Scheduling
     cloudwatch_get_data_rule_name = models.CharField(max_length=200, blank=True, null=True)
+    cloudwatch_update_kml_rule_names = models.TextField(default="", blank=True, null=True) # multiple rules
 
     class Meta:
         app_label = 'account'
@@ -86,8 +87,6 @@ class RealTimeIndividual(BaseAsset):
     blood_type = models.CharField(choices=constants.BLOOD_TYPES, max_length=100, null=True, blank=True)
     call_sign = models.CharField(max_length=100, null=True, blank=True)
     phone_number = models.CharField(max_length=50, null=True, blank=True)
-
-    # animal
 
     # metrics - fixme: remove these
     monthly_paths = models.TextField(blank=True, null=True)

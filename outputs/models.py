@@ -35,6 +35,8 @@ class DataConnection(BaseAsset):
     # Output - only one will be non-null
     agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')
 
+    cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)
+
     def __str__(self):
         if self.realtime_account:
             source = 'realtime 3p'

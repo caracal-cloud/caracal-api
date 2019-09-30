@@ -14,6 +14,7 @@ from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndi
 import caracal.common.serializers as common_serializers
 from collars import connections as collar_connections
 from collars import serializers as collar_serializers
+from outputs.models import AgolAccount
 
 
 class AddCollarAccountView(generics.GenericAPIView):
@@ -40,6 +41,17 @@ class AddCollarAccountView(generics.GenericAPIView):
         species = data['type']
         provider = data['provider']
 
+        # make sure user has an AGOL account set up
+        agol_account = None
+        if data['output_agol']:
+            try:
+                agol_account = AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         if provider == 'orbcomm':
             title = f'{species.capitalize()} - Orbcomm'
         elif provider == 'savannah_tracking':
@@ -50,6 +62,7 @@ class AddCollarAccountView(generics.GenericAPIView):
         collar_account = RealTimeAccount.objects.create(organization=organization, is_active=True, source='collar',
                                                         provider=provider, type=species, title=title)
 
+        # input - setup CloudWatch rule to fetch positions
         schedule_res = collar_connections.schedule_collars_get_data(data, collar_account, organization)
         if 'error' in schedule_res:
             return Response(schedule_res, status=status.HTTP_400_BAD_REQUEST)
@@ -57,7 +70,8 @@ class AddCollarAccountView(generics.GenericAPIView):
         collar_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
         collar_account.save()
 
-        #collar_connections.schedule_collars_outputs(data, organization)
+        # outputs
+        collar_connections.schedule_collars_outputs(data, collar_account, user, agol_account=agol_account)
         # connections.create_connections(organization, data, {'realtime_account': collar_account})
 
         message = f'{species} collar account added by {user.name}'
@@ -94,9 +108,17 @@ class DeleteCollarAccountView(generics.GenericAPIView):
 
         aws.delete_cloudwatch_rule(account.cloudwatch_get_data_rule_name)
 
-        # connections.delete_connections(account)
+        if account.cloudwatch_update_kml_rule_names:
+            update_kml_rule_names = account.cloudwatch_update_kml_rule_names.split(',')
+            for rule_name in update_kml_rule_names:
+                aws.delete_cloudwatch_rule(rule_name)
+        account.cloudwatch_update_kml_rule_names = None
+        account.save()
 
-
+        # delete 3rd party connections
+        for connection in account.connections.all():
+            aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+        account.connections.all().delete()
 
         return Response(status=status.HTTP_200_OK)
 
