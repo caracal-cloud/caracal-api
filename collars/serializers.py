@@ -83,6 +83,13 @@ class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
     def get_distance_day(self, individual): # kms
         return random.randint(5, 50)
 
+    datetime_last_position = serializers.SerializerMethodField()
+    def get_datetime_last_position(self, individual):
+        last_position = individual.rt_positions.order_by('-datetime_recorded').first()
+        print(last_position.datetime_recorded)
+
+        return last_position.datetime_recorded
+
     class Meta:
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',

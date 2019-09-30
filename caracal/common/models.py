@@ -89,7 +89,7 @@ class RealTimeIndividual(BaseAsset):
 
     # animal
 
-    # metrics
+    # metrics - fixme: remove these
     monthly_paths = models.TextField(blank=True, null=True)
     last_position = models.PointField(srid=settings.SRID, null=True)
     datetime_last_position = models.DateTimeField(null=True)

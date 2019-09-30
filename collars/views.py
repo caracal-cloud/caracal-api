@@ -133,6 +133,7 @@ class GetCollarIndividualsView(generics.ListAPIView):
 
         serializer = common_serializers.GetRtIndividualsQueryParamsSerializer(data=self.request.query_params)
         serializer.is_valid(raise_exception=True)
+
         account_uid = serializer.data['account_uid']
         user = self.request.user
 

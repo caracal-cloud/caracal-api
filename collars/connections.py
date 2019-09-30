@@ -13,7 +13,7 @@ def schedule_collars_get_data(data, collar_account, organization):
     get_data_rule_input['account_uid'] = str(collar_account.uid)
 
     if provider == 'orbcomm':
-        get_data_rule_input['orbcomm_timezone'] = data['orbcomm_timezone']
+        get_data_rule_input['orbcomm_timezone'] = 2 # fixme: send offset integer data['orbcomm_timezone']
         get_data_rule_input['orbcomm_company_id'] = data['orbcomm_company_id']
 
     elif provider == 'savannah_tracking':
