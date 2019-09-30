@@ -86,13 +86,11 @@ class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
     datetime_last_position = serializers.SerializerMethodField()
     def get_datetime_last_position(self, individual):
         last_position = individual.rt_positions.order_by('-datetime_recorded').first()
-        print(last_position.datetime_recorded)
-
         return last_position.datetime_recorded
 
     class Meta:
         model = RealTimeIndividual
-        fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
+        fields = ['url', 'uid', 'device_id', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'subtype', 'sex', 'distance_day',
                   'datetime_last_position']
 
@@ -106,7 +104,7 @@ class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RealTimeIndividual
-        fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
+        fields = ['url', 'uid', 'device_id', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'subtype', 'sex', 'distance_day',
                   'datetime_last_position']
 
