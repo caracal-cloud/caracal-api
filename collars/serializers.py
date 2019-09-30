@@ -1,9 +1,9 @@
 
+from datetime import datetime, timedelta, timezone
 import random
 from rest_framework import serializers
 
-from caracal.common import connections, constants
-
+from caracal.common import connections, constants, gis
 from caracal.common.models import RealTimeAccount, RealTimeIndividual
 
 
@@ -78,10 +78,12 @@ class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-individual-detail')
 
-    # TODO: temporary... calculate distances with monthly_paths
     distance_day = serializers.SerializerMethodField()
     def get_distance_day(self, individual): # kms
-        return random.randint(5, 50)
+        then = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=24)
+        positions = individual.rt_positions.filter(datetime_recorded__gte=then).order_by('datetime_recorded')
+        positions = [p.position for p in positions]
+        return gis.get_path_distance_km(positions) if len(positions) > 2 else 0
 
     datetime_last_position = serializers.SerializerMethodField()
     def get_datetime_last_position(self, individual):
@@ -97,10 +99,17 @@ class GetCollarIndividualsSerializer(serializers.HyperlinkedModelSerializer):
 
 class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
 
-    # TODO: temporary... calculate distances with monthly_paths
     distance_day = serializers.SerializerMethodField()
     def get_distance_day(self, individual): # kms
-        return random.randint(5, 50)
+        then = datetime.utcnow().replace(tzinfo=timezone.utc) - timedelta(hours=24)
+        positions = individual.rt_positions.filter(datetime_recorded__gte=then).order_by('datetime_recorded')
+        positions = [p.position for p in positions]
+        return gis.get_path_distance_km(positions) if len(positions) > 2 else 0
+
+    datetime_last_position = serializers.SerializerMethodField()
+    def get_datetime_last_position(self, individual):
+        last_position = individual.rt_positions.order_by('-datetime_recorded').first()
+        return last_position.datetime_recorded
 
     class Meta:
         model = RealTimeIndividual

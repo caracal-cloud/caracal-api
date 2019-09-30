@@ -2,7 +2,6 @@
 
 
 def get_path_distance_km(points):
-    assert isinstance(points, list)
 
     distance = 0
     previous_point = None

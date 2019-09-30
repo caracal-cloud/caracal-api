@@ -30,8 +30,6 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
         date_column = validated_data.get('date_column_index')
         validated_data['date_column_index'] = date_column - 1 if date_column is not None else None
 
-        print(validated_data)
-
         drive = DriveFileAccount.objects.create(organization=user.organization,
                                                 google_oauth_access_token=user.temp_google_oauth_access_token,
                                                 google_oauth_access_token_expiry=user.temp_google_oauth_access_token_expiry,
