@@ -21,14 +21,17 @@ def schedule_collars_get_data(data, collar_account, organization):
         get_data_rule_input['savannah_tracking_password'] = data['savannah_tracking_password']
 
     else:
-        raise ValueError('unknown provider: ' + provider)
+        return {
+            'error': 'unknown_provider'
+        }
 
     print('get_data_rule_input', get_data_rule_input)
 
     function_name = f'caracal_{settings.STAGE.lower()}_get_realtime_{provider}_data'
-    lambda_function = aws.get_lambda_function(function_name)
 
     print('function_name', function_name)
+
+    lambda_function = aws.get_lambda_function(function_name)
 
     short_name = organization.short_name
     rule_name = get_collars_get_data_rule_name(short_name, settings.STAGE, provider, species, collar_account.uid)
@@ -37,6 +40,10 @@ def schedule_collars_get_data(data, collar_account, organization):
 
     aws.schedule_lambda_function(lambda_function['arn'], lambda_function['name'], get_data_rule_input,
                                  rule_name, settings.COLLARS_GET_DATA_RATE_MINUTES)
+
+    return {
+        'rule_name': rule_name
+    }
 
 
 def get_collars_get_data_rule_name(org_short_name, stage, provider, species, collar_account_uid):

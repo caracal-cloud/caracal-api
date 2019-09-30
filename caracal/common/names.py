@@ -26,8 +26,8 @@ adjectives = [
     'orange', 'patient', 'polished', 'proud', 'purple', 'quiet', 'rapid',
     'raspy', 'red', 'restless', 'rich', 'rough', 'round', 'royal', 'rhythmic', 'shiny',
     'shy', 'silent', 'small', 'snowy', 'soft', 'solitary', 'sparkling', 'spring',
-    'square', 'steep', 'still', 'summer', 'super', 'sweet', 'tender', 'thundering',
-    'twilight', 'wandering', 'weathered', 'white', 'wild', 'winter', 'witty',
+    'square', 'steep', 'still', 'summer', 'super', 'sweet', 'thundering',
+    'twilight', 'wandering', 'wild', 'winter', 'witty',
     'yellow', 'young'
 ]
 

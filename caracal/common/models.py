@@ -58,6 +58,9 @@ class RealTimeAccount(BaseAsset, BaseAccount):
     # Caracal Sync
     is_synced = models.NullBooleanField(default=False) # has this account been paired with a Caracal Sync instance
 
+    # Scheduling
+    cloudwatch_get_data_rule_name = models.CharField(max_length=200, blank=True, null=True)
+
     class Meta:
         app_label = 'account'
         ordering = ['-datetime_created']

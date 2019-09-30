@@ -1,5 +1,4 @@
 
-import json
 import random
 from rest_framework import serializers
 
@@ -16,7 +15,7 @@ class AddCollarAccountSerializer(serializers.ModelSerializer):
 
     # Orbcomm/Skygistics
     orbcomm_timezone = serializers.CharField(max_length=20, required=False)
-    orbcomm_company_id = serializers.CharField(max_length=50, required=False)
+    orbcomm_company_id = serializers.CharField(max_length=50, required=False) # fixme: should this be integer?
 
     # Savannah Tracking
     savannah_tracking_username = serializers.CharField(max_length=100, required=False)

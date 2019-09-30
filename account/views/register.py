@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from account import serializers
 from caracal.common import stripe_utils
+from caracal.common.aws_utils.cognito import confirm_account, sign_in_user
 
 
 class RegisterView(generics.GenericAPIView):
@@ -19,13 +20,16 @@ class RegisterView(generics.GenericAPIView):
                                      'organization_short_name_already_exists',
     }, security=[], operation_id='account - register')
     def post(self, request):
-
         serializer = serializers.RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        password = serializer.validated_data['account_password']
 
         account = serializer.save()
         if isinstance(account, Response): # there was an error
             return account
+
+        confirm_account(account.email)
 
         # create a Stripe customer and save id to organization
         customer_res = stripe_utils.create_customer(account.email, account.name, account.phone_number)
@@ -45,5 +49,9 @@ class RegisterView(generics.GenericAPIView):
         account.organization.stripe_subscription_status = subscription['status']
         account.organization.save()
 
-        return Response(status=status.HTTP_201_CREATED)
+        tokens = sign_in_user(account.email, password)
 
+        return Response({
+            'access_token': tokens['access_token'],
+            'refresh_token': tokens['refresh_token']
+        }, status=status.HTTP_201_CREATED)

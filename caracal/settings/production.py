@@ -6,7 +6,7 @@ from sentry_sdk.integrations.logging import ignore_logger
 
 # fixme: change this
 DEBUG = True
-TESTING = True
+TESTING = False
 
 STAGE = 'production'
 
@@ -21,7 +21,8 @@ HOSTNAME = 'https://api.caracal.cloud'
 
 S3_USER_DATA_BUCKET = "caracal-user-prod"
 
-stripe.api_key = os.environ['CARACAL_LIVE_STRIPE_API_KEY']
+#stripe.api_key = os.environ['CARACAL_LIVE_STRIPE_API_KEY']
+stripe.api_key = os.environ['CARACAL_TEST_STRIPE_API_KEY']
 
 ALLOWED_HOSTS = ['127.0.0.1', 'api.caracal.cloud', 'caracal-api-prod.yhhegxdi5a.us-east-1.elasticbeanstalk.com']
 

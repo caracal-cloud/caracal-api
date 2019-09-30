@@ -56,6 +56,13 @@ def create_cognito_user(email, name, password, registration_method='email'):
     return sub
 
 
+def delete_cloudwatch_rule(rule_name):
+
+    client = get_boto_client('events')
+    client.remove_targets(Rule=rule_name, Ids=["1"])
+    client.delete_rule(Name=rule_name)
+
+
 def get_boto_client(service):
     params = {
         'aws_access_key_id': settings.AWS_ACCESS_KEY_ID,
@@ -117,8 +124,9 @@ def get_s3_files(suffix, prefix, bucket_name):
 
 
 def get_lambda_function(function_name):
-    lambda_client = boto3.client('lambda')
-    fn_response = lambda_client.get_function(FunctionName=function_name)
+
+    client = get_boto_client('lambda')
+    fn_response = client.get_function(FunctionName=function_name)
     return {
         'arn': fn_response['Configuration']['FunctionArn'],
         'name': fn_response['Configuration']['FunctionName']
@@ -152,8 +160,8 @@ def put_s3_item(body, bucket, object_key):
 
 def schedule_lambda_function(fn_arn, fn_name, rule_input, rule_name, rate_minutes):
 
-    events_client = boto3.client('events')
-    lambda_client = boto3.client('lambda')
+    events_client = get_boto_client('events')
+    lambda_client = get_boto_client('lambda')
 
     # 1. Create/update rule
     rule_response = events_client.put_rule(
@@ -179,7 +187,7 @@ def schedule_lambda_function(fn_arn, fn_name, rule_input, rule_name, rate_minute
         Rule=rule_name,
         Targets=[
             {
-                'Id': "1",
+                'Id': "1", # make sure always one, used when deleting rule
                 'Arn': fn_arn,
                 'Input': json.dumps(rule_input)
             },

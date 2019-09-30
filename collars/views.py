@@ -47,52 +47,18 @@ class AddCollarAccountView(generics.GenericAPIView):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST) # validated in serializer
 
-        try:
-            collar_account = RealTimeAccount.objects.create(organization=organization, is_active=True, source='collar',
-                                                            provider=provider, type=None, title=title)
+        collar_account = RealTimeAccount.objects.create(organization=organization, is_active=True, source='collar',
+                                                        provider=provider, type=species, title=title)
 
-        except IntegrityError:
-            return Response({
-                'error': 'account_already_added',
-                'message': 'account already added'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        schedule_res = collar_connections.schedule_collars_get_data(data, collar_account, organization)
+        if 'error' in schedule_res:
+            return Response(schedule_res, status=status.HTTP_400_BAD_REQUEST)
 
-
-        collar_connections.schedule_collars_get_data(data, collar_account, organization)
+        collar_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
+        collar_account.save()
 
         #collar_connections.schedule_collars_outputs(data, organization)
-
         # connections.create_connections(organization, data, {'realtime_account': collar_account})
-        
-
-
-
-
-
-
-
-
-
-
-        create_kml_function_name = 'caracal_%s_collars_create_kml' % settings.STAGE.lower()
-        create_kml_function = aws.get_lambda_function(create_kml_function_name)
-        for period in global_config['PERIODS_HOURS']:
-            create_kml_input = {
-                'organization_uid': str(user.organization.uid),
-                'species': species,
-                'period_hours': period
-            }
-            create_kml_rule_name = aws.get_cloudwatch_create_kml_rule_name(user.organization.short_name,
-                                                                           settings.STAGE, species, period)
-
-            aws.schedule_lambda_function(create_kml_function['arn'], create_kml_function['name'], create_kml_input,
-                                         create_kml_rule_name, global_config['COLLAR_KML_CREATE_RATE_MINUTES'])
-
-
-
-
-
-
 
         message = f'{species} collar account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -126,9 +92,11 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         # doing this instead of .save() to avoid validate_unique error
         RealTimeAccount.objects.filter(uid=account.uid).update(datetime_updated=timezone.now(), is_active=False)
 
-        connections.delete_connections(account)
+        aws.delete_cloudwatch_rule(account.cloudwatch_get_data_rule_name)
 
-        # TODO: remove cloudwatch rules...
+        # connections.delete_connections(account)
+
+
 
         return Response(status=status.HTTP_200_OK)
 
