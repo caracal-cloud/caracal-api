@@ -43,7 +43,7 @@ class AddCollarAccountView(generics.GenericAPIView):
 
         # make sure user has an AGOL account set up
         agol_account = None
-        if data['output_agol']:
+        if data.get('output_agol', False):
             try:
                 agol_account = AgolAccount.objects.get(account=user)
             except AgolAccount.DoesNotExist:
@@ -112,7 +112,9 @@ class DeleteCollarAccountView(generics.GenericAPIView):
             update_kml_rule_names = account.cloudwatch_update_kml_rule_names.split(',')
             for rule_name in update_kml_rule_names:
                 aws.delete_cloudwatch_rule(rule_name)
+
         account.cloudwatch_update_kml_rule_names = None
+        account.is_active = False
         account.save()
 
         # delete 3rd party connections

@@ -10,15 +10,16 @@ from rest_framework.response import Response
 from sentry_sdk import capture_message
 
 from account.models import Account
+from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import connections
+from caracal.common import aws, connections
 from caracal.common import google as google_utils
 from caracal.common.fields import get_updated_outputs
 from caracal.common.models import get_num_sources
 from drives import serializers
 from drives import connections as drives_connections
 from drives.models import DriveFileAccount
-
+from outputs.models import AgolAccount
 
 class AddDriveFileAccountView(generics.GenericAPIView):
 
@@ -33,6 +34,11 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         user = request.user
         organization = user.organization
 
+        original_data = serializer.validated_data
+        serializer.validated_data.pop('output_agol', None)
+        serializer.validated_data.pop('output_database', None)
+        serializer.validated_data.pop('output_kml', None)
+
         num_sources = get_num_sources(organization) # unlimited source_limit is -1
         if 0 < organization.source_limit <= num_sources:
             return Response({
@@ -40,12 +46,17 @@ class AddDriveFileAccountView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # fixme: removing output fields for now...
-        serializer.validated_data.pop('output_agol', None)
-        serializer.validated_data.pop('output_database', None)
-        serializer.validated_data.pop('output_kml', None)
+        # make sure user has an AGOL account set up
+        agol_account = None
+        if serializer.validated_data.get('output_agol', False):
+            try:
+                agol_account = AgolAccount.objects.get(account=user) # 1-to-1
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer_data = serializer.validated_data # boolean fields get modified after save...?
         drive_account = serializer.save(user=request.user)
 
         # remove temporary google tokens...
@@ -54,17 +65,19 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         user.temp_google_oauth_refresh_token = None
         user.save()
 
-        # TODO: schedule get_static_google_sheets_data
-        # TODO: don't schedule connection yet...
-        # not adding connections quite yet...
-        #connections.create_connections(organization, serializer_data, {'drive_account': account})
-
-
-        schedule_res = drives_connections.schedule_drives_get_data(drive_account)
+        # schedule the function that pulls data from Google Sheets and adds it to S3
+        schedule_res = drives_connections.schedule_drives_get_data(drive_account, organization)
         if 'error' in schedule_res:
             return Response(schedule_res, status=status.HTTP_400_BAD_REQUEST)
 
+        drive_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
+        drive_account.save()
 
+        # this schedules AGOL and KML and adds connections
+        #drives_connections.schedule_drives_outputs(original_data, drive_account, user, agol_account=agol_account)
+
+        message = f'{drive_account.provider.capitalize()} account added by {user.name}'
+        ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
 
         return Response({
@@ -85,20 +98,31 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
         account_uid = serializer.data['account_uid']
 
         try:
-            account = DriveFileAccount.objects.get(uid=account_uid)
+            drive_account = DriveFileAccount.objects.get(uid=account_uid)
         except DriveFileAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if account.organization != request.user.organization and not request.user.is_superuser:
+        if drive_account.organization != request.user.organization and not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        account.is_active = False
-        account.save()
+        aws.delete_cloudwatch_rule(drive_account.cloudwatch_get_data_rule_name)
 
-        connections.delete_connections(account)
+        if drive_account.cloudwatch_update_kml_rule_names:
+            update_kml_rule_names = drive_account.cloudwatch_update_kml_rule_names.split(',')
+            for rule_name in update_kml_rule_names:
+                aws.delete_cloudwatch_rule(rule_name)
+
+        drive_account.cloudwatch_update_kml_rule_names = None
+        drive_account.is_active = False
+        drive_account.save()
+
+        # delete 3rd party connections
+        for connection in drive_account.connections.all():
+            aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+        drive_account.connections.all().delete()
 
         return Response(status=status.HTTP_200_OK)
 

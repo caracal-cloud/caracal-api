@@ -29,7 +29,9 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     google_oauth_refresh_token = models.TextField(null=True)
     google_oauth_access_token_expiry = models.DateTimeField(null=True) # UTC
 
-    # Data
+    # Data and scheduling
+    cloudwatch_get_data_rule_name = models.CharField(max_length=200, blank=True, null=True)
+    cloudwatch_update_kml_rule_names = models.TextField(default="", blank=True, null=True) # multiple rules
     most_recent_s3_object_key = models.CharField(max_length=250, blank=True, null=True)
 
     class Meta:

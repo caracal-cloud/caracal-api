@@ -3,9 +3,11 @@ from django.conf import settings
 
 from caracal.common import aws
 
+# Get data
 
 def schedule_drives_get_data(drive_account, organization):
 
+    # caracal_production_get_static_google_google_sheet_data
     function_name = f'caracal_{settings.STAGE.lower()}_get_static_{drive_account.provider}_{drive_account.file_type}_data'
     lambda_function = aws.get_lambda_function(function_name)
 
@@ -40,3 +42,57 @@ def get_drives_get_data_rule_name(short_name, provider, file_type, stage, drive_
 
     assert len(rule_name) < 64
     return rule_name
+
+
+# Update outputs
+
+def schedule_drives_outputs(data, drive_account, user, agol_account=None):
+
+    if data.get('output_agol', False) and agol_account is not None:
+        # create a connection and schedule update
+        connection = DataConnection.objects.create(organization=organization, account=user,
+                                                   drive_account=drive_account, agol_account=agol_account)
+        schedule_drives_agol(species, connection, organization)
+
+
+    if data.get('output_kml', False):
+        schedule_drives_kml(drive_account, organization)
+
+
+# Update KML
+
+def schedule_drives_kml(realtime_account, organization):
+    pass
+
+
+def get_drives_update_kml_rule_name(org_short_name, stage, provider, file_type, period):
+
+    stage = stage[:4]
+    provider = provider[:10]
+    file_type = file_type[:10]
+
+    rule_name = f'{org_short_name}-{stage}-drives-kml-{provider}-{file_type}-{period}'
+    rule_name = rule_name.lower()
+
+    assert len(rule_name) < 64
+    return rule_name
+
+
+# Update ArcGIS Online
+
+def schedule_collars_agol(species, connection, organization):
+    pass
+
+
+def get_drives_update_agol_rule_name(org_short_name, stage, provider, file_type):
+
+    stage = stage[:4]
+    provider = provider[:10]
+    file_type = file_type[:10]
+
+    rule_name = f'{org_short_name}-{stage}-drives-agol-{provider}-{file_type}'
+    rule_name = rule_name.lower()
+
+    assert len(rule_name) < 64
+    return rule_name
+

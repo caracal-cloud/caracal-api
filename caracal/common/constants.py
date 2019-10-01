@@ -15,8 +15,9 @@ COORDINATE_SYSTEMS = [('dd', 'dd'), # decimal degrees
 
 DEFAULT_IMAGE_FORMAT = 'png'
 
+# providers and filetypes must match Lambda functions exactly
 DRIVE_PROVIDERS = [('google', 'google')] # microsoft
-DRIVE_FILETYPES = [('google_sheet', 'google_sheet'), ('excel', 'excel'), ('csv', 'csv'), ('geojson', 'geojson')]
+DRIVE_FILETYPES = [('google_sheet', 'google_sheet')] #, ('excel', 'excel'), ('csv', 'csv'), ('geojson', 'geojson')]
 DRIVE_PROVIDER_FILETYPES = {
     'google': [('google_sheet', 'google_sheet'), ('excel', 'excel'), ('csv', 'csv'), ('geojson', 'geojson')]
 }
