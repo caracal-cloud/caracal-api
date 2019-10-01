@@ -29,6 +29,9 @@ class DriveFileAccount(BaseAsset, BaseAccount):
     google_oauth_refresh_token = models.TextField(null=True)
     google_oauth_access_token_expiry = models.DateTimeField(null=True) # UTC
 
+    # Data
+    most_recent_s3_object_key = models.CharField(max_length=250, blank=True, null=True)
+
     class Meta:
         ordering = ['-datetime_created']
         #unique_together = ['organization', 'file_id']

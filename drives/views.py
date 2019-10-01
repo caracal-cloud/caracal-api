@@ -16,6 +16,7 @@ from caracal.common import google as google_utils
 from caracal.common.fields import get_updated_outputs
 from caracal.common.models import get_num_sources
 from drives import serializers
+from drives import connections as drives_connections
 from drives.models import DriveFileAccount
 
 
@@ -57,6 +58,14 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         # TODO: don't schedule connection yet...
         # not adding connections quite yet...
         #connections.create_connections(organization, serializer_data, {'drive_account': account})
+
+
+        schedule_res = drives_connections.schedule_drives_get_data(drive_account)
+        if 'error' in schedule_res:
+            return Response(schedule_res, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 
         return Response({
             'account_uid': drive_account.uid
@@ -119,6 +128,13 @@ class GetGoogleDriveFilesView(views.APIView):
 
         user = request.user
 
+        # user needs to authenticate again...
+        if user.temp_google_oauth_refresh_token is None:
+            return Response({
+                'error': 'google_login_required',
+                'message': 'Request a new oauth url and log in to Google.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         access_token_expiry = user.temp_google_oauth_access_token_expiry
 
         # test this expiry stuff
@@ -129,6 +145,12 @@ class GetGoogleDriveFilesView(views.APIView):
 
         # fixme: documents is None sometimes - possibly to do with the temp tokens?
         documents = google_utils.get_google_drive_files(file_type, user.temp_google_oauth_access_token)
+
+        if documents is None:
+            return Response({
+                'error': 'oauth_error',
+                'message': 'We experienced an error trying to retrieve your documents.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         data = {
             "count": len(documents),
