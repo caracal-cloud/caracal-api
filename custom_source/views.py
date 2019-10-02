@@ -7,10 +7,12 @@ import stripe
 from account.models import Account, Organization
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common.aws import put_firehose_record
+from caracal.common import aws
 from caracal.common.models import get_num_sources
 from custom_source import serializers
+from custom_source import connections as source_connections
 from custom_source.models import Source
+from outputs.models import AgolAccount
 
 
 class AddSourceView(generics.GenericAPIView):
@@ -23,7 +25,10 @@ class AddSourceView(generics.GenericAPIView):
         serializer = serializers.AddSourceSerializer(data=request.data)
         serializer.is_valid(True)
 
-        organization = request.user.organization
+        user = request.user
+        organization = user.organization
+
+        data = serializer.validated_data
 
         num_sources = get_num_sources(organization) # unlimited source_limit is -1
         if 0 < organization.source_limit <= num_sources:
@@ -32,7 +37,20 @@ class AddSourceView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # make sure user has an AGOL account set up
+        agol_account = None
+        if data.get('output_agol', False):
+            try:
+                agol_account = AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         source = serializer.save(account=request.user)
+
+        source_connections.schedule_source_outputs(data, source, user, agol_account=agol_account)
 
         return Response({
             'source_uid': source.uid,
@@ -65,10 +83,18 @@ class DeleteSourceView(generics.GenericAPIView):
         if source.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        source.is_active = False
-        source.save()
+        source_connections.delete_source_kml(source)
 
-        # TODO: remove destinations...
+        try: # if agol account exists, try to delete connection...
+            agol_account = user.agol_account
+        except AgolAccount.DoesNotExist:
+            pass
+        else:
+            source_connections.delete_source_agol(agol_account=agol_account, source=source)
+
+        source.is_active = False
+        source.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc)
+        source.save()
 
         return Response(status=status.HTTP_200_OK)
 
@@ -113,6 +139,15 @@ class UpdateSourceView(generics.GenericAPIView):
         update_data = serializer.data
         source_uid = update_data.pop('source_uid')
 
+        if update_data.get('output_agol', False):
+            try:
+                AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             source = Source.objects.get(uid=source_uid, is_active=True)
         except Source.DoesNotExist:
@@ -124,8 +159,14 @@ class UpdateSourceView(generics.GenericAPIView):
         if source.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        update_data.pop('output_agol', None)
+        update_data.pop('output_database', None)
+        update_data.pop('output_kml', None)
+
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         Source.objects.filter(uid=source_uid).update(datetime_updated=now, **update_data)
+
+        source_connections.update_source_outputs(serializer.data, source, user)
 
         message = f'{source.name} custom source updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -163,7 +204,7 @@ class TempAddRecordView(views.APIView):
             'temp_c': serializer.data.get('temp_c')
         }
 
-        put_firehose_record(payload, 'caracal_realtime_user')
+        aws.put_firehose_record(payload, 'caracal_realtime_user')
 
         return Response(status=status.HTTP_200_OK)
 

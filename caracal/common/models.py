@@ -65,7 +65,6 @@ class RealTimeAccount(BaseAsset, BaseAccount):
     class Meta:
         app_label = 'account'
         ordering = ['-datetime_created']
-        #unique_together = ['organization', 'source', 'provider', 'type']
 
     def __str__(self):
         return f'{self.source} - {self.provider} - {self.type} - {self.title}'

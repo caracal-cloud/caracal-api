@@ -1,6 +1,5 @@
 
-from django.conf import settings
-from django.db.utils import IntegrityError
+from datetime import datetime, timezone
 from django.utils import timezone
 import json
 import requests
@@ -70,9 +69,7 @@ class AddCollarAccountView(generics.GenericAPIView):
         collar_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
         collar_account.save()
 
-        # outputs
         collar_connections.schedule_collars_outputs(data, collar_account, user, agol_account=agol_account)
-        # connections.create_connections(organization, data, {'realtime_account': collar_account})
 
         message = f'{species} collar account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -92,35 +89,33 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        user = request.user
+
         try:
-            account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
+            realtime_account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if account.organization != request.user.organization and not request.user.is_superuser:
+        if realtime_account.organization != request.user.organization and not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # doing this instead of .save() to avoid validate_unique error
-        RealTimeAccount.objects.filter(uid=account.uid).update(datetime_updated=timezone.now(), is_active=False)
+        aws.delete_cloudwatch_rule(realtime_account.cloudwatch_get_data_rule_name)
 
-        aws.delete_cloudwatch_rule(account.cloudwatch_get_data_rule_name)
+        collar_connections.delete_collars_kml(realtime_account)
 
-        if account.cloudwatch_update_kml_rule_names:
-            update_kml_rule_names = account.cloudwatch_update_kml_rule_names.split(',')
-            for rule_name in update_kml_rule_names:
-                aws.delete_cloudwatch_rule(rule_name)
+        try: # if agol account exists, try to delete connection...
+            agol_account = user.agol_account
+        except AgolAccount.DoesNotExist:
+            pass
+        else:
+            collar_connections.delete_collars_agol(agol_account=agol_account, realtime_account=realtime_account)
 
-        account.cloudwatch_update_kml_rule_names = None
-        account.is_active = False
-        account.save()
-
-        # delete 3rd party connections
-        for connection in account.connections.all():
-            aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
-        account.connections.all().delete()
+        realtime_account.is_active = False
+        realtime_account.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc)
+        realtime_account.save()
 
         return Response(status=status.HTTP_200_OK)
 
@@ -193,33 +188,39 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        organization = user.organization
 
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
+        if update_data.get('output_agol', False):
+            try:
+                AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)
+            realtime_account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'collar account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if account.organization != user.organization and not user.is_superuser:
+        if realtime_account.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # fixme: remove outputs for now...
         update_data.pop('output_agol', None)
         update_data.pop('output_database', None)
         update_data.pop('output_kml', None)
 
         RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
 
-        # not updating connections quite yet
-        # connections.update_connections(organization, serializer.data, {'realtime_account': account})
+        collar_connections.update_collars_outputs(serializer.data, realtime_account, user)
 
-        message = f'{account.type} collar account updated by {user.name}'
+        message = f'{realtime_account.type} collar account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response(status=status.HTTP_200_OK)

@@ -21,6 +21,7 @@ from drives import connections as drives_connections
 from drives.models import DriveFileAccount
 from outputs.models import AgolAccount
 
+
 class AddDriveFileAccountView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
@@ -35,15 +36,19 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         organization = user.organization
 
         original_data = serializer.validated_data
-        serializer.validated_data.pop('output_agol', None)
-        serializer.validated_data.pop('output_database', None)
-        serializer.validated_data.pop('output_kml', None)
 
         num_sources = get_num_sources(organization) # unlimited source_limit is -1
         if 0 < organization.source_limit <= num_sources:
             return Response({
                 'error': 'source_limit_reached',
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # user needs to authenticate again...
+        if user.temp_google_oauth_refresh_token is None:
+            return Response({
+                'error': 'google_login_required',
+                'message': 'Request a new oauth url and log in to Google.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure user has an AGOL account set up
@@ -74,11 +79,10 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         drive_account.save()
 
         # this schedules AGOL and KML and adds connections
-        #drives_connections.schedule_drives_outputs(original_data, drive_account, user, agol_account=agol_account)
+        drives_connections.schedule_drives_outputs(original_data, drive_account, user, agol_account=agol_account)
 
         message = f'{drive_account.provider.capitalize()} account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
-
 
         return Response({
             'account_uid': drive_account.uid
@@ -95,6 +99,8 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
         serializer = serializers.DeleteDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
 
+        user = request.user
+
         account_uid = serializer.data['account_uid']
 
         try:
@@ -110,19 +116,15 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
 
         aws.delete_cloudwatch_rule(drive_account.cloudwatch_get_data_rule_name)
 
-        if drive_account.cloudwatch_update_kml_rule_names:
-            update_kml_rule_names = drive_account.cloudwatch_update_kml_rule_names.split(',')
-            for rule_name in update_kml_rule_names:
-                aws.delete_cloudwatch_rule(rule_name)
+        drives_connections.delete_drives_kml(drive_account)
 
-        drive_account.cloudwatch_update_kml_rule_names = None
+        try:
+            drives_connections.delete_drives_agol(agol_account=user.agol_account, drive_account=drive_account)
+        except AgolAccount.DoesNotExist:
+            pass
+
         drive_account.is_active = False
         drive_account.save()
-
-        # delete 3rd party connections
-        for connection in drive_account.connections.all():
-            aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
-        drive_account.connections.all().delete()
 
         return Response(status=status.HTTP_200_OK)
 
@@ -352,6 +354,15 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
+        if update_data.get('output_agol', False):
+            try:
+                AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             drive_account = DriveFileAccount.objects.get(uid=account_uid)
         except DriveFileAccount.DoesNotExist:
@@ -364,21 +375,18 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         if drive_account.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        # fixme: remove outputs for now...
         update_data.pop('output_agol', None)
         update_data.pop('output_database', None)
         update_data.pop('output_kml', None)
 
         DriveFileAccount.objects.filter(uid=account_uid).update(**update_data)
 
-        # not updating outputs quite yet
-        # outputs = get_updated_outputs(drive_account, data)
-        # pass the drive account owner, not current user...?
+        drives_connections.update_drives_outputs(serializer.data, drive_account, user)
 
-        #connections.update_connections(drive_account.account, serializer.data, {'drive_account': drive_account})
+        message = f'{drive_account.provider.capitalize()} account updated by {user.name}'
+        ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response(status=status.HTTP_200_OK)
-
 
 
 

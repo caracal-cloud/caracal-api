@@ -41,6 +41,9 @@ class Source(BaseAsset):
     description = models.TextField(blank=True, null=True)
     write_key = models.CharField(max_length=100)
 
+    cloudwatch_get_data_rule_name = models.CharField(max_length=200, blank=True, null=True)
+    cloudwatch_update_kml_rule_names = models.TextField(blank=True, null=True)
+
     class Meta:
         ordering = ['-datetime_created']
 

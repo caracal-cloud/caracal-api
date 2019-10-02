@@ -51,9 +51,13 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='collar-account-detail')
 
     outputs = serializers.SerializerMethodField()
-    def get_outputs(self, account):
-        outputs = connections.get_outputs(account)
-        return outputs
+    def get_outputs(self, realtime_account):
+        connection = realtime_account.connections.filter(agol_account__isnull=False).first()
+        return {
+            'output_agol': connection is not None,
+            'output_database': True,
+            'output_kml': realtime_account.cloudwatch_update_kml_rule_names not in [None, '']
+        }
 
     class Meta:
         model = RealTimeAccount

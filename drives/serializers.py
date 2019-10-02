@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from caracal.common import connections, constants
 from drives.models import DriveFileAccount
+from outputs.models import DataConnection
 
 
 class AddDriveFileSerializer(serializers.ModelSerializer):
@@ -23,6 +24,9 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
 
         user = validated_data.pop('user')
+        validated_data.pop('output_agol', None)
+        validated_data.pop('output_database', None)
+        validated_data.pop('output_kml', None)
 
         validated_data['header_row_index'] -= 1
         validated_data['x_column_index'] -= 1
@@ -30,7 +34,10 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
         date_column = validated_data.get('date_column_index')
         validated_data['date_column_index'] = date_column - 1 if date_column is not None else None
 
-        drive = DriveFileAccount.objects.create(organization=user.organization,
+        gzd_column = validated_data.get('grid_zone_column_index')
+        validated_data['grid_zone_column_index'] = gzd_column - 1 if gzd_column else None
+
+        drive = DriveFileAccount.objects.create(organization=user.organization, account=user,
                                                 google_oauth_access_token=user.temp_google_oauth_access_token,
                                                 google_oauth_access_token_expiry=user.temp_google_oauth_access_token_expiry,
                                                 google_oauth_refresh_token=user.temp_google_oauth_refresh_token,
@@ -60,9 +67,13 @@ class DeleteDriveFileSerializer(serializers.Serializer):
 class GetDriveFileAccountsSerializer(serializers.ModelSerializer):
 
     outputs = serializers.SerializerMethodField()
-    def get_outputs(self, account):
-        outputs = connections.get_outputs(account)
-        return outputs
+    def get_outputs(self, drive_account):
+        connection = drive_account.connections.filter(agol_account__isnull=False).first()
+        return {
+            'output_agol': connection is not None,
+            'output_database': True,
+            'output_kml': drive_account.cloudwatch_update_kml_rule_names not in [None, '']
+        }
 
     class Meta:
         model = DriveFileAccount
@@ -97,9 +108,9 @@ class UpdateDriveFileAccountSerializer(serializers.ModelSerializer):
 
     account_uid = serializers.UUIDField(required=True)
 
-    output_agol = serializers.BooleanField(default=False)
-    output_database = serializers.BooleanField(default=False)
-    output_kml = serializers.BooleanField(default=False)
+    output_agol = serializers.NullBooleanField(required=False)
+    output_database = serializers.NullBooleanField(required=False)
+    output_kml = serializers.NullBooleanField(required=False)
 
     class Meta:
         model = DriveFileAccount
