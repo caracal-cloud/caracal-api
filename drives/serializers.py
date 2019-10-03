@@ -13,6 +13,13 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
     output_database = serializers.BooleanField(default=False)
     output_kml = serializers.BooleanField(default=False)
 
+    # temporary defaults
+    header_row_index = serializers.IntegerField(default=1)
+    x_column_index = serializers.IntegerField(default=1)
+    y_column_index = serializers.IntegerField(default=2)
+    date_column_index = serializers.IntegerField(default=3)
+    grid_zone_column_index = serializers.IntegerField(default=4)
+
     class Meta:
         model = DriveFileAccount
         fields = ['provider', 'file_type', 'file_id', 'sheet_ids',
@@ -47,11 +54,11 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
 
-        if attrs['coordinate_system'] == 'utm' and 'grid_zone_column_index' not in attrs.keys():
-            raise serializers.ValidationError('grid_zone_column_index required if utm')
+        #if attrs['coordinate_system'] == 'utm' and 'grid_zone_column_index' not in attrs.keys():
+        #    raise serializers.ValidationError('grid_zone_column_index required if utm')
 
-        if attrs['coordinate_system'] != 'utm' and 'grid_zone_column_index' in attrs.keys():
-            raise serializers.ValidationError('grid_zone_column_index not required')
+        #if attrs['coordinate_system'] != 'utm' and 'grid_zone_column_index' in attrs.keys():
+        #    raise serializers.ValidationError('grid_zone_column_index not required')
 
         unknown =  set(self.initial_data) - set(self.fields)
         if unknown:
@@ -65,6 +72,12 @@ class DeleteDriveFileSerializer(serializers.Serializer):
 
 
 class GetDriveFileAccountsSerializer(serializers.ModelSerializer):
+
+    link = serializers.SerializerMethodField()
+    def get_link(self, drive_account):
+        if drive_account.provider == 'google':
+            return f'https://docs.google.com/spreadsheets/d/{drive_account.file_id}/'
+        return None
 
     outputs = serializers.SerializerMethodField()
     def get_outputs(self, drive_account):
@@ -81,7 +94,7 @@ class GetDriveFileAccountsSerializer(serializers.ModelSerializer):
                   'status', 'title', 'provider', 'file_type',
                   'x_column_index', 'y_column_index', 'header_row_index',
                   'grid_zone_column_index', 'date_column_index',
-                  'outputs']
+                  'outputs', 'link']
 
 
 class GetGoogleDocumentSheetsQueryParamsSerializer(serializers.Serializer):
@@ -112,6 +125,12 @@ class UpdateDriveFileAccountSerializer(serializers.ModelSerializer):
     output_database = serializers.NullBooleanField(required=False)
     output_kml = serializers.NullBooleanField(required=False)
 
+    header_row_index = serializers.IntegerField(required=False)
+    x_column_index = serializers.IntegerField(required=False)
+    y_column_index = serializers.IntegerField(required=False)
+    date_column_index = serializers.IntegerField(required=False)
+    grid_zone_column_index = serializers.IntegerField(required=False)
+
     class Meta:
         model = DriveFileAccount
         fields = ['account_uid', 'title',
@@ -120,15 +139,14 @@ class UpdateDriveFileAccountSerializer(serializers.ModelSerializer):
                   'grid_zone_column_index', 'date_column_index',
                   'output_agol', 'output_database', 'output_kml']
 
-    def validate_sheet_ids(self, value):
+    def validate_sheet_ids(self, sheet_ids):
         try:
-            js_value = json.loads(value)
+            js_value = json.loads(sheet_ids)
             if not isinstance(js_value, list):
                 raise serializers.ValidationError('invalid sheet_ids, must be JSON formatted list')
         except json.JSONDecodeError:
             raise serializers.ValidationError('invalid sheet_ids, must be JSON formatted')
-
-        return value
+        return sheet_ids
 
     def validate(self, attrs):
         unknown =  set(self.initial_data) - set(self.fields)
