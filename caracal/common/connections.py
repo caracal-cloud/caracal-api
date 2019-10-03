@@ -1,72 +1,162 @@
 
-from caracal.common import constants
+from caracal.common import aws
+from django.conf import settings
 from outputs.models import DataConnection
 
 
-def create_connections(organization, data, account_data):
+# TODO: complete refactoring this
+# TODO: hook up with collars and test collars
+# TODO: hook up with radios and test radios
 
-    if data.get('output_agol', False):
-        pass
+def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_account=None):
+
+    organization = user.organization
+
+    if data.get('output_agol', False) and agol_account is not None:
+        # create a connection and schedule update
+        connection = DataConnection.objects.create(organization=organization, account=user,
+                                                   realtime_account=realtime_account, agol_account=agol_account)
+        schedule_realtime_agol(type, source, realtime_account, connection, organization)
+
+    if data.get('output_kml', False):
+        schedule_realtime_kml(type, source, realtime_account, organization)
 
 
+# ArcGIS Online
 
-def delete_connections(account):
-    assert hasattr(account, 'connections')
+# TODO: make one agol delete function for all inputs (realtime, drive, custom_source)
+def delete_realtime_agol(agol_account=None, realtime_account=None, connection=None):
+    # can be called with a connection, or accounts for connection lookup
+    if connection is None:
+        try:
+            connection = DataConnection.objects.get(realtime_account=realtime_account, agol_account=agol_account)
+        except DataConnection.DoesNotExist:
+            print('connection does not exist, no problem')
+            return
 
-    for connection in account.connections.all():
-        connection.is_active = False
-        connection.save()
+    aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+    connection.delete()
 
 
-def get_outputs(account):
+def schedule_realtime_agol(type, source, realtime_account, connection, organization):
 
-    outputs = {
-        output_type: False
-        for output_type in [o[0] for o in constants.OUTPUT_TYPES]
+    function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_agol'
+    update_agol_function = aws.get_lambda_function(function_name)
+
+    update_agol_input = {
+        'connection_uid': str(connection.uid),
     }
 
-    for connection in account.connections.filter(is_active=True):
-        outputs[connection.output.type] = True
+    short_name = organization.short_name
+    rule_name = get_realtime_update_agol_rule_name(short_name, realtime_account.uid, settings.STAGE, type, source)
 
-    return outputs
+    aws.schedule_lambda_function(update_agol_function['arn'], update_agol_function['name'], update_agol_input,
+                                 rule_name, settings.AGOL_UPDATE_RATE_MINUTES)
+
+    connection.cloudwatch_update_rule_name = rule_name
+    connection.save()
 
 
-def update_connections(account_owner, serializer_data, account_data):
+def get_realtime_update_agol_rule_name(short_name, realtime_account_uid, stage, type, source):
 
-    organization = account_owner.organization
+    stage = stage[:4]
+    type = type[:5]
+    source = source[:5]
+    realtime_account_uid = str(realtime_account_uid).split('-')[0][:4]
 
-    output_types = [output[0] for output in constants.OUTPUT_TYPES]
-    for output_type in output_types:
+    rule_name = f'{short_name}-{stage}-realtime-agol-{source}-{type}-{realtime_account_uid}'
+    rule_name = rule_name.lower()
 
-        # user wants to update this connection
-        if output_type in serializer_data.keys():
+    assert len(rule_name) < 64
+    return rule_name
 
-            if output_type == 'output_agol':
 
-                agol_account = account_owner.agol_account
-                if agol_account is None:
-                    print('agol account is None')
+# KML
 
-                # enable the connection
-                if serializer_data[output_type]:
+# TODO: one function for all inputs (realtime, drive, custom_source)
+# TODO: make abstract model for inputs with cloudwatch_update_kml_rule_names and stuff...
+def delete_realtime_kml(realtime_account):
 
-                    try:  # user already has a connection, set is_active to True
-                        connection = DataConnection.objects.get(organization=organization,
-                                                                agol_account=agol_account, **account_data)
-                        connection.is_active = True
-                        connection.save()
-                    except DataConnection.DoesNotExist:  # user does not have a connection, create one, is_active is True by default
-                        DataConnection.objects.create(organization=organization, agol_account=agol_account, **account_data)
+    if realtime_account.cloudwatch_update_kml_rule_names:
+        update_kml_rule_names = realtime_account.cloudwatch_update_kml_rule_names.split(',')
+        for rule_name in update_kml_rule_names:
+            aws.delete_cloudwatch_rule(rule_name)
 
-                else:
-                    try:  # user already has a connection, set is_active to False
-                        connection = DataConnection.objects.get(organization=organization,
-                                                                agol_account=agol_account, **account_data)
-                        connection.is_active = False
-                        connection.save()
-                    except:  # user does not have a connection, do nothing
-                        pass
+    realtime_account.cloudwatch_update_kml_rule_names = None
+    realtime_account.save()
+
+
+def schedule_realtime_kml(type, source, realtime_account, organization):
+
+    function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_kml'
+    update_kml_function = aws.get_lambda_function(function_name)
+
+    rule_names = list()
+    for period in settings.KML_PERIOD_HOURS:
+
+        rate_minutes = int(period / 2.5) # longer for larger periods
+
+        update_kml_input = {
+            'rt_account_uid': str(realtime_account.uid),
+            'period_hours': period
+        }
+
+        short_name = organization.short_name
+        rule_name = get_realtime_update_kml_rule_name(short_name, realtime_account.uid, settings.STAGE, type, source, period)
+        rule_names.append(rule_name)
+
+        aws.schedule_lambda_function(update_kml_function['arn'], update_kml_function['name'], update_kml_input,
+                                     rule_name, rate_minutes)
+
+    realtime_account.cloudwatch_update_kml_rule_names = ','.join(rule_names)
+    realtime_account.save()
+
+def get_realtime_update_kml_rule_name(short_name, realtime_account_uid, stage, type, source, period):
+
+    stage = stage[:4]
+    type = type[:5]
+    source = source[:5]
+    realtime_account_uid = str(realtime_account_uid).split('-')[0][:4]
+
+    rule_name = f'{short_name}-{stage}-cllrs-kml-{source}-{type}-{period}-{realtime_account_uid}'
+    rule_name = rule_name.lower()
+
+    assert len(rule_name) < 64
+    return rule_name
+
+
+def update_realtime_outputs(data, realtime_account, user):
+
+    # output flag exists
+    output_kml = data.get('output_kml')
+    if output_kml is not None:
+
+        # output flag is different than current state (kml rule names is alias for kml output enabled)
+        if output_kml != (realtime_account.cloudwatch_update_kml_rule_names is not None):
+
+            if output_kml:
+                schedule_realtime_kml(realtime_account.type, realtime_account.source, realtime_account, user.organization)
 
             else:
-                print(f'unknown output_type: {output_type}')
-                pass
+                delete_realtime_kml(realtime_account)
+
+    # user.agol_account will not be None, validated before
+    output_agol = data.get('output_agol')
+    if output_agol is not None:
+
+        try:
+            connection = DataConnection.objects.get(realtime_account=realtime_account, agol_account=user.agol_account)
+        except DataConnection.DoesNotExist:
+            connection = None
+
+        # output flag is different than current state (agol connection for account is alias for agol output enabled)
+        if output_agol != (connection is not None):
+
+            if output_agol:
+                # create a connection and schedule update
+                connection = DataConnection.objects.create(organization=user.organization, account=user,
+                                                           realtime_account=realtime_account, agol_account=user.agol_account)
+                schedule_realtime_agol(realtime_account.type, realtime_account.source, realtime_account, connection, user.organization)
+
+            else:
+                delete_realtime_agol(connection=connection)

@@ -1,6 +1,5 @@
 
 from datetime import datetime, timezone
-from django.utils import timezone
 import json
 import requests
 from rest_framework import permissions, status, generics
@@ -216,7 +215,8 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         update_data.pop('output_database', None)
         update_data.pop('output_kml', None)
 
-        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=now, **update_data)
 
         collar_connections.update_collars_outputs(serializer.data, realtime_account, user)
 
@@ -252,7 +252,8 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         if individual.account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        RealTimeIndividual.objects.filter(uid=individual_uid).update(datetime_updated=timezone.now(), **update_data)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        RealTimeIndividual.objects.filter(uid=individual_uid).update(datetime_updated=now, **update_data)
 
         message = f'{individual.account.type} collar individual updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)

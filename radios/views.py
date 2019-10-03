@@ -1,6 +1,5 @@
 
-from django.utils import timezone
-import json
+from datetime import datetime, timezone
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
 import uuid
@@ -8,9 +7,9 @@ import uuid
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import connections
-from caracal.common.fields import get_updated_outputs
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
+from outputs.models import AgolAccount
 from radios import serializers as radios_serializers
 
 
@@ -27,6 +26,8 @@ class AddAccountView(generics.GenericAPIView):
         user = request.user
         organization = user.organization
 
+        data = serializer.data
+
         num_sources = get_num_sources(organization) # unlimited source_limit is -1
         if 0 < organization.source_limit <= num_sources:
             return Response({
@@ -34,7 +35,16 @@ class AddAccountView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        add_data = serializer.data
+        # make sure user has an AGOL account set up
+        agol_account = None
+        if data.get('output_agol', False):
+            try:
+                agol_account = AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # enforce max number of accounts
         accounts = RealTimeAccount.objects.filter(organization=user.organization, source='radio', is_active=True)
@@ -44,25 +54,19 @@ class AddAccountView(generics.GenericAPIView):
                 'message': 'max number of radio accounts is 5'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        provider = 'TRBOnet' if add_data['provider'] == 'trbonet' else add_data['provider']
+        provider = 'TRBOnet' if data['provider'] == 'trbonet' else data['provider']
         title = f'Radios - {provider}' # default title
 
-        # fixme: remove outputs for now
-        add_data.pop('output_agol', None)
-        add_data.pop('output_database', None)
-        add_data.pop('output_kml', None)
+        radio_account = RealTimeAccount.objects.create(organization=user.organization, source='radio',
+                                                 type=str(uuid.uuid4()), title=title)
 
-        account = RealTimeAccount.objects.create(organization=user.organization, source='radio',
-                                                 type=str(uuid.uuid4()), title=title, **add_data)
-
-        # don't add connections quite yet...
-        #connections.create_connections(organization, serializer.data, {'realtime_account': account})
+        connections.schedule_realtime_outputs(data, radio_account.type, 'radio', radio_account, user, agol_account=agol_account)
 
         message = f'{provider} radio account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
         return Response({
-            'account_uid': account.uid
+            'account_uid': radio_account.uid
         }, status=status.HTTP_201_CREATED)
 
 
@@ -89,20 +93,31 @@ class DeleteAccountView(generics.GenericAPIView):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        user = request.user
+
         try:
-            account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
+            radio_account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'radio account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if account.organization != request.user.organization and not request.user.is_superuser:
+        if radio_account.organization != request.user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        RealTimeAccount.objects.filter(uid=account.uid).update(datetime_updated=timezone.now(), is_active=False)
+        connections.delete_realtime_kml(radio_account)
 
-        connections.delete_connections(account)
+        try: # if agol account exists, try to delete connection...
+            agol_account = user.agol_account
+        except AgolAccount.DoesNotExist:
+            pass
+        else:
+            connections.delete_realtime_agol(agol_account=agol_account, realtime_account=radio_account)
+
+        radio_account.is_active = False
+        radio_account.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc)
+        radio_account.save()
 
         return Response(status=status.HTTP_200_OK)
 
@@ -174,34 +189,40 @@ class UpdateRadioAccountView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        organization = user.organization
 
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
+        if update_data.get('output_agol', False):
+            try:
+                AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)
+            radio_account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'radio account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if account.organization != user.organization and not user.is_superuser:
+        if radio_account.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        provider = 'TRBOnet' if account.provider == 'trbonet' else account.provider
+        provider = 'TRBOnet' if radio_account.provider == 'trbonet' else radio_account.provider
 
-        # fixme: remove outputs for now
         update_data.pop('output_agol', None)
         update_data.pop('output_database', None)
         update_data.pop('output_kml', None)
 
-        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=timezone.now(), **update_data)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=now, **update_data)
 
-        # don't update connections quite yet..
-        #outputs = get_updated_outputs(account, update_data)
-        #connections.update_connections(organization, serializer.data, {'realtime_account': account})
+        connections.update_realtime_outputs(serializer.data, radio_account, user)
 
         message = f'{provider} radio account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -235,7 +256,8 @@ class UpdateRadioIndividualView(generics.GenericAPIView):
         if individual.account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        RealTimeIndividual.objects.filter(uid=individual_uid).update(datetime_updated=timezone.now(), **update_data)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        RealTimeIndividual.objects.filter(uid=individual_uid).update(datetime_updated=now, **update_data)
 
         provider = 'TRBOnet' if individual.account.provider == 'trbonet' else individual.account.provider
         message = f'{provider} radio individual updated by {user.name}'
