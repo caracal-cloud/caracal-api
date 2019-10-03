@@ -4,10 +4,6 @@ from django.conf import settings
 from outputs.models import DataConnection
 
 
-# TODO: complete refactoring this
-# TODO: hook up with collars and test collars
-# TODO: hook up with radios and test radios
-
 def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_account=None):
 
     organization = user.organization
@@ -118,7 +114,7 @@ def get_realtime_update_kml_rule_name(short_name, realtime_account_uid, stage, t
     source = source[:5]
     realtime_account_uid = str(realtime_account_uid).split('-')[0][:4]
 
-    rule_name = f'{short_name}-{stage}-cllrs-kml-{source}-{type}-{period}-{realtime_account_uid}'
+    rule_name = f'{short_name}-{stage}-realtime-kml-{source}-{type}-{period}-{realtime_account_uid}'
     rule_name = rule_name.lower()
 
     assert len(rule_name) < 64

@@ -68,7 +68,7 @@ class AddCollarAccountView(generics.GenericAPIView):
         collar_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
         collar_account.save()
 
-        collar_connections.schedule_collars_outputs(data, collar_account, user, agol_account=agol_account)
+        connections.schedule_realtime_outputs(data, species, 'collar', collar_account, user, agol_account=agol_account)
 
         message = f'{species} collar account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
@@ -103,7 +103,7 @@ class DeleteCollarAccountView(generics.GenericAPIView):
 
         aws.delete_cloudwatch_rule(realtime_account.cloudwatch_get_data_rule_name)
 
-        collar_connections.delete_collars_kml(realtime_account)
+        connections.delete_realtime_kml(realtime_account)
 
         try: # if agol account exists, try to delete connection...
             agol_account = user.agol_account
@@ -218,7 +218,7 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=now, **update_data)
 
-        collar_connections.update_collars_outputs(serializer.data, realtime_account, user)
+        connections.update_realtime_outputs(serializer.data, realtime_account, user)
 
         message = f'{realtime_account.type} collar account updated by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
