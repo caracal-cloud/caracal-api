@@ -110,7 +110,7 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         except AgolAccount.DoesNotExist:
             pass
         else:
-            collar_connections.delete_collars_agol(agol_account=agol_account, realtime_account=realtime_account)
+            connections.delete_realtime_agol(agol_account=agol_account, realtime_account=realtime_account)
 
         realtime_account.is_active = False
         realtime_account.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc)

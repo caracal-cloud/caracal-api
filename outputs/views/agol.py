@@ -12,7 +12,7 @@ from urllib.parse import urlencode
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
-from caracal.common import agol
+from caracal.common import agol, aws
 from outputs import serializers
 from outputs.models import AgolAccount
 
@@ -31,14 +31,18 @@ class DisconnectAgolView(views.APIView):
 
         try:
             agol_account = user.agol_account
-            agol_account.delete()
         except AgolAccount.DoesNotExist:
             pass
+        else:
+            connections = agol_account.connections.all()
+            for connection in connections:
+                aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+
+            connections.delete()
+            agol_account.delete()
 
         user.agol_account = None
         user.save()
-
-        # TODO: remove connections...
 
         return Response(status=status.HTTP_200_OK)
 
