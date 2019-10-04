@@ -1,7 +1,7 @@
 
 from caracal.common import aws
 from django.conf import settings
-from outputs.models import DataConnection
+from outputs.models import AgolAccount, DataConnection
 
 
 def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_account=None):
@@ -136,12 +136,14 @@ def update_realtime_outputs(data, realtime_account, user):
             else:
                 delete_realtime_kml(realtime_account)
 
-    # user.agol_account will not be None, validated before
+    # if True, user.agol_account will not be None, validated before
     output_agol = data.get('output_agol')
     if output_agol is not None:
 
         try:
             connection = DataConnection.objects.get(realtime_account=realtime_account, agol_account=user.agol_account)
+        except AgolAccount.DoesNotExist:
+            connection = None
         except DataConnection.DoesNotExist:
             connection = None
 

@@ -2,7 +2,7 @@
 from django.conf import settings
 
 from caracal.common import aws
-from outputs.models import DataConnection
+from outputs.models import AgolAccount, DataConnection
 
 
 # Get data
@@ -193,6 +193,8 @@ def update_drives_outputs(data, drive_account, user):
 
         try:
             connection = DataConnection.objects.get(drive_account=drive_account, agol_account=user.agol_account)
+        except AgolAccount.DoesNotExist:
+            connection = None
         except DataConnection.DoesNotExist:
             connection = None
 

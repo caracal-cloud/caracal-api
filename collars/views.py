@@ -191,6 +191,8 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
+        print('output_agol', update_data)
+
         if update_data.get('output_agol', False):
             try:
                 AgolAccount.objects.get(account=user)
@@ -217,6 +219,8 @@ class UpdateCollarAccountView(generics.GenericAPIView):
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         RealTimeAccount.objects.filter(uid=account_uid).update(datetime_updated=now, **update_data)
+
+        print('output_agol', serializer.data)
 
         connections.update_realtime_outputs(serializer.data, realtime_account, user)
 

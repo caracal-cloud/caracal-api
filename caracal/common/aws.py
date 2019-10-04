@@ -101,7 +101,7 @@ def get_global_config():
     return config
 
 
-def get_s3_files(suffix, prefix, bucket_name):
+def get_s3_files(prefix, suffix, bucket_name):
 
     # from caracal.common.aws import get_s3_files
     # get_s3_files('.kmz', 'garamba', 'caracal-user-data')

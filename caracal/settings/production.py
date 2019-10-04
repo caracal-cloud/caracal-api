@@ -19,7 +19,7 @@ GOOGLE_CLIENT_SECRET = os.environ['CARACAL_GOOGLE_CLIENT_SECRET']
 
 HOSTNAME = 'https://api.caracal.cloud'
 
-S3_USER_DATA_BUCKET = "caracal-user-prod"
+S3_USER_DATA_BUCKET = "caracal-users"
 
 #stripe.api_key = os.environ['CARACAL_LIVE_STRIPE_API_KEY']
 stripe.api_key = os.environ['CARACAL_TEST_STRIPE_API_KEY']

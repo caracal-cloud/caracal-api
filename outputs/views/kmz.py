@@ -16,7 +16,7 @@ class GetKmzHrefsView(views.APIView):
     def get(self, request):
         user = request.user
 
-        kmz_object_keys = aws.get_s3_files('.kmz', f'{user.organization.short_name}/kmz', settings.S3_USER_DATA_BUCKET)
+        kmz_object_keys = aws.get_s3_files(f'{user.organization.short_name}/kmz', '.kmz', settings.S3_USER_DATA_BUCKET)
 
         # [{'p': 'cd13ed3c', 'u': 'admin', 'permissions': ['all']}]
         # todo: returning all for now...
@@ -32,7 +32,7 @@ class GetKmzHrefsView(views.APIView):
             if category not in hrefs.keys():
                 hrefs[category] = list()
 
-            base_href = f'https://data.caracal.cloud/{object_key}'
+            base_href = f'https://users.caracal.cloud/{object_key}'
             for creds in credentials:
                 href = f'{base_href}?u={creds["u"]}&p={creds["p"]}'
                 hrefs[category].append(href)

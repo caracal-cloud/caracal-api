@@ -1,7 +1,7 @@
 
 from django.conf import settings
 from caracal.common import aws
-from outputs.models import DataConnection
+from outputs.models import AgolAccount, DataConnection
 
 
 def schedule_source_outputs(data, source, user, agol_account=None):
@@ -135,6 +135,8 @@ def update_source_outputs(data, source, user):
 
         try:
             connection = DataConnection.objects.get(custom_source=source, agol_account=user.agol_account)
+        except AgolAccount.DoesNotExist:
+            connection = None
         except DataConnection.DoesNotExist:
             connection = None
 
