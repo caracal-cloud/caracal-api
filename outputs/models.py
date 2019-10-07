@@ -7,8 +7,6 @@ from custom_source.models import Source
 from drives.models import DriveFileAccount
 
 
-# TODO: FINISHING MODELING CONNECTIONS... custom source, remove output
-
 class AgolAccount(BaseAsset):
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='agol_accounts')
@@ -34,6 +32,8 @@ class DataConnection(BaseAsset):
 
     # Output - only one will be non-null
     agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')
+    agol_layer_id = models.CharField(max_length=100, null=True)
+    agol_record_index = models.IntegerField(default=-1, null=True)
 
     cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)
 

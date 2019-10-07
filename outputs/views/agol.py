@@ -165,7 +165,7 @@ class AgolOauthResponseView(views.APIView):
             res = requests.post(token_url, data=data)
             tokens = res.json()
 
-            # access token occasionaly missing
+            # access token occasionaly missing?
             if 'access_token' not in tokens:
                 capture_message(f'WARNING: access_token missing - {json.dumps(tokens)}')
                 return Response({
@@ -185,12 +185,21 @@ class AgolOauthResponseView(views.APIView):
                 return Response({
                     'error': 'account_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                agol_account = AgolAccount.objects.create(organization=user.organization, account=user,
-                                                          oauth_access_token=access_token,
-                                                          oauth_access_token_expiry=expiry,
-                                                          oauth_refresh_token=refresh_token,
-                                                          username=username)
+
+            agol_account = AgolAccount.objects.create(organization=user.organization, account=user,
+                                                      oauth_access_token=access_token,
+                                                      oauth_access_token_expiry=expiry,
+                                                      oauth_refresh_token=refresh_token,
+                                                      username=username)
+
+            feature_service_url = agol.get_caracal_feature_service_url(username, access_token)
+            if feature_service_url is None:
+                feature_service_url = agol.create_caracal_feature_service(username, access_token)
+
+            print('feature_service_url', feature_service_url)
+
+            agol_account.feature_service_url = feature_service_url
+            agol_account.save()
 
             return redirect(state['callback'])
 

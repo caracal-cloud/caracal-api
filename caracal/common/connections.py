@@ -1,6 +1,8 @@
 
-from caracal.common import aws
+from datetime import datetime, timezone
 from django.conf import settings
+
+from caracal.common import aws, agol
 from outputs.models import AgolAccount, DataConnection
 
 
@@ -14,11 +16,29 @@ def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_a
                                                    realtime_account=realtime_account, agol_account=agol_account)
         schedule_realtime_agol(type, source, realtime_account, connection, organization)
 
+        # create an ArcGIS Layer and update the connection object
+        layer_name = get_agol_layer_name(type, source, realtime_account)
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        if agol_account.oauth_access_token_expiry <= now:
+            print('refreshing token...')
+            agol_account.oauth_access_token = agol.refresh_access_token(agol_account.oauth_refresh_token)
+            agol_account.save()
+
+        layer_id = agol.create_realtime_layer(layer_name, agol_account.feature_service_url, agol_account.oauth_access_token)
+        connection.agol_layer_id = layer_id
+        connection.save()
+
     if data.get('output_kml', False):
         schedule_realtime_kml(type, source, realtime_account, organization)
 
 
 # ArcGIS Online
+
+def get_agol_layer_name(type, source, realtime_account):
+
+    uid = str(realtime_account.uid).split('-')[0][:4]
+    return f'{source.capitalize()} - {type.capitalize()} - {uid}'
+
 
 # TODO: make one agol delete function for all inputs (realtime, drive, custom_source)
 def delete_realtime_agol(agol_account=None, realtime_account=None, connection=None):
@@ -155,6 +175,8 @@ def update_realtime_outputs(data, realtime_account, user):
                 connection = DataConnection.objects.create(organization=user.organization, account=user,
                                                            realtime_account=realtime_account, agol_account=user.agol_account)
                 schedule_realtime_agol(realtime_account.type, realtime_account.source, realtime_account, connection, user.organization)
+
+                # TODO: get layer or create one, update connection.agol_layer_id
 
             else:
                 delete_realtime_agol(connection=connection)

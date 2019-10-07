@@ -82,39 +82,28 @@ def schedule_drives_kml(drive_account, organization):
 
     print('kml function_name', function_name)
 
-    rule_names = []
-    for period in settings.KML_PERIOD_HOURS:
+    update_kml_input = {
+        'drive_account_uid': str(drive_account.uid),
+    }
 
-        rate_minutes = int(period / 2.5) # longer for larger periods
+    short_name = organization.short_name
+    rule_name = get_drives_update_kml_rule_name(short_name, drive_account.uid, settings.STAGE, drive_account.provider,
+                                                drive_account.file_type)
+    aws.schedule_lambda_function(update_kml_function['arn'], update_kml_function['name'], update_kml_input,
+                                 rule_name, settings.DRIVE_KML_UPDATE_RATE_MINUTES)
 
-        update_kml_input = {
-            'drive_account_uid': str(drive_account.uid),
-            'period_hours': period
-        }
-
-        short_name = organization.short_name
-        rule_name = get_drives_update_kml_rule_name(short_name, drive_account.uid, settings.STAGE, drive_account.provider,
-                                                    drive_account.file_type, period)
-        rule_names.append(rule_name)
-
-        print('kml rule_name', rule_name)
-
-        aws.schedule_lambda_function(update_kml_function['arn'], update_kml_function['name'], update_kml_input,
-                                     rule_name, rate_minutes)
-
-    # append to cloudwatch_update_kml_rule_names
-    drive_account.cloudwatch_update_kml_rule_names = ','.join(rule_names)
+    drive_account.cloudwatch_update_kml_rule_names = rule_name
     drive_account.save()
 
 
-def get_drives_update_kml_rule_name(short_name, drive_account_uid, stage, provider, file_type, period):
+def get_drives_update_kml_rule_name(short_name, drive_account_uid, stage, provider, file_type):
 
     stage = stage[:4]
     provider = provider[:10]
     file_type = file_type[:10]
     drive_account_uid = str(drive_account_uid).split('-')[0][:4]
 
-    rule_name = f'{short_name}-{stage}-drives-kml-{provider}-{file_type}-{period}-{drive_account_uid}'
+    rule_name = f'{short_name}-{stage}-drives-kml-{provider}-{file_type}-{drive_account_uid}'
     rule_name = rule_name.lower()
 
     assert len(rule_name) < 64
