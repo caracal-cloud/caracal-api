@@ -118,6 +118,7 @@ def create_drive_layers(drive_account, feature_service_url, agol_access_token):
 
             sheet_ids = json.loads(drive_account.sheet_ids)
             for sheet_id in sheet_ids:
+                sheet_id = str(sheet_id)
 
                 sheet_name = google.get_sheet_name(sheet_id, drive_account.file_id, google_access_token)
                 if sheet_name is None:
