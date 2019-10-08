@@ -58,6 +58,9 @@ def create_cognito_user(email, name, password, registration_method='email'):
 
 def delete_cloudwatch_rule(rule_name):
 
+    if rule_name is None:
+        return
+
     client = get_boto_client('events')
     client.remove_targets(Rule=rule_name, Ids=["1"])
     client.delete_rule(Name=rule_name)

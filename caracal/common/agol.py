@@ -1,7 +1,13 @@
 
+from datetime import datetime, timezone
 from django.conf import settings
 import json
 import requests
+from rest_framework import status
+from rest_framework.response import Response
+
+from outputs.models import AgolAccount
+
 
 AGOL_ROOT = 'https://www.arcgis.com/sharing/rest'
 X_MIN = -26
@@ -49,7 +55,6 @@ def get_caracal_feature_service_url(username, access_token):
 
     if len(res_data.get('results', [])) > 0:
         feature_service = res_data['results'][0]
-        print('match')
         return feature_service['url']
 
 
@@ -89,10 +94,26 @@ def create_realtime_layer(layer_name, feature_service_url, access_token):
     res = requests.post(create_layer_url, data=data)
     res_data = res.json()
 
-    print(res_data)
-
     if res_data.get('success', False):
         return res_data['layers'][0]['id']
+
+
+def get_layer(layer_id, feature_service_url, access_token):
+
+    if layer_id is None:
+        return None
+
+    params = {
+        'token': access_token,
+        'f': 'json'
+    }
+
+    res = requests.get(feature_service_url, params=params)
+    res_data = res.json()
+
+    for layer in res_data.get('layers', []):
+        if layer['id'] == int(layer_id):
+            return layer
 
 
 def refresh_access_token(refresh_token):
@@ -114,6 +135,63 @@ def refresh_access_token(refresh_token):
         return None
     else:
         return tokens['access_token']
+
+
+def verify_access_token_valid(agol_account):
+    print('verify_access_token_valid', agol_account)
+
+    now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    if agol_account.oauth_access_token_expiry <= now:
+        agol_account.oauth_access_token = refresh_access_token(agol_account.oauth_refresh_token)
+        agol_account.save()
+
+
+def verify_agol_state_and_get_account(user):
+    try:
+        agol_account = user.agol_account
+        verify_access_token_valid(agol_account)
+        if get_caracal_feature_service_url(agol_account.username, agol_account.oauth_access_token) is None:
+            return Response({
+                'error': 'feature_service_required',
+                'message': 'The Caracal feature service is missing. Reconnect to ArcGIS Online to initialize it.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    except AgolAccount.DoesNotExist:
+        return Response({
+            'error': 'agol_account_required',
+            'message': 'ArcGIS Online account required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return agol_account
+
+
+def update_disconnected_layer_name(layer, feature_service_url, access_token):
+
+    if layer is None:
+        return False
+
+    layer_id = layer['id']
+    layer_name = layer['name'].strip()
+
+    # if layer_name already ends in (disconnected) then ignore
+    if layer_name.endswith('disconnected)'):
+        return True
+
+    update_layer_url = feature_service_url.replace('/services/', '/admin/services/') + f'/{layer_id}/updateDefinition'
+
+    updateDefinition = {
+        'name': f'{layer_name} (disconnected)'
+    }
+
+    data = {
+        'updateDefinition': json.dumps(updateDefinition),
+        'token': access_token,
+        'f': 'json'
+    }
+
+    update_res = requests.post(update_layer_url, data=data)
+    update_data = update_res.json()
+
+    return 'success' in update_data.keys()
 
 
 realtime_point_fields = [

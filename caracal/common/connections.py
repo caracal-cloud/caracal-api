@@ -17,14 +17,9 @@ def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_a
         schedule_realtime_agol(type, source, realtime_account, connection, organization)
 
         # create an ArcGIS Layer and update the connection object
-        layer_name = get_agol_layer_name(type, source, realtime_account)
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        if agol_account.oauth_access_token_expiry <= now:
-            print('refreshing token...')
-            agol_account.oauth_access_token = agol.refresh_access_token(agol_account.oauth_refresh_token)
-            agol_account.save()
-
-        layer_id = agol.create_realtime_layer(layer_name, agol_account.feature_service_url, agol_account.oauth_access_token)
+        agol.verify_access_token_valid(agol_account)
+        layer_id = agol.create_realtime_layer(realtime_account.title, agol_account.feature_service_url,
+                                              agol_account.oauth_access_token)
         connection.agol_layer_id = layer_id
         connection.save()
 
@@ -33,12 +28,6 @@ def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_a
 
 
 # ArcGIS Online
-
-def get_agol_layer_name(type, source, realtime_account):
-
-    uid = str(realtime_account.uid).split('-')[0][:4]
-    return f'{source.capitalize()} - {type.capitalize()} - {uid}'
-
 
 # TODO: make one agol delete function for all inputs (realtime, drive, custom_source)
 def delete_realtime_agol(agol_account=None, realtime_account=None, connection=None):
@@ -49,6 +38,13 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
         except DataConnection.DoesNotExist:
             print('connection does not exist, no problem')
             return
+
+    agol_account = connection.agol_account
+
+    # update layer name...
+    agol.verify_access_token_valid(agol_account)
+    layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
+    agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
 
     aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
     connection.delete()
@@ -137,6 +133,8 @@ def get_realtime_update_kml_rule_name(short_name, realtime_account_uid, stage, t
     rule_name = f'{short_name}-{stage}-realtime-kml-{source}-{type}-{period}-{realtime_account_uid}'
     rule_name = rule_name.lower()
 
+    print('rule_name', rule_name, len(rule_name))
+
     assert len(rule_name) < 64
     return rule_name
 
@@ -167,8 +165,13 @@ def update_realtime_outputs(data, realtime_account, user):
         except DataConnection.DoesNotExist:
             connection = None
 
+        print('output_agol', output_agol)
+        print('connection', connection)
+
         # output flag is different than current state (agol connection for account is alias for agol output enabled)
         if output_agol != (connection is not None):
+
+            agol_account = user.agol_account
 
             if output_agol:
                 # create a connection and schedule update
@@ -176,7 +179,22 @@ def update_realtime_outputs(data, realtime_account, user):
                                                            realtime_account=realtime_account, agol_account=user.agol_account)
                 schedule_realtime_agol(realtime_account.type, realtime_account.source, realtime_account, connection, user.organization)
 
-                # TODO: get layer or create one, update connection.agol_layer_id
+                # create a layer and update the connection object
+                agol.verify_access_token_valid(agol_account)
+                layer_id = agol.create_realtime_layer(realtime_account.title, agol_account.feature_service_url,
+                                                      agol_account.oauth_access_token)
+                connection.agol_layer_id = layer_id
+                connection.save()
 
             else:
+
+                print('user', user)
+                print('agol_account', agol_account)
+                # connection will be not None, and agol_account should exist
+
+                agol.verify_access_token_valid(agol_account)
+                layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
+                agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+
                 delete_realtime_agol(connection=connection)
+
