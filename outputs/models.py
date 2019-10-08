@@ -34,6 +34,7 @@ class DataConnection(BaseAsset):
     agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')
     agol_layer_id = models.CharField(max_length=100, null=True)
     agol_record_index = models.IntegerField(default=-1, null=True)
+    agol_sheet_ids_to_layer_ids = models.TextField(null=True)
 
     cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)
 

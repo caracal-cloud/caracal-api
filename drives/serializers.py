@@ -13,12 +13,12 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
     output_database = serializers.BooleanField(default=False)
     output_kml = serializers.BooleanField(default=False)
 
-    # temporary defaults
+    # fixme: temporary defaults until user can input themself
     header_row_index = serializers.IntegerField(default=1)
     x_column_index = serializers.IntegerField(default=1)
     y_column_index = serializers.IntegerField(default=2)
     date_column_index = serializers.IntegerField(default=3)
-    grid_zone_column_index = serializers.IntegerField(default=4)
+    grid_zone_column_index = serializers.IntegerField(required=False)
 
     class Meta:
         model = DriveFileAccount
@@ -120,6 +120,8 @@ class ReceiveGoogleOauthResponseUrlQueryParamsSerializer(serializers.Serializer)
 class UpdateDriveFileAccountSerializer(serializers.ModelSerializer):
 
     account_uid = serializers.UUIDField(required=True)
+
+    title = serializers.CharField(max_length=100, required=False)
 
     output_agol = serializers.NullBooleanField(required=False)
     output_database = serializers.NullBooleanField(required=False)

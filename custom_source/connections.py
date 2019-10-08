@@ -1,6 +1,6 @@
 
 from django.conf import settings
-from caracal.common import aws
+from caracal.common import agol, aws
 from outputs.models import AgolAccount, DataConnection
 
 
@@ -13,6 +13,13 @@ def schedule_source_outputs(data, source, user, agol_account=None):
         connection = DataConnection.objects.create(organization=organization, account=user,
                                                    custom_source=source, agol_account=agol_account)
         schedule_source_agol(source, connection, organization)
+
+        # create an ArcGIS Layer and update the connection object
+        agol.verify_access_token_valid(agol_account)
+        layer_id = agol.create_custom_source_layer(source.name, source.description, agol_account.feature_service_url,
+                                              agol_account.oauth_access_token)
+        connection.agol_layer_id = layer_id
+        connection.save()
 
     if data.get('output_kml', False):
         schedule_source_kml(source, organization)
@@ -79,6 +86,13 @@ def delete_source_agol(agol_account=None, source=None, connection=None):
             print('connection does not exist, no problem')
             return
 
+    agol_account = connection.agol_account
+
+    # update layer name...
+    agol.verify_access_token_valid(agol_account)
+    layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
+    agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+
     aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
     connection.delete()
 
@@ -105,7 +119,7 @@ def schedule_source_agol(source, connection, organization):
 def get_source_update_agol_rule_name(short_name, source_uid, stage):
 
     stage = stage[:4]
-    source_uid = str(source_uid).split('-')[0][:8]
+    source_uid = str(source_uid).split('-')[0][:4]
 
     rule_name = f'{short_name}-{stage}-source-agol-{source_uid}'
     rule_name = rule_name.lower()
@@ -143,12 +157,26 @@ def update_source_outputs(data, source, user):
         # output flag is different than current state (agol connection for account is alias for agol output enabled)
         if output_agol != (connection is not None):
 
+            agol_account = user.agol_account
+
             if output_agol:
                 # create a connection and schedule update
                 connection = DataConnection.objects.create(organization=user.organization, account=user,
                                                            custom_source=source, agol_account=user.agol_account)
                 schedule_source_agol(source, connection, user.organization)
 
+                # create a layer and update the connection object
+                agol.verify_access_token_valid(agol_account)
+                layer_id = agol.create_custom_source_layer(source.name, source.description, agol_account.feature_service_url,
+                                                      agol_account.oauth_access_token)
+                connection.agol_layer_id = layer_id
+                connection.save()
+
             else:
+                # update layer name
+                agol.verify_access_token_valid(agol_account)
+                layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
+                agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+
                 delete_source_agol(connection=connection)
 

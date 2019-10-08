@@ -29,7 +29,6 @@ def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_a
 
 # ArcGIS Online
 
-# TODO: make one agol delete function for all inputs (realtime, drive, custom_source)
 def delete_realtime_agol(agol_account=None, realtime_account=None, connection=None):
     # can be called with a connection, or accounts for connection lookup
     if connection is None:
@@ -166,9 +165,6 @@ def update_realtime_outputs(data, realtime_account, user):
         except DataConnection.DoesNotExist:
             connection = None
 
-        print('output_agol', output_agol)
-        print('connection', connection)
-
         # output flag is different than current state (agol connection for account is alias for agol output enabled)
         if output_agol != (connection is not None):
 
@@ -188,14 +184,5 @@ def update_realtime_outputs(data, realtime_account, user):
                 connection.save()
 
             else:
-
-                print('user', user)
-                print('agol_account', agol_account)
-                # connection will be not None, and agol_account should exist
-
-                agol.verify_access_token_valid(agol_account)
-                layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
-                agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
-
                 delete_realtime_agol(connection=connection)
 

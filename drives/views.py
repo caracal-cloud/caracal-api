@@ -12,9 +12,8 @@ from sentry_sdk import capture_message
 from account.models import Account
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import aws, connections
+from caracal.common import agol, aws, connections
 from caracal.common import google as google_utils
-from caracal.common.fields import get_updated_outputs
 from caracal.common.models import get_num_sources
 from drives import serializers
 from drives import connections as drives_connections
@@ -51,16 +50,12 @@ class AddDriveFileAccountView(generics.GenericAPIView):
                 'message': 'Request a new oauth url and log in to Google.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # make sure user has an AGOL account set up
+        # make sure user has an AGOL account set up and feature service exists
         agol_account = None
         if serializer.validated_data.get('output_agol', False):
-            try:
-                agol_account = AgolAccount.objects.get(account=user) # 1-to-1
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            agol_account = agol.verify_agol_state_and_get_account(user)
+            if isinstance(agol_account, Response):
+                return agol_account
 
         drive_account = serializer.save(user=request.user)
 
@@ -111,7 +106,7 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
                 'message': 'account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if drive_account.organization != request.user.organization and not request.user.is_superuser:
+        if drive_account.organization != request.user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         aws.delete_cloudwatch_rule(drive_account.cloudwatch_get_data_rule_name)
@@ -354,14 +349,11 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
+        # make sure user has an AGOL account set up and feature service exists
         if update_data.get('output_agol', False):
-            try:
-                AgolAccount.objects.get(account=user)
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            agol_account = agol.verify_agol_state_and_get_account(user)
+            if isinstance(agol_account, Response):
+                return agol_account
 
         try:
             drive_account = DriveFileAccount.objects.get(uid=account_uid)

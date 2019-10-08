@@ -7,7 +7,7 @@ import stripe
 from account.models import Account, Organization
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import aws
+from caracal.common import agol, aws
 from caracal.common.models import get_num_sources
 from custom_source import serializers
 from custom_source import connections as source_connections
@@ -37,16 +37,12 @@ class AddSourceView(generics.GenericAPIView):
                 'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # make sure user has an AGOL account set up
+        # make sure user has an AGOL account set up and feature service exists
         agol_account = None
         if data.get('output_agol', False):
-            try:
-                agol_account = AgolAccount.objects.get(account=user)
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            agol_account = agol.verify_agol_state_and_get_account(user)
+            if isinstance(agol_account, Response):
+                return agol_account
 
         source = serializer.save(account=request.user)
 

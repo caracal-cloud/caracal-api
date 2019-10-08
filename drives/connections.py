@@ -1,7 +1,8 @@
 
 from django.conf import settings
+import json
 
-from caracal.common import aws
+from caracal.common import agol, aws
 from outputs.models import AgolAccount, DataConnection
 
 
@@ -57,6 +58,15 @@ def schedule_drives_outputs(data, drive_account, user, agol_account=None):
         connection = DataConnection.objects.create(organization=organization, account=user,
                                                    drive_account=drive_account, agol_account=agol_account)
         schedule_drives_agol(drive_account, connection, organization)
+
+        # create an ArcGIS Layer and update the connection object
+        agol.verify_access_token_valid(agol_account)
+        sheet_ids_to_layer_ids = agol.create_drive_layers(drive_account, agol_account.feature_service_url,
+                                              agol_account.oauth_access_token)
+
+        connection.agol_sheet_ids_to_layer_ids = json.dumps(sheet_ids_to_layer_ids)
+        connection.save()
+
 
     if data.get('output_kml', False):
         schedule_drives_kml(drive_account, organization)
@@ -120,6 +130,15 @@ def delete_drives_agol(agol_account=None, drive_account=None, connection=None):
         except DataConnection.DoesNotExist:
             print('connection does not exist, no problem')
             return
+
+    agol_account = connection.agol_account
+
+    # update layer names...
+    agol.verify_access_token_valid(agol_account)
+    if connection.agol_sheet_ids_to_layer_ids:
+        sheet_ids_to_layer_ids = json.loads(connection.agol_sheet_ids_to_layer_ids)
+        layer_ids = list(sheet_ids_to_layer_ids.values())
+        agol.delete_layers(layer_ids, agol_account.feature_service_url, agol_account.oauth_access_token)
 
     aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
     connection.delete()
@@ -189,11 +208,22 @@ def update_drives_outputs(data, drive_account, user):
 
         if output_agol != (connection is not None):
 
+            agol_account = user.agol_account
+
             if output_agol:
+
                 connection = DataConnection.objects.create(organization=user.organization, account=user,
                                                            drive_account=drive_account,
                                                            agol_account=user.agol_account)
                 schedule_drives_agol(drive_account, connection, user.organization)
+
+                # create an ArcGIS Layer and update the connection object
+                agol.verify_access_token_valid(agol_account)
+                sheet_ids_to_layer_ids = agol.create_drive_layers(drive_account, agol_account.feature_service_url,
+                                                                  agol_account.oauth_access_token)
+
+                connection.agol_sheet_ids_to_layer_ids = json.dumps(sheet_ids_to_layer_ids)
+                connection.save()
 
             else:
                 delete_drives_agol(connection=connection)

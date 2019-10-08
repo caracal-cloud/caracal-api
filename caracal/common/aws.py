@@ -182,10 +182,10 @@ def schedule_lambda_function(fn_arn, fn_name, rule_input, rule_name, rate_minute
     try:
         lambda_client.add_permission(
             FunctionName=fn_name,
-            StatementId=statement_id, # this should not be unique...
+            StatementId=statement_id,
             Action='lambda:InvokeFunction',
             Principal='events.amazonaws.com',
-            SourceArn=source_arn #rule_response['RuleArn'], # todo: try * or Prefix-*
+            SourceArn=source_arn
         )
     except lambda_client.exceptions.ResourceConflictException:
         print("permission already exists")
