@@ -25,8 +25,10 @@ class GetKmzHrefsView(views.APIView):
         hrefs = dict()
         for object_key in kmz_object_keys:
 
-            category = os.path.split(object_key)[0].split('/')[-1]
-            if category == 'kmz':
+            parts = os.path.split(object_key)[0].split('/')[2:]
+            category = ' / '.join(parts)
+
+            if len(parts) == 0:
                 category = 'other'
 
             if category not in hrefs.keys():

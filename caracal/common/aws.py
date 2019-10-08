@@ -173,14 +173,19 @@ def schedule_lambda_function(fn_arn, fn_name, rule_input, rule_name, rate_minute
         State='ENABLED',
     )
 
+    # use wildcard rule and default statement so policy size is not exceeded
+    rule_parts = rule_response['RuleArn'].split('rule/')
+    source_arn = f'{rule_parts[0]}rule/*'
+    statement_id = f'{fn_name}-event'
+
     # 2. Allow rule to trigger Lambda function
     try:
         lambda_client.add_permission(
             FunctionName=fn_name,
-            StatementId=rule_name + '-event',
+            StatementId=statement_id, # this should not be unique...
             Action='lambda:InvokeFunction',
             Principal='events.amazonaws.com',
-            SourceArn=rule_response['RuleArn'],
+            SourceArn=source_arn #rule_response['RuleArn'], # todo: try * or Prefix-*
         )
     except lambda_client.exceptions.ResourceConflictException:
         print("permission already exists")

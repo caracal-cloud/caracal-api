@@ -114,6 +114,7 @@ def schedule_realtime_kml(type, source, realtime_account, organization):
         }
 
         short_name = organization.short_name
+        # TODO: possibly use non-unique rule name...
         rule_name = get_realtime_update_kml_rule_name(short_name, realtime_account.uid, settings.STAGE, type, source, period)
         rule_names.append(rule_name)
 
@@ -130,7 +131,7 @@ def get_realtime_update_kml_rule_name(short_name, realtime_account_uid, stage, t
     source = source[:5]
     realtime_account_uid = str(realtime_account_uid).split('-')[0][:4]
 
-    rule_name = f'{short_name}-{stage}-realtime-kml-{source}-{type}-{period}-{realtime_account_uid}'
+    rule_name = f'{short_name}-{stage}-rt-kml-{source}-{type}-{period}-{realtime_account_uid}'
     rule_name = rule_name.lower()
 
     print('rule_name', rule_name, len(rule_name))

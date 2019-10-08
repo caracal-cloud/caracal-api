@@ -2,7 +2,6 @@ from django.urls import path, include
 
 from outputs.views import agol, kmz
 
-# TODO: logout of agol
 
 urlpatterns = [
     path('agol/', include([
@@ -15,5 +14,4 @@ urlpatterns = [
     ])),
 
     path('get_kmz_hrefs/', kmz.GetKmzHrefsView.as_view())
-
 ]
