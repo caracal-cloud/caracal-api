@@ -121,7 +121,7 @@ def create_drive_layers(drive_account, feature_service_url, agol_access_token):
 
                 sheet_name = google.get_sheet_name(sheet_id, drive_account.file_id, google_access_token)
                 if sheet_name is None:
-                    print('invalid sheet_id: ' + sheet_id)
+                    print(f'invalid sheet_id: {sheet_id}')
                     continue
 
                 extra_headers = google.get_extra_headers(sheet_name, drive_account, google_access_token)
