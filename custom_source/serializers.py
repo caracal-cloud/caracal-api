@@ -5,6 +5,20 @@ import uuid
 from custom_source.models import Source
 
 
+class AddRecordSerializer(serializers.Serializer):
+
+    write_key = serializers.CharField()
+
+    datetime_recorded = serializers.DateTimeField()
+    lat = serializers.DecimalField(max_digits=12, decimal_places=6)
+    lon = serializers.DecimalField(max_digits=12, decimal_places=6)
+    device_id = serializers.CharField(max_length=100)
+
+    alt_m = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    speed_kmh = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    temp_c = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
+
+
 class AddSourceSerializer(serializers.Serializer):
 
     name = serializers.CharField(max_length=200)
@@ -36,7 +50,29 @@ class DeleteSourceSerializer(serializers.Serializer):
     source_uid = serializers.UUIDField(required=True)
 
 
-class GetSourcesSerializer(serializers.ModelSerializer):
+class GetDevicesQueryParamsSerializer(serializers.Serializer):
+    source_uid = serializers.UUIDField(required=True)
+
+
+class GetDevicesSerializer(serializers.HyperlinkedModelSerializer):
+
+    url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='device-detail')
+
+    class Meta:
+        model = Source
+        fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
+                  'name', 'description']
+
+
+class GetDeviceDetailSerializer(serializers.HyperlinkedModelSerializer):
+
+    class Meta:
+        model = Source
+        fields = ['uid', 'datetime_created', 'datetime_updated',
+                  'name', 'description']
+
+
+class GetSourcesSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='source-detail')
 
@@ -63,6 +99,20 @@ class GetSourceDetailSerializer(serializers.ModelSerializer):
                   'name', 'description', 'write_key']
 
 
+class UpdateDeviceSerializer(serializers.Serializer):
+
+    device_uid = serializers.UUIDField(required=True)
+    name = serializers.CharField(max_length=100, required=False)
+    description = serializers.CharField(max_length=255, required=False)
+
+    def validate(self, attrs):
+        unknown =  set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
+        return attrs
+
+
+
 class UpdateSourceSerializer(serializers.Serializer):
 
     source_uid = serializers.UUIDField(required=True)
@@ -79,16 +129,3 @@ class UpdateSourceSerializer(serializers.Serializer):
             raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
         return attrs
 
-
-class TempAddRecordSerializer(serializers.Serializer):
-
-    write_key = serializers.CharField()
-
-    datetime_recorded = serializers.DateTimeField()
-    lat = serializers.DecimalField(max_digits=12, decimal_places=6)
-    lon = serializers.DecimalField(max_digits=12, decimal_places=6)
-    device_id = serializers.CharField(max_length=100)
-
-    alt_m = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    speed_kmh = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    temp_c = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)

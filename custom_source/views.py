@@ -18,10 +18,10 @@ class AddRecordView(views.APIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
-    serializer_class = serializers.TempAddRecordSerializer
+    serializer_class = serializers.AddRecordSerializer
 
     def post(self, request):
-        serializer = serializers.TempAddRecordSerializer(data=request.data)
+        serializer = serializers.AddRecordSerializer(data=request.data)
         serializer.is_valid(True)
 
         device_id = serializer.data['device_id']
@@ -137,6 +137,41 @@ class DeleteSourceView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class GetDevicesView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.GetDevicesSerializer
+
+    def get_queryset(self):
+
+        serializer = serializers.GetDevicesQueryParamsSerializer(data=self.request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        source_uid = serializer.data['source_uid']
+        user = self.request.user
+
+        try:
+            source = Source.objects.get(uid=source_uid, organization=user.organization, is_active=True)
+        except Source.DoesNotExist:
+            return Device.objects.none()
+
+        return Device.objects.filter(source=source, is_active=True)
+
+
+class GetDeviceDetailView(generics.RetrieveAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    lookup_field = 'uid'
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.GetDeviceDetailSerializer
+
+    def get_queryset(self):
+        organization = self.request.user.organization
+        devices = Device.objects.filter(source__organization=organization, is_active=True)
+        return devices
+
+
 class GetSourcesView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]
@@ -160,6 +195,40 @@ class GetSourceDetailView(generics.RetrieveAPIView):
         organization = self.request.user.organization
         sources = Source.objects.filter(organization=organization, is_active=True)
         return sources
+
+
+class UpdateDeviceView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateDeviceSerializer
+
+    def post(self, request):
+        serializer = serializers.UpdateDeviceSerializer(data=request.data)
+        serializer.is_valid(True)
+
+        user = request.user
+
+        update_data = serializer.data
+        device_uid = update_data.pop('device_uid')
+
+        try:
+            device = Device.objects.get(uid=device_uid, is_active=True)
+        except Device.DoesNotExist:
+            return Response({
+                'error': 'device_does_not_exist'
+            })
+
+        if device.source.organization != user.organization:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        Device.objects.filter(uid=device_uid).update(datetime_updated=now, **update_data)
+
+        message = f'custom source device ({device.device_id}) updated by {user.name}'
+        ActivityChange.objects.create(organization=user.organization, account=user, message=message)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class UpdateSourceView(generics.GenericAPIView):
