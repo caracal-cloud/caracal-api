@@ -21,7 +21,7 @@ class Device(BaseAsset):
         ordering = ['-datetime_created']
 
     def __str__(self):
-        return f'{self.name}'
+        return f'{self.device_id} - {self.name}'
 
 
 class Record(models.Model):

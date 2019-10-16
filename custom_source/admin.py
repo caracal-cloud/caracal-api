@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from custom_source.models import Device, Record, Source
 
+
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
     list_display = ['uid', 'datetime_created', 'device_id', 'name', 'description', 'source']
@@ -13,7 +14,7 @@ class DeviceAdmin(admin.ModelAdmin):
 
 @admin.register(Record)
 class RecordAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'source', 'device_id', 'position']
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'source', 'device', 'position']
     search_fields = ['uid', 'source__name']
     list_filter = []
     ordering = ['-datetime_recorded']
