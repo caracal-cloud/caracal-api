@@ -93,14 +93,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
 
-    #'DEFAULT_THROTTLE_CLASSES': (
-    #    'rest_framework.throttling.AnonRateThrottle',
-    #    'rest_framework.throttling.UserRateThrottle'
-    #),
-    #'DEFAULT_THROTTLE_RATES': {
-    #    'anon': '100/minute',
-    #    'user': '200/minute'
-    #}
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '50/minute',
+        'user': '500/minute'
+    }
 }
 
 CORS_ORIGIN_ALLOW_ALL = True

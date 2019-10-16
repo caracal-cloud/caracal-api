@@ -4,15 +4,57 @@ from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 import stripe
 
-from account.models import Account, Organization
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol, aws
 from caracal.common.models import get_num_sources
 from custom_source import serializers
 from custom_source import connections as source_connections
-from custom_source.models import Source
+from custom_source.models import Device, Source
 from outputs.models import AgolAccount
+
+
+class AddRecordView(views.APIView):
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    serializer_class = serializers.TempAddRecordSerializer
+
+    def post(self, request):
+        serializer = serializers.TempAddRecordSerializer(data=request.data)
+        serializer.is_valid(True)
+
+        device_id = serializer.data['device_id']
+        write_key = serializer.data['write_key']
+
+        try:
+            source = Source.objects.get(write_key=write_key, is_active=True)
+        except Source.DoesNotExist:
+            return Response({
+                'error': 'source_does_not_exist',
+                'message': 'source account does not exist'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try: # this might be a bottleneck later on
+            device = Device.objects.get(device_id=device_id, source=source)
+        except Device.DoesNotExist:
+            device = Device.objects.create(device_id=device_id, source=source)
+
+        payload = {
+            'device_id': device.pk,
+            'source_id': source.pk,
+            'datetime_recorded': serializer.data['datetime_recorded'],
+            'lat': serializer.data['lat'],
+            'lon': serializer.data['lon'],
+
+            'alt_m': serializer.data.get('alt_m'),
+            'speed_kmh': serializer.data.get('speed_kmh'),
+            'temp_c': serializer.data.get('temp_c')
+        }
+
+        aws.put_firehose_record(payload, 'caracal_realtime_user')
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class AddSourceView(generics.GenericAPIView):
@@ -169,38 +211,4 @@ class UpdateSourceView(generics.GenericAPIView):
 
         return Response(status=status.HTTP_200_OK)
 
-
-class TempAddRecordView(views.APIView):
-
-    authentication_classes = []
-    permission_classes = [permissions.AllowAny]
-    serializer_class = serializers.TempAddRecordSerializer
-
-    def post(self, request):
-        serializer = serializers.TempAddRecordSerializer(data=request.data)
-        serializer.is_valid(True)
-
-        try:
-            source = Source.objects.get(write_key=serializer.data['write_key'], is_active=True)
-        except Source.DoesNotExist:
-            return Response({
-                'error': 'source_does_not_exist',
-                'message': 'source account does not exist'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        payload = {
-            'source_id': source.pk,
-            'datetime_recorded': serializer.data['datetime_recorded'],
-            'lat': serializer.data['lat'],
-            'lon': serializer.data['lon'],
-
-            'alt_m': serializer.data.get('alt_m'),
-            'device_id': serializer.data.get('device_id'),
-            'speed_kmh': serializer.data.get('speed_kmh'),
-            'temp_c': serializer.data.get('temp_c')
-        }
-
-        aws.put_firehose_record(payload, 'caracal_realtime_user')
-
-        return Response(status=status.HTTP_200_OK)
 

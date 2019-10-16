@@ -7,6 +7,22 @@ import uuid
 from account.models import Account, Organization
 from caracal.common.models import BaseAsset, get_utc_datetime_now
 
+# Source -> Device -> Record
+
+class Device(BaseAsset):
+
+    source = models.ForeignKey('Source', on_delete=models.CASCADE)
+
+    device_id = models.CharField(max_length=100, blank=True, null=True)
+    name = models.CharField(max_length=100, blank=True, null=True)
+    description = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        ordering = ['-datetime_created']
+
+    def __str__(self):
+        return f'{self.name}'
+
 
 class Record(models.Model):
 
@@ -14,14 +30,14 @@ class Record(models.Model):
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=get_utc_datetime_now)
     source = models.ForeignKey('Source', on_delete=models.CASCADE)
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True) # remove null?
 
-    # location and when
+    # where and when
     position = models.PointField(srid=settings.SRID, null=False) # fixme: allow to specify srid
     datetime_recorded = models.DateTimeField(null=True)
 
     # optional
     alt_m = models.DecimalField(max_digits=12, decimal_places=2, null=True)
-    device_id = models.CharField(max_length=100, blank=True, null=True)
     speed_kmh = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     temp_c = models.DecimalField(max_digits=5, decimal_places=2, null=True)
 
@@ -29,7 +45,7 @@ class Record(models.Model):
         ordering = ['-datetime_created']
 
     def __str__(self):
-        return f'{self.position}' # fixme: how to get coords?
+        return f'{self.position}'
 
 
 class Source(BaseAsset):

@@ -87,8 +87,8 @@ class TempAddRecordSerializer(serializers.Serializer):
     datetime_recorded = serializers.DateTimeField()
     lat = serializers.DecimalField(max_digits=12, decimal_places=6)
     lon = serializers.DecimalField(max_digits=12, decimal_places=6)
+    device_id = serializers.CharField(max_length=100)
 
     alt_m = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    device_id = serializers.CharField(max_length=100, required=False)
     speed_kmh = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     temp_c = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)

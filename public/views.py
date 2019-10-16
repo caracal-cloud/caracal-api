@@ -2,6 +2,7 @@ from django.conf import settings
 
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 
 from caracal.common import aws
 
@@ -13,18 +14,19 @@ class ContactView(generics.GenericAPIView):
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
     serializer_class =  serializers.ContactSerializer
+    throttle_classes = [AnonRateThrottle]
 
+    # rate limit this thing...
     def post(self, request):
         serializer = serializers.ContactSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         name = serializer.data['name']
         email = serializer.data['email']
-        area = serializer.data['area']
         message = serializer.data['message']
 
-        email_subject = "Contact - %s" % (area)
-        email_message = "Name: %s\nEmail: %s\nArea of Interest: %s\nMessage: %s" % (name, email, area, message)
+        email_subject = "Contact from submission"
+        email_message = f'Name: {name}\nEmail: {email}\nMessage: {message}'
 
         tasks.send_email(email_subject, email_message,
                          settings.DEFAULT_EMAIL_SENDER,
