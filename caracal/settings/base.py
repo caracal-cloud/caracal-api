@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'collars',
     'custom_source',
     'drives',
+    'jackal',
     'outputs',
     'public',
     'radios'

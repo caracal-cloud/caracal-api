@@ -132,7 +132,8 @@ class GetCollarAccountDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return RealTimeAccount.objects.filter(organization=self.request.user.organization, source='collar')
+        user = self.request.user
+        return RealTimeAccount.objects.filter(is_active=True, organization=user.organization, source='collar')
 
 
 class GetCollarIndividualsView(generics.ListAPIView):

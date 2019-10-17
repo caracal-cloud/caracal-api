@@ -1,6 +1,7 @@
 
 
 ACCOUNT_STATUSES = [('healthy', 'healthy'), ('unhealthy', 'unhealthy'), ('pending', 'pending')]
+JACKAL_PHONE_STATUSES = [('deployed', 'deployed'), ('inactive', 'inactive'), ('pending', 'pending')]
 
 # ALERT_FEEDBACK = [('confirm', 'confirm'), ('deny', 'deny')]
 ALERT_LEVELS = [('low', 'low'), ('medium', 'medium'), ('high', 'high')]

@@ -54,7 +54,7 @@ class AddRecordView(views.APIView):
 
         aws.put_firehose_record(payload, 'caracal_realtime_user')
 
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_201_CREATED)
 
 
 class AddSourceView(generics.GenericAPIView):

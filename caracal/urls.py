@@ -23,6 +23,7 @@ urlpatterns = [
     path('cybersyn1971/', admin.site.urls),
     path('collars/', include('collars.urls')),
     path('drives/', include('drives.urls')),
+    path('jackal/', include('jackal.urls')),
     path('outputs/', include('outputs.urls')),
     path('public/', include('public.urls')),
     path('radios/', include('radios.urls')),
