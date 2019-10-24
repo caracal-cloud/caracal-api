@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from caracal.common import constants
-from jackal.models import Call, Contact, Location, Phone, Text
+from jackal.models import Call, Contact, Location, OtherPhone, Phone, Text
 
 
 class AddCallSerializer(serializers.Serializer):
@@ -71,18 +71,29 @@ class GetPhonesSerializer(serializers.HyperlinkedModelSerializer):
 
 # Recording Serializers
 
+class OtherPhoneSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OtherPhone
+        fields = ['phone_number', 'name', 'description', 'mark']
+
+
 class CallSerializer(serializers.ModelSerializer):
+
+    other_phone = OtherPhoneSerializer()
 
     class Meta:
         model = Call
-        fields = ['datetime_recorded', 'is_sent', 'other_phone_number', 'duration_secs']
+        fields = ['datetime_recorded', 'other_phone', 'is_sent', 'duration_secs']
 
 
 class ContactSerializer(serializers.ModelSerializer):
 
+    other_phone = OtherPhoneSerializer()
+
     class Meta:
         model = Contact
-        fields = ['datetime_recorded', 'name', 'phone_number']
+        fields = ['datetime_recorded', 'other_phone']
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -102,9 +113,11 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class TextSerializer(serializers.ModelSerializer):
 
+    other_phone = OtherPhoneSerializer()
+
     class Meta:
         model = Text
-        fields = ['datetime_recorded', 'is_sent', 'other_phone_number', 'message']
+        fields = ['datetime_recorded', 'other_phone', 'is_sent', 'message']
 
 
 class GetPhoneDetailSerializer(serializers.ModelSerializer):

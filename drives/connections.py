@@ -57,7 +57,7 @@ def schedule_drives_outputs(data, drive_account, user, agol_account=None):
         # create a connection and schedule update
         connection = DataConnection.objects.create(organization=organization, account=user,
                                                    drive_account=drive_account, agol_account=agol_account)
-        schedule_drives_agol(drive_account, connection, organization)
+        schedule_drives_agol(drive_account, connection, organization) # todo: should we schedule after creating layer?
 
         # create an ArcGIS Layer and update the connection object
         agol.verify_access_token_valid(agol_account)
@@ -149,8 +149,6 @@ def schedule_drives_agol(drive_account, connection, organization):
     function_name = f'caracal_{settings.STAGE.lower()}_update_static_agol'
     update_agol_function = aws.get_lambda_function(function_name)
 
-    print('agol function_name', function_name)
-
     update_agol_input = {
         'connection_uid': str(connection.uid),
     }
@@ -159,14 +157,12 @@ def schedule_drives_agol(drive_account, connection, organization):
     rule_name = get_drives_update_agol_rule_name(short_name, drive_account.uid, settings.STAGE, drive_account.provider,
                                                  drive_account.file_type)
 
-    print('agol rule_name', rule_name)
-
-
     aws.schedule_lambda_function(update_agol_function['arn'], update_agol_function['name'], update_agol_input,
                                  rule_name, settings.AGOL_UPDATE_RATE_MINUTES)
 
     connection.cloudwatch_update_rule_name = rule_name
     connection.save()
+
 
 def get_drives_update_agol_rule_name(short_name, drive_account_uid, stage, provider, file_type):
 

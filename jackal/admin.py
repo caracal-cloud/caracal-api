@@ -1,13 +1,13 @@
 from django.contrib import admin
 
-from jackal.models import Call, Contact, Location, Network, Phone, Text
+from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 
 
 
 @admin.register(Call)
 class CallAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'network', 'other_phone_number', 'duration_secs']
-    search_fields = ['other_phone_number']
+    list_display = ['uid', 'datetime_created', 'phone', 'other_phone', 'network', 'duration_secs']
+    search_fields = ['other_phone__phone_number', 'other_phone__name']
     list_filter = []
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_recorded']
@@ -15,8 +15,8 @@ class CallAdmin(admin.ModelAdmin):
 
 @admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'network', 'name', 'phone_number']
-    search_fields = ['name', 'phone_number']
+    list_display = ['uid', 'datetime_created', 'phone', 'other_phone', 'network']
+    search_fields = ['other_phone__name', 'other_phone__phone_number']
     list_filter = []
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_recorded']
@@ -33,11 +33,20 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Text)
 class TextAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'network', 'other_phone_number', 'message']
-    search_fields = ['other_phone_number', 'message']
+    list_display = ['uid', 'datetime_created', 'phone', 'other_phone', 'network', 'message']
+    search_fields = ['other_phone__name', 'other_phone__phone_number', 'message']
     list_filter = []
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_recorded']
+
+
+@admin.register(OtherPhone)
+class OtherPhoneAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created', 'network', 'name', 'phone_number']
+    search_fields = ['uid', 'name', 'phone_number', 'description', 'mark']
+    list_filter = []
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
 
 
 @admin.register(Phone)

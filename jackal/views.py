@@ -9,9 +9,8 @@ import uuid
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import agol, aws
 from jackal import serializers
-from jackal.models import Call, Contact, Location, Network, Phone, Text
+from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 
 
 def get_phone_or_response(device_id, write_key):
@@ -37,19 +36,25 @@ class AddCallView(generics.GenericAPIView):
     serializer_class = serializers.AddCallSerializer
 
     def post(self, request):
-        serializer = serializers.AddCallSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')
         write_key = add_data.pop('write_key')
+        other_phone_number = add_data.pop('other_phone_number')
 
         phone = get_phone_or_response(device_id, write_key)
         if isinstance(phone, Response):
             return phone
 
         try:
-            Call.objects.create(phone=phone, network=phone.network, **add_data)
+            other_phone = OtherPhone.objects.get(network=phone.network, phone_number=other_phone_number)
+        except OtherPhone.DoesNotExist:
+            other_phone = OtherPhone.objects.create(network=phone.network, phone_number=other_phone_number)
+
+        try:
+            Call.objects.create(network=phone.network, phone=phone, other_phone=other_phone, **add_data)
         except IntegrityError:
             pass
 
@@ -63,20 +68,30 @@ class AddContactView(generics.GenericAPIView):
     serializer_class = serializers.AddContactSerializer
 
     def post(self, request):
-        serializer = serializers.AddContactSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')
         write_key = add_data.pop('write_key')
+        phone_number = add_data.pop('phone_number')
+        name = add_data.pop('name')
 
         phone = get_phone_or_response(device_id, write_key)
         if isinstance(phone, Response):
             return phone
 
         try:
-            Contact.objects.create(phone=phone, network=phone.network, **add_data)
-        except IntegrityError:
+            other_phone = OtherPhone.objects.get(network=phone.network, phone_number=phone_number)
+            other_phone.name = name
+            other_phone.save()
+        except:
+            other_phone = OtherPhone.objects.create(network=phone.network, phone_number=phone_number, name=name)
+
+        try:
+            Contact.objects.create(network=phone.network, phone=phone, other_phone=other_phone, **add_data)
+        except IntegrityError: # fixme: this is always throwing
+            print('integrity')
             pass
 
         return Response(status=status.HTTP_201_CREATED)
@@ -89,7 +104,7 @@ class AddLocationView(generics.GenericAPIView):
     serializer_class = serializers.AddLocationSerializer
 
     def post(self, request):
-        serializer = serializers.AddLocationSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
 
         add_data = serializer.data
@@ -119,19 +134,25 @@ class AddTextView(generics.GenericAPIView):
     serializer_class = serializers.AddTextSerializer
 
     def post(self, request):
-        serializer = serializers.AddTextSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')
         write_key = add_data.pop('write_key')
+        other_phone_number = add_data.pop('other_phone_number')
 
         phone = get_phone_or_response(device_id, write_key)
         if isinstance(phone, Response):
             return phone
 
         try:
-            Text.objects.create(phone=phone, network=phone.network, **add_data)
+            other_phone = OtherPhone.objects.get(network=phone.network, phone_number=other_phone_number)
+        except OtherPhone.DoesNotExist:
+            other_phone = OtherPhone.objects.create(network=phone.network, phone_number=other_phone_number)
+
+        try:
+            Text.objects.create(network=phone.network, phone=phone, other_phone=other_phone, **add_data)
         except IntegrityError:
             pass
 
@@ -197,7 +218,7 @@ class UpdatePhoneView(generics.GenericAPIView):
     serializer_class = serializers.UpdatePhoneSerializer
 
     def post(self, request):
-        serializer = serializers.UpdatePhoneSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
 
         user = request.user
