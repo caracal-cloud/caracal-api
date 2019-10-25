@@ -113,6 +113,8 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
 
         drives_connections.delete_drives_kml(drive_account)
 
+        # TODO: delete KML files
+
         try:
             drives_connections.delete_drives_agol(agol_account=user.agol_account, drive_account=drive_account)
         except AgolAccount.DoesNotExist:

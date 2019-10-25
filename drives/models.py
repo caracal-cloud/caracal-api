@@ -31,7 +31,7 @@ class DriveFileAccount(BaseAsset, BaseAccount):
 
     # Data and scheduling
     cloudwatch_get_data_rule_name = models.CharField(max_length=200, blank=True, null=True)
-    cloudwatch_update_kml_rule_names = models.TextField(default="", blank=True, null=True) # multiple rules
+    cloudwatch_update_kml_rule_names = models.TextField(default="", blank=True, null=True) # actually just one rule, old name
     most_recent_s3_object_key = models.CharField(max_length=250, blank=True, null=True)
 
     class Meta:

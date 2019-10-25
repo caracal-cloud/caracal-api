@@ -186,6 +186,13 @@ class AgolOauthResponseView(views.APIView):
                     'error': 'account_not_found'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # check if user already has an agol account (possible if they click AGOL multiple times quickly)
+            try:
+                agol_account = user.agol_account
+                agol_account.delete()
+            except AgolAccount.DoesNotExist:
+                pass
+
             agol_account = AgolAccount.objects.create(organization=user.organization, account=user,
                                                       oauth_access_token=access_token,
                                                       oauth_access_token_expiry=expiry,

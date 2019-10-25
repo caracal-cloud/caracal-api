@@ -66,6 +66,8 @@ class CognitoAuthentication(BaseAuthentication):
                 'error': 'no_user_with_sub'
             })
 
+        # handle delinquent payments
+
         # allow if trying to add subscription or update payment...
         if request.path in ['/billing/update_plan_and_payment_method/', '/billing/update_payment_method/']:
             return user, jwt_value
@@ -82,6 +84,7 @@ class CognitoAuthentication(BaseAuthentication):
                     'message': 'Your trial has expired. Please select a plan to continue.'
                 })
             else:
+                # TODO: enforce some buffer time
                 return user, jwt_value
 
         elif subscription_status in ['incomplete', 'incomplete_expired']:

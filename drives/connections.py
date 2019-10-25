@@ -90,8 +90,6 @@ def schedule_drives_kml(drive_account, organization):
     function_name = f'caracal_{settings.STAGE.lower()}_update_static_kml'
     update_kml_function = aws.get_lambda_function(function_name)
 
-    print('kml function_name', function_name)
-
     update_kml_input = {
         'drive_account_uid': str(drive_account.uid),
     }

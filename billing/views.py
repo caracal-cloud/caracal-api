@@ -49,6 +49,7 @@ class StripeWebhookView(views.APIView):
 
         if event.type == 'customer.subscription.updated':
 
+            # todo: comment with possibles statuses
             new_status = event.data.object.status
             if event.data.object.id == organization.stripe_subscription_id:
                 print(f'{organization.name} changing from {previous_status} to {new_status}')
