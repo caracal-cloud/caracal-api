@@ -18,11 +18,18 @@ from caracal.common.fields import CaseInsensitiveEmailField
 from botocore.exceptions import ParamValidationError
 
 
+class AddRecipientSerializer(serializers.Serializer):
+    pass
+
 class ConfirmForgotPasswordSerializer(serializers.Serializer):
 
     email = CaseInsensitiveEmailField(required=True, max_length=200)
     verification_code = serializers.CharField(max_length=100)
     new_password = serializers.CharField(min_length=7, max_length=50)
+
+
+class DeleteRecipientSerializer(serializers.Serializer):
+    pass
 
 
 class ForceOrganizationUpdateSerializer(serializers.Serializer):
@@ -96,6 +103,10 @@ class GetProfileSerializer(serializers.ModelSerializer):
                   'organization_name', 'organization_short_name',
                   'organization_update_required', 'timezone',
                   'logo_url']
+
+
+class GetRecipientsSerializer(serializers.Serializer):
+    pass
 
 
 class LoginSerializer(serializers.Serializer):

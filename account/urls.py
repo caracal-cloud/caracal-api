@@ -4,7 +4,7 @@ from django.urls import include, path
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 
-from account.views import password, profile, register, social_auth, tokens
+from account.views import alerts, password, profile, register, social_auth, tokens
 from account import serializers
 
 
@@ -17,6 +17,11 @@ decorated_get_profile_view = \
    )(profile.GetProfileView.as_view())
 
 urlpatterns = [
+    path('alerts/', include([
+        path('add_recipient/', alerts.AddRecipientView.as_view()),
+        path('delete_recipient/', alerts.DeleteRecipientView.as_view()),
+        path('get_recipients/', alerts.GetRecipientsView.as_view()),
+    ])),
     #path('forced_password_reset/', password.ForcedPasswordResetView.as_view()),
     path('force_organization_update/', profile.ForceOrganizationUpdateView.as_view()),
     path('forgot_password/', password.ForgotPasswordView.as_view()),

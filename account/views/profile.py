@@ -11,6 +11,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import stripe_utils
 
+
 class ForceOrganizationUpdateView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
