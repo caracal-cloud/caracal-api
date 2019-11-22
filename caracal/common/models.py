@@ -84,18 +84,13 @@ class RealTimeIndividual(BaseAsset):
     call_sign = models.CharField(max_length=100, null=True, blank=True)
     phone_number = models.CharField(max_length=50, null=True, blank=True)
 
-    # metrics - fixme: remove these
-    monthly_paths = models.TextField(blank=True, null=True)
-    last_position = models.PointField(srid=settings.SRID, null=True)
-    datetime_last_position = models.DateTimeField(null=True)
-
     class Meta:
         app_label = 'account'
         ordering = ['-datetime_created']
         unique_together = ['account', 'device_id']
 
     def __str__(self):
-        return f'{self.account} - {self.device_id} - {self.name} - {self.subtype}'
+        return f'{str(self.uid)[:4]} - {self.account} - {self.device_id} - {self.name} - {self.subtype}'
 
 
 class RealTimePosition(BaseAsset):

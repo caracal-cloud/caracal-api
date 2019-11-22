@@ -245,6 +245,27 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         if individual.account.organization != user.organization and not user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        # do this before updating individual so we know old values
+        # if there is a connected AGOL layer, update features in the layer on device_id
+        agol_connections = individual.account.connections.filter(agol_account__isnull=False)
+        for agol_connection in agol_connections:
+
+            attributes = dict()
+            if 'name' in update_data and update_data['name'] != individual.name:
+                attributes['Name'] = update_data['name']
+
+            if 'subtype' in update_data and update_data['subtype'] != individual.subtype:
+                attributes['Type'] = update_data['subtype']
+
+            if 'sex' in update_data and update_data['sex'] != individual.subtype:
+                attributes['Sex'] = update_data['sex']
+
+            if 'status' in update_data and update_data['status'] != individual.subtype:
+                attributes['Status'] = update_data['status']
+
+            if len(attributes) > 0:
+                agol.update_realtime_attribute(individual.device_id, attributes, agol_connection)
+
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         RealTimeIndividual.objects.filter(uid=individual_uid).update(datetime_updated=now, **update_data)
 

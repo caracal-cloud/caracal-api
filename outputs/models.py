@@ -30,10 +30,10 @@ class DataConnection(BaseAsset):
     drive_account = models.ForeignKey(DriveFileAccount, on_delete=models.CASCADE, null=True, related_name='connections')
     realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, null=True, related_name='connections')
 
-    # Output - only one will be non-null
+    # Output
     agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')
     agol_layer_id = models.CharField(max_length=100, null=True)
-    agol_record_index = models.IntegerField(default=-1, null=True)
+    agol_record_index = models.IntegerField(default=-1, null=True) # the most recent position index added to AGOL
     agol_sheet_ids_to_layer_ids = models.TextField(null=True)
 
     cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)

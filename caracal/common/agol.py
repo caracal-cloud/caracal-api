@@ -339,6 +339,57 @@ def update_disconnected_layer_name(layer, feature_service_url, access_token):
 
     return 'success' in update_data.keys()
 
+
+def update_realtime_attribute(device_id, attributes, connection):
+
+    access_token = connection.agol_account.oauth_access_token
+    feature_service_url = connection.agol_account.feature_service_url
+    layer_id = connection.agol_layer_id
+
+    # TODO: get all the OBJECTIDs for device_id
+
+    query_url = f'{feature_service_url}/{layer_id}/query'
+
+    params = {
+        'where': f'DeviceId = \'{device_id}\'',
+        'outFields': 'OBJECTID',
+        'token': access_token,
+        'f': 'json'
+    }
+
+    features_res = requests.get(query_url, params).json()
+    if features_res.get('error') and features_res['error'].get('code') == 498:
+        connection.agol_account.oauth_access_token = refresh_access_token(connection.agol_account.oauth_refresh_token)
+        connection.agol_account.save()
+        params['token'] = connection.agol_account.oauth_access_token
+        features_res = requests.get(query_url, params).json()
+
+    features = features_res['features']
+    print(f'updating {len(features)} features')
+
+    feature_updates = [
+        {
+            'attributes': {
+                'OBJECTID': f['attributes']['OBJECTID'],
+                'DeviceId': device_id,
+                **attributes
+            }
+        }
+        for f in features
+    ]
+
+    update_features_url = f'{feature_service_url}/{layer_id}/updateFeatures'
+
+    data = {
+        'features': json.dumps(feature_updates),
+        'token': access_token,
+        'f': 'json'
+    }
+
+    res = requests.post(update_features_url, data=data).json()
+    
+
+
 base_point_fields = [
     {
         "name": "OBJECTID",

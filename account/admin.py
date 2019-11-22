@@ -22,6 +22,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     ordering = ['name']
     readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
 
+
 @admin.register(RealTimeAccount)
 class RealTimeAccountAdmin(admin.ModelAdmin):
     list_display = ['uid', 'datetime_created', 'title', 'status', 'source', 'provider', 'type']
@@ -37,8 +38,7 @@ class RealTimeIndividualAdmin(admin.ModelAdmin):
     search_fields = ['uid']
     list_filter = ['is_active']
     ordering = ['-datetime_created']
-    readonly_fields = ['datetime_created', 'datetime_updated', 'datetime_deleted',
-                       'last_position', 'datetime_last_position']
+    readonly_fields = ['datetime_created', 'datetime_updated', 'datetime_deleted']
 
 
 @admin.register(RealTimePosition)
