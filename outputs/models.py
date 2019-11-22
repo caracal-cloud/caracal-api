@@ -32,11 +32,13 @@ class DataConnection(BaseAsset):
 
     # Output
     agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')
-    agol_layer_id = models.CharField(max_length=100, null=True)
+    agol_layer_id = models.CharField(max_length=100, null=True) # all data
+    agol_individual_layer_id = models.CharField(max_length=100, null=True) # just most recent individuals
     agol_record_index = models.IntegerField(default=-1, null=True) # the most recent position index added to AGOL
-    agol_sheet_ids_to_layer_ids = models.TextField(null=True)
+    agol_sheet_ids_to_layer_ids = models.TextField(null=True) # Google Sheets
 
     cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)
+    cloudwatch_update_individual_rule_name = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         if self.realtime_account:

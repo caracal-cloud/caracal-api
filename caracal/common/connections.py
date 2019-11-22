@@ -20,7 +20,13 @@ def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_a
         agol.verify_access_token_valid(agol_account)
         layer_id = agol.create_realtime_layer(realtime_account.title, agol_account.feature_service_url,
                                               agol_account.oauth_access_token)
+
+        individual_layer_title = f'{realtime_account.title} - Individuals'
+        individual_layer_id = agol.create_realtime_layer(individual_layer_title, agol_account.feature_service_url,
+                                              agol_account.oauth_access_token)
+
         connection.agol_layer_id = layer_id
+        connection.agol_individual_layer_id = individual_layer_id
         connection.save()
 
     if data.get('output_kml', False):
@@ -45,11 +51,19 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
     layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
     agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
 
+    individual_layer = agol.get_layer(connection.agol_individual_layer_id, agol_account.feature_service_url,
+                                      agol_account.oauth_access_token)
+    agol.update_disconnected_layer_name(individual_layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+
+    # TODO: delete individual rule
     aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+
     connection.delete()
 
 
 def schedule_realtime_agol(type, source, realtime_account, connection, organization):
+
+    # TODO: schedule individual
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_agol'
     update_agol_function = aws.get_lambda_function(function_name)
@@ -180,7 +194,13 @@ def update_realtime_outputs(data, realtime_account, user):
                 agol.verify_access_token_valid(agol_account)
                 layer_id = agol.create_realtime_layer(realtime_account.title, agol_account.feature_service_url,
                                                       agol_account.oauth_access_token)
+
+                individual_layer_title = f'{realtime_account.title} - Individuals'
+                individual_layer_id = agol.create_realtime_layer(individual_layer_title, agol_account.feature_service_url,
+                                                      agol_account.oauth_access_token)
+
                 connection.agol_layer_id = layer_id
+                connection.agol_individual_layer_id = individual_layer_id
                 connection.save()
 
             else:

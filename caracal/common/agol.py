@@ -387,7 +387,7 @@ def update_realtime_attribute(device_id, attributes, connection):
     }
 
     res = requests.post(update_features_url, data=data).json()
-    
+
 
 
 base_point_fields = [
