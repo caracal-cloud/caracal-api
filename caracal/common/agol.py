@@ -18,9 +18,13 @@ Y_MAX = 39
 WKID = 4326
 
 
-def create_caracal_feature_service(username, access_token):
+def create_caracal_feature_service(username, access_token, folder_id=None):
 
-    create_service_url = f'{AGOL_ROOT}/content/users/{username}/createService'
+    # https://caracal.maps.arcgis.com/sharing/rest/content/users/caseyslaught/a58762190c8d4c04a0e8552ed0735560/createService
+    if folder_id is not None:
+        create_service_url = f'{AGOL_ROOT}/content/users/{username}/{folder_id}/createService'
+    else:
+        create_service_url = f'{AGOL_ROOT}/content/users/{username}/createService'
 
     create_params = {
         "name": 'Caracal',
@@ -35,14 +39,18 @@ def create_caracal_feature_service(username, access_token):
         'outputType': 'featureService'
     }
 
-    res = requests.post(create_service_url, data=data)
-    res_data = res.json()
+    res = requests.post(create_service_url, data=data).json()
 
-    if res_data.get('success', False):
-        return res_data['encodedServiceURL']
+    print(res)
+
+    if res.get('success', False):
+        return {
+            'id': res['itemId'],
+            'url': res['encodedServiceURL']
+        }
 
 
-def get_caracal_feature_service_url(username, access_token):
+def get_caracal_feature_service(username, access_token):
 
     search_url = f'{AGOL_ROOT}/search'
     params = {
@@ -51,12 +59,18 @@ def get_caracal_feature_service_url(username, access_token):
         'f': 'json'
     }
 
-    res = requests.get(search_url, params=params)
-    res_data = res.json()
+    res = requests.get(search_url, params=params).json()
+    print(res)
 
-    if len(res_data.get('results', [])) > 0:
-        feature_service = res_data['results'][0]
-        return feature_service['url']
+    if len(res.get('results', [])) > 0:
+        feature_service = res['results'][0]
+        # double check cause search returns best matches (not-exact)
+        print(feature_service)
+        if feature_service['name'] == 'Caracal':
+            return {
+                'url': feature_service['url'],
+                'id': feature_service['id']
+            }
 
 
 def create_custom_source_layer(layer_name, description, feature_service_url, access_token):
@@ -184,6 +198,40 @@ def create_drive_layers(drive_account, feature_service_url, agol_access_token):
     return sheet_id_to_layer_id
 
 
+def create_caracal_folder(username, access_token):
+
+    create_folder_url = f'{AGOL_ROOT}/content/users/{username}/createFolder'
+
+    data = {
+        'title': 'Caracal',
+        'f': 'json',
+        'token': access_token
+    }
+
+    res = requests.post(create_folder_url, data).json()
+    print(res)
+
+
+def create_caracal_group(access_token):
+
+    create_group_url = f'{AGOL_ROOT}/community/createGroup'
+
+    data = {
+        'title': 'Caracal',
+        'description': 'Caracal resources',
+        'access': 'private',
+        'tags': 'caracal',
+        'sortField': 'title',
+        'sortOrder': 'asc',
+        'f': 'json',
+        'token': access_token
+    }
+
+    res = requests.post(create_group_url, data).json()
+    if res.get('success', False):
+        return res['group']['id']
+
+
 def create_realtime_layer(layer_name, feature_service_url, access_token):
 
     create_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/addToDefinition'
@@ -296,7 +344,7 @@ def verify_agol_state_and_get_account(user):
     try:
         agol_account = user.agol_account
         verify_access_token_valid(agol_account)
-        if get_caracal_feature_service_url(agol_account.username, agol_account.oauth_access_token) is None:
+        if get_caracal_feature_service(agol_account.username, agol_account.oauth_access_token) is None:
             return Response({
                 'error': 'feature_service_required',
                 'message': 'The Caracal feature service is missing. Reconnect to ArcGIS Online to initialize it.'
@@ -308,6 +356,40 @@ def verify_agol_state_and_get_account(user):
         }, status=status.HTTP_400_BAD_REQUEST)
     else:
         return agol_account
+
+
+def update_caracal_feature_service_name(new_name, agol_account):
+
+    # first update the title, then the name
+    update_service_title_url = f'{AGOL_ROOT}/content/users/{agol_account.username}/items/{agol_account.feature_service_id}/update'
+
+    data = {
+        'title': new_name,
+        'f': 'json',
+        'token': agol_account.oauth_access_token
+    }
+
+    title_res = requests.post(update_service_title_url, data).json()
+    print(title_res)
+
+    # https://services9.arcgis.com/gNxCsTcw53J7CAhV/arcgis/rest/admin/services/Caracal/FeatureServer/updateDefinition
+
+    # fixme: updating the name has no effect
+    """
+    update_layer_url = f'{agol_account.feature_service_url.replace("services/", "admin/services/")}/updateDefinition'
+    print('update_layer_url', update_layer_url)
+
+    name_data = {
+        'updateDefinition': json.dumps({
+            'name': 'Caracal2'
+        }),
+        'f': 'json',
+        'token': agol_account.oauth_access_token
+    }
+
+    name_res = requests.post(update_layer_url, name_data).json()
+    print(name_res)
+    """
 
 
 def update_disconnected_layer_name(layer, feature_service_url, access_token):

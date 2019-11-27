@@ -46,14 +46,18 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
 
     agol_account = connection.agol_account
 
-    # update layer name...
+    # delete layers
     agol.verify_access_token_valid(agol_account)
-    layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
-    agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+    agol.delete_layers([connection.agol_layer_id, connection.agol_individual_layer_id],
+                       agol_account.feature_service_url, agol_account.oauth_access_token)
 
-    individual_layer = agol.get_layer(connection.agol_individual_layer_id, agol_account.feature_service_url,
-                                      agol_account.oauth_access_token)
-    agol.update_disconnected_layer_name(individual_layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+    # update layer name...
+    #layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
+    #agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+
+    #individual_layer = agol.get_layer(connection.agol_individual_layer_id, agol_account.feature_service_url,
+    #                                  agol_account.oauth_access_token)
+    #agol.update_disconnected_layer_name(individual_layer, agol_account.feature_service_url, agol_account.oauth_access_token)
 
     # TODO: delete individual rule
     aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)

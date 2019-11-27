@@ -7,7 +7,7 @@
 deploy to eb
 --------------------------------------------------------------------------------
 eb deploy caracal-api-prod --profile=tuma-admin
-
+-- if changing models, don't forget to update Lambda models.py as well
 
 initialize database from eb instance
 --------------------------------------------------------------------------------

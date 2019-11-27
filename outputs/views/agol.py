@@ -38,6 +38,11 @@ class DisconnectAgolView(views.APIView):
             for connection in connections:
                 aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
 
+            agol.verify_access_token_valid(agol_account)
+            now = datetime.utcnow().replace(tzinfo=timezone.utc)
+            new_name = f'Caracal (Disconnected - {str(now).split(".")[0]})'
+            agol.update_caracal_feature_service_name(new_name, agol_account)
+
             connections.delete()
             agol_account.delete()
 
@@ -199,14 +204,23 @@ class AgolOauthResponseView(views.APIView):
                                                       oauth_refresh_token=refresh_token,
                                                       username=username)
 
-            feature_service_url = agol.get_caracal_feature_service_url(username, access_token)
-            if feature_service_url is None:
-                feature_service_url = agol.create_caracal_feature_service(username, access_token)
+            # TODO: create group? - not a priority right now
+            #agol.create_caracal_folder(username, access_token) # save id
 
-            print('feature_service_url', feature_service_url)
+            feature_service_data = agol.get_caracal_feature_service(username, access_token)
+            if feature_service_data is None:
+                feature_service_data = agol.create_caracal_feature_service(username, access_token)
 
-            agol_account.feature_service_url = feature_service_url
-            agol_account.save()
+            print('feature_service_data', feature_service_data)
+            if feature_service_data is not None:
+                agol_account.feature_service_url = feature_service_data['url']
+                agol_account.feature_service_id = feature_service_data['id']
+                agol_account.save()
+
+                agol.update_caracal_feature_service_name('Caracal', agol_account)
+            else:
+                print("failed to add AGOL account")
+                agol_account.delete()
 
             return redirect(state['callback'])
 

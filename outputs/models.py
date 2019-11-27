@@ -17,6 +17,7 @@ class AgolAccount(BaseAsset):
     oauth_refresh_token = models.TextField(blank=True, null=True)
     group_id = models.CharField(max_length=255, blank=True, null=True)
     feature_service_url = models.CharField(max_length=200, blank=True, null=True)
+    feature_service_id = models.CharField(max_length=200, blank=True, null=True)
     username = models.CharField(max_length=200, blank=True, null=True)
 
 
