@@ -68,7 +68,7 @@ class AddDriveFileSerializer(serializers.ModelSerializer):
 
 
 class DeleteDriveFileSerializer(serializers.Serializer):
-    account_uid = serializers.UUIDField(required=True)
+    account_uid = serializers.UUIDField()
 
 
 class GetDriveFileAccountsSerializer(serializers.ModelSerializer):

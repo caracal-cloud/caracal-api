@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from account.models import Account, Organization
+from account.models import Account, AlertRecipient, Organization
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 
 
@@ -10,6 +10,15 @@ class AccountAdmin(admin.ModelAdmin):
                     'phone_number', 'registration_method', 'datetime_created']
     search_fields = ['uid_cognito', 'uid_google', 'email', 'organization__name']
     list_filter = ['is_active', 'is_superuser', 'is_staff', 'is_admin']
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
+
+
+@admin.register(AlertRecipient)
+class AlertRecipientAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'email', 'phone_number', 'datetime_created']
+    search_fields = ['uid', 'email', 'phone_number']
+    list_filter = ['is_active']
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
 

@@ -139,27 +139,21 @@ class Account(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = 'accounts'
 
 
+class AlertRecipient(m.Model):
 
+    # fixme: clean up circular import when using BaseAsset
+    uid = m.UUIDField(unique=True, editable=False, default=uuid.uuid4)
+    datetime_created = m.DateTimeField(default=timezone.now)
+    datetime_updated = m.DateTimeField(null=True)
+    datetime_deleted = m.DateTimeField(null=True)
+    is_active = m.BooleanField(default=True)
 
+    organization = m.ForeignKey(Organization, on_delete=m.CASCADE, related_name='alert_recipients')
+    account = m.ForeignKey(Account, on_delete=m.CASCADE, related_name='alert_recipients', null=True)
 
+    email = m.EmailField(max_length=150, blank=True, null=True)
+    phone_number = m.CharField(max_length=50, blank=True, null=True)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    class Meta:
+        ordering = ['datetime_created']
 

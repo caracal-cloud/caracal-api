@@ -1,4 +1,5 @@
 
+from botocore.exceptions import ParamValidationError
 from datetime import datetime
 from datetime import timezone as tz
 from django.conf import settings
@@ -11,15 +12,45 @@ import sentry_sdk
 import traceback
 import uuid
 
-from account.models import Account, Organization
+from account.models import Account, AlertRecipient, Organization
 from auth import cognito
 from caracal.common import aws, constants, image, names
 from caracal.common.fields import CaseInsensitiveEmailField
-from botocore.exceptions import ParamValidationError
 
 
-class AddRecipientSerializer(serializers.Serializer):
-    pass
+class AddRecipientSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AlertRecipient
+        fields = ['email', 'phone_number']
+
+    def validate(self, attrs):
+
+        organization = self.context['request'].user.organization
+
+        if not attrs.get('email') and not attrs.get('phone_number'):
+            raise serializers.ValidationError("email or phone_number required")
+
+        if attrs.get('email') and attrs.get('phone_number'):
+            raise serializers.ValidationError("either email or phone_number, not both")
+
+        # check if contact details exist for an active recipient at an organization
+        if attrs.get('email'):
+            try:
+                AlertRecipient.objects.get(email=attrs['email'], organization=organization, is_active=True)
+                raise serializers.ValidationError("email already exists")
+            except AlertRecipient.DoesNotExist:
+                pass
+
+        if attrs.get('phone_number'):
+            try:
+                AlertRecipient.objects.get(phone_number=attrs['phone_number'], organization=organization, is_active=True)
+                raise serializers.ValidationError("phone_number already exists")
+            except AlertRecipient.DoesNotExist:
+                pass
+
+        return attrs
+
 
 class ConfirmForgotPasswordSerializer(serializers.Serializer):
 
@@ -29,7 +60,7 @@ class ConfirmForgotPasswordSerializer(serializers.Serializer):
 
 
 class DeleteRecipientSerializer(serializers.Serializer):
-    pass
+    recipient_uid = serializers.UUIDField()
 
 
 class ForceOrganizationUpdateSerializer(serializers.Serializer):
@@ -105,8 +136,11 @@ class GetProfileSerializer(serializers.ModelSerializer):
                   'logo_url']
 
 
-class GetRecipientsSerializer(serializers.Serializer):
-    pass
+class GetRecipientsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = AlertRecipient
+        fields = ['uid', 'email', 'phone_number', 'datetime_created']
 
 
 class LoginSerializer(serializers.Serializer):
