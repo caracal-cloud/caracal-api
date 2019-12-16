@@ -44,13 +44,11 @@ class GetRtIndividualsSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='rt-individual-detail')
 
-    # TODO: calculate distances with monthly_paths
-
     class Meta:
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'subtype', 'sex',
-                  'blood_type', 'call_sign', 'datetime_last_position']
+                  'blood_type', 'call_sign']
 
 
 class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
@@ -61,7 +59,7 @@ class GetCollarIndividualDetailSerializer(serializers.ModelSerializer):
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'subtype', 'sex',
-                  'blood_type', 'call_sign', 'datetime_last_position']
+                  'blood_type', 'call_sign']
 
 
 class UpdateRtAccountSerializer(serializers.Serializer):

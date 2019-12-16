@@ -70,7 +70,7 @@ class GetRadioIndividualsSerializer(serializers.HyperlinkedModelSerializer):
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'sex', 'subtype', 'blood_type', 'call_sign',
-                  'datetime_last_position', 'phone_number']
+                  'phone_number']
 
 
 class GetRadioIndividualDetailSerializer(serializers.ModelSerializer):
@@ -79,7 +79,7 @@ class GetRadioIndividualDetailSerializer(serializers.ModelSerializer):
         model = RealTimeIndividual
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
                   'status', 'name', 'subtype', 'sex', 'phone_number',
-                  'blood_type', 'call_sign','datetime_last_position']
+                  'blood_type', 'call_sign']
 
 
 class UpdateRadioIndividualSerializer(serializers.Serializer):
