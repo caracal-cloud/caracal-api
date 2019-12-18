@@ -37,7 +37,11 @@ class AddCallView(generics.GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(True)
+        try:
+            serializer.is_valid(False)
+        except:
+            print(serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')
@@ -58,7 +62,9 @@ class AddCallView(generics.GenericAPIView):
         except IntegrityError:
             pass
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response({
+            'success': True
+        }, status=status.HTTP_201_CREATED)
 
 
 class AddContactView(generics.GenericAPIView):
@@ -94,7 +100,9 @@ class AddContactView(generics.GenericAPIView):
             print('integrity')
             pass
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response({
+            'success': True
+        }, status=status.HTTP_201_CREATED)
 
 
 class AddLocationView(generics.GenericAPIView):
@@ -124,7 +132,9 @@ class AddLocationView(generics.GenericAPIView):
         except IntegrityError:
             pass
 
-        return Response(status=status.HTTP_201_CREATED)
+        return Response({
+            'success': True
+        }, status=status.HTTP_201_CREATED)
 
 
 class AddTextView(generics.GenericAPIView):
@@ -156,7 +166,10 @@ class AddTextView(generics.GenericAPIView):
         except IntegrityError:
             pass
 
-        return Response(status=status.HTTP_201_CREATED)
+
+        return Response({
+            'success': True
+        }, status=status.HTTP_201_CREATED)
 
 
 class CreateNetworkView(views.APIView):

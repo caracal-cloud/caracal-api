@@ -33,6 +33,9 @@ class Phone(BaseAsset):
         ordering = ['-datetime_created']
         unique_together = ['network', 'device_id']
 
+    def __str__(self):
+        return f'{self.device_id}, {self.name}'
+
 
 # Phone Contacted by Jackal Phone
 
@@ -47,6 +50,9 @@ class OtherPhone(BaseAsset):
     class Meta:
         ordering = ['name', 'phone_number']
         unique_together = ['network', 'phone_number']
+
+    def __str__(self):
+        return f'{self.phone_number}, {self.name}'
 
 # Recordings
 

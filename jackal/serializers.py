@@ -11,7 +11,7 @@ class AddCallSerializer(serializers.Serializer):
     device_id = serializers.CharField(max_length=100)
     datetime_recorded = serializers.DateTimeField()
 
-    is_sent = serializers.BooleanField()
+    is_sent = serializers.BooleanField(required=True)
     other_phone_number = serializers.CharField(max_length=50)
     duration_secs = serializers.IntegerField()
 
