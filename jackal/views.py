@@ -75,7 +75,11 @@ class AddContactView(generics.GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(True)
+        try:
+            serializer.is_valid(False)
+        except:
+            print(serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')
@@ -113,7 +117,11 @@ class AddLocationView(generics.GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(True)
+        try:
+            serializer.is_valid(False)
+        except:
+            print(serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')
@@ -145,7 +153,11 @@ class AddTextView(generics.GenericAPIView):
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(True)
+        try:
+            serializer.is_valid(False)
+        except:
+            print(serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         add_data = serializer.data
         device_id = add_data.pop('device_id')

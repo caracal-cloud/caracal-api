@@ -126,6 +126,8 @@ class Account(AbstractBaseUser, PermissionsMixin):
     temp_google_oauth_access_token_expiry = m.DateTimeField(null=True) # UTC
     temp_google_oauth_refresh_token = m.TextField(null=True)
 
+    is_jackal_enabled = m.BooleanField(default=False)
+
     objects = UserManager()
 
     USERNAME_FIELD = 'email'

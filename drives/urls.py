@@ -19,5 +19,4 @@ urlpatterns = [
 
         path('update_account/', views.UpdateDriveFileAccountView.as_view()),
     ]))
-
 ]

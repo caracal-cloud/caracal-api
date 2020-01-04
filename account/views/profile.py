@@ -56,7 +56,10 @@ class GetAccountStatusView(views.APIView):
     def get(self, request):
 
         user = request.user
+
+        """        
         organization = user.organization
+
         subscription_status = organization.stripe_subscription_status
 
         data = {
@@ -96,6 +99,11 @@ class GetAccountStatusView(views.APIView):
             else:
                 data['status_message'] = f'Your trial expires in {trial_timedelta.days} days.'
                 data['status_level'] = 'warning' if trial_timedelta.days <= 5 else 'info'
+        """
+
+        data = {
+            'is_jackal_enabled': user.is_jackal_enabled
+        }
 
         return Response(data, status=status.HTTP_200_OK)
 

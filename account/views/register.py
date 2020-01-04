@@ -40,7 +40,7 @@ class RegisterView(generics.GenericAPIView):
 
         try:
             uid_cognito = cognito.create_user(account_email, password, registration_method='email')
-            cognito.confirm_account(account_email)
+            #cognito.confirm_account(account_email) not doing this yet...
 
             account = Account.objects.create(uid_cognito=uid_cognito, organization=organization, email=account_email,
                                              name=account_name, phone_number=account_phone_number, is_admin=True)
@@ -76,10 +76,10 @@ class RegisterView(generics.GenericAPIView):
         account.organization.save()        
         """
 
-        tokens = cognito.sign_in_user(account_email, password)
+        #tokens = cognito.sign_in_user(account_email, password)
 
         return Response({
             'account_uid': str(account.uid_cognito),
-            'access_token': tokens['access_token'],
-            'refresh_token': tokens['refresh_token']
+            #'access_token': tokens['access_token'],
+            #'refresh_token': tokens['refresh_token']
         }, status=status.HTTP_201_CREATED)

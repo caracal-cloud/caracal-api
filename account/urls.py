@@ -23,18 +23,18 @@ urlpatterns = [
         path('get_recipients/', alerts.GetRecipientsView.as_view()),
     ])),
     #path('forced_password_reset/', password.ForcedPasswordResetView.as_view()),
-    path('force_organization_update/', profile.ForceOrganizationUpdateView.as_view()), # okay, is this being used?
+    #path('force_organization_update/', profile.ForceOrganizationUpdateView.as_view()),
     path('forgot_password/', password.ForgotPasswordView.as_view()),
-    path('forgot_password_confirm/', password.ForgotPasswordConfirmView.as_view()), # okay
-    path('get_profile/', decorated_get_profile_view), # okay
-    path('get_account_status/', profile.GetAccountStatusView.as_view()), # okay, later remove stripe...
-    path('login/', tokens.LoginView.as_view()), # okay
-    path('logout/', tokens.LogoutView.as_view()), # okay
-    path('refresh/', tokens.RefreshView.as_view()), # okay
-    path('register/', register.RegisterView.as_view()), # okay
+    path('forgot_password_confirm/', password.ForgotPasswordConfirmView.as_view()),
+    path('get_profile/', decorated_get_profile_view),
+    path('get_account_status/', profile.GetAccountStatusView.as_view()),
+    path('login/', tokens.LoginView.as_view()),
+    path('logout/', tokens.LogoutView.as_view()),
+    path('refresh/', tokens.RefreshView.as_view()),
+    path('register/', register.RegisterView.as_view()),
     path('social_auth/', include([
-        path('google/', social_auth.GoogleAuthView.as_view()), # okay
-        path('test/', social_auth.TestSocialAuthView.as_view()) # okay
+        path('google/', social_auth.GoogleAuthView.as_view()),
+        path('test/', social_auth.TestSocialAuthView.as_view())
     ])),
-    path('update_account/', profile.UpdateAccountView.as_view()) # okay
+    path('update_account/', profile.UpdateAccountView.as_view())
 ]
