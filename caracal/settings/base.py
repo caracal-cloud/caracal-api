@@ -1,6 +1,7 @@
+
 from corsheaders.defaults import default_methods, default_headers
-import os
 import stripe # imported in child settings
+import os
 
 APPLICATION_NAME = 'Caracal'
 APPLICATION_SHORT_NAME = 'caracal'
@@ -26,7 +27,6 @@ AGOL_UPDATE_RATE_MINUTES = 10
 COLLARS_GET_DATA_RATE_MINUTES = 15
 DRIVE_KML_UPDATE_RATE_MINUTES = 10
 KML_PERIOD_HOURS = [24, 72, 168, 720]
-
 
 DUMMY_EMAIL = 'dummy@caracal.cloud'
 DUMMY_SHORT_NAME = 'dummy3141592'

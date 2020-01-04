@@ -3,18 +3,16 @@ import datetime
 from django.conf import settings
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-import jwt
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
-import requests
-import sentry_sdk
 import traceback
 import uuid
 
 from account import serializers
 from account.models import Account, Organization
-from auth import cognito, tokens
-from caracal.common import aws, names
+from auth import tokens
+from caracal.common import names
+from caracal.common.aws_utils import cognito
 
 
 class GoogleAuthView(generics.GenericAPIView):
@@ -68,9 +66,8 @@ class GoogleAuthView(generics.GenericAPIView):
                 # create verified user in Cognito - set temp password - pass registration_method for pre-signup
                 # pre-signup will verify and confirm the user
                 pwd = str(uuid.uuid4()).split('-')[0]
-                uid_cognito = aws.create_cognito_user(email, name, pwd, registration_method='google')
+                uid_cognito = cognito.create_user(email, pwd, registration_method='google')
 
-                # do not use create_user to avoid going through Cognito again
                 user = Account.objects.create(uid_cognito=uid_cognito, uid_google=uid_google,
                                               email=email, name=name, is_admin=True,
                                               organization=organization, registration_method='google')
@@ -85,6 +82,7 @@ class GoogleAuthView(generics.GenericAPIView):
         user.custom_refresh_jwt_id = refresh_jwt_id
         user.save()
 
+        # fixme: this is gross
         update_required = user.organization.update_required if user.organization.update_required is not None else False
 
         return Response({

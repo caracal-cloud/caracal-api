@@ -7,7 +7,8 @@ from rest_framework.response import Response
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import agol, aws, connections
+from caracal.common import agol, connections
+from caracal.common.aws_utils import cloudwatch, dynamodb
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from collars import connections as collar_connections
@@ -97,7 +98,7 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         if realtime_account.organization != request.user.organization and not request.user.is_superuser:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        aws.delete_cloudwatch_rule(realtime_account.cloudwatch_get_data_rule_name)
+        cloudwatch.delete_cloudwatch_rule(realtime_account.cloudwatch_get_data_rule_name)
 
         connections.delete_realtime_kml(realtime_account)
 
@@ -285,7 +286,7 @@ class ValidateAccountDetailsView(generics.GenericAPIView):
         serializer = collar_serializers.ValidateAccountDetailsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        global_config = aws.get_global_config()
+        global_config = dynamodb.get_global_config()
 
         provider = serializer.data['provider']
 

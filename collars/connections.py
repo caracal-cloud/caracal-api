@@ -1,7 +1,7 @@
 
 from django.conf import settings
 
-from caracal.common import aws
+from caracal.common.aws_utils import _lambda
 
 
 def schedule_collars_get_data(data, collar_account, organization):
@@ -26,12 +26,12 @@ def schedule_collars_get_data(data, collar_account, organization):
         }
 
     function_name = f'caracal_{settings.STAGE.lower()}_get_realtime_{provider}_data'
-    lambda_function = aws.get_lambda_function(function_name)
+    lambda_function = _lambda.get_lambda_function(function_name)
 
     short_name = organization.short_name
     rule_name = get_collars_get_data_rule_name(short_name, settings.STAGE, provider, species, collar_account.uid)
 
-    aws.schedule_lambda_function(lambda_function['arn'], lambda_function['name'], get_data_rule_input,
+    _lambda.schedule_lambda_function(lambda_function['arn'], lambda_function['name'], get_data_rule_input,
                                  rule_name, settings.COLLARS_GET_DATA_RATE_MINUTES)
 
     return {
@@ -50,7 +50,5 @@ def get_collars_get_data_rule_name(short_name, stage, provider, species, collar_
 
     assert len(rule_name) < 64
     return rule_name
-
-
 
 

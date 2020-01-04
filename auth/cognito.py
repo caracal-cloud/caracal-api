@@ -3,7 +3,8 @@ import botocore
 from django.conf import settings
 import os
 from rest_framework.authentication import get_authorization_header
-from warrant import Cognito
+
+from caracal.common.aws_utils import exceptions, get_boto_client
 
 
 def confirm_forgot_password(email, confirmation_code, new_password, cognito_idp_client):
@@ -33,23 +34,7 @@ def get_cognito_idp_client():
     return boto3.client('cognito-idp', **kwargs)
 
 
-def get_warrant_wrapper_client(email=None):
-    return Cognito(user_pool_id=settings.COGNITO_USER_POOL_ID,
-                   client_id=settings.COGNITO_APP_ID,
-                   user_pool_region=settings.AWS_REGION,
-                   access_key=settings.AWS_ACCESS_KEY_ID,
-                   secret_key=settings.AWS_SECRET_ACCESS_KEY,
-                   username=email)
-
-
-def get_tokens(warrant_client, password):
-    warrant_client.authenticate(password)
-    return {
-        'access_token': warrant_client.access_token,
-        'refresh_token': warrant_client.refresh_token
-    }
-
-
+# TODO: refactor this to use exceptions like ql
 def register(email, password, cognito_idp_client):
     client = get_cognito_idp_client()
     params = {
@@ -103,6 +88,38 @@ def remove_testing_users():
                 sub = user['Username']
                 client.admin_delete_user(UserPoolId=settings.COGNITO_USER_POOL_ID, Username=sub)
                 break
+
+
+def sign_in_user(email, password):
+
+    client = get_boto_client('cognito-idp')
+
+    try:
+        response = client.admin_initiate_auth(
+            UserPoolId=settings.COGNITO_USER_POOL_ID,
+            ClientId=settings.COGNITO_APP_ID,
+            AuthFlow='ADMIN_NO_SRP_AUTH', # must configure app client
+            AuthParameters={
+                'USERNAME': email,
+                'PASSWORD': password
+            }
+        )
+    except client.exceptions.NotAuthorizedException:
+        raise exceptions.NotAuthorizedException
+    except client.exceptions.UserNotConfirmedException:
+        raise exceptions.UserNotConfirmedException
+    except client.exceptions.UserNotFoundException:
+        raise exceptions.UserNotFoundException
+
+    # check if password change required
+    if response.get('ChallengeName') == 'NEW_PASSWORD_REQUIRED':
+        raise exceptions.NewPasswordRequiredError
+
+    return {
+        'access_token': response['AuthenticationResult']['AccessToken'],
+        'refresh_token': response['AuthenticationResult']['RefreshToken'],
+        'id_token': response['AuthenticationResult']['IdToken']
+    }
 
 
 def sign_out_user(email):

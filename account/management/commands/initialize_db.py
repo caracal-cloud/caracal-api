@@ -5,9 +5,8 @@ import os
 import uuid
 
 from account.models import Account, Organization
-from auth import cognito
-from caracal.common import aws, stripe_utils
-
+from caracal.common import stripe_utils
+from caracal.common.aws_utils import cognito, dynamodb
 
 from .utils import common
 
@@ -50,14 +49,16 @@ class Command(BaseCommand):
 
             # create dummy user
             dummy_org = Organization.objects.create(name='Dummy Inc.', short_name=settings.DUMMY_SHORT_NAME)
-            dummy_user = Account.objects.create_user(settings.DUMMY_EMAIL, 'Kigali123',
-                                                     cognito.get_cognito_idp_client(),
-                                                     organization=dummy_org,
-                                                     name='Dummy Dumbo',
-                                                     phone_number='+250780177234',
-                                                     is_admin=True)
-            cognito.confirm_user(settings.DUMMY_EMAIL)
 
+            dummy_cognito_uid = cognito.create_user(settings.DUMMY_EMAIL, 'Kigali123')
+
+            dummy_user = Account.objects.create(uid_cognito=dummy_cognito_uid, organization=dummy_org,
+                                                email=settings.DUMMY_EMAIL, name='Dummy Dumbo',
+                                                phone_number='+250780177236', is_admin=True)
+
+            cognito.confirm_account(settings.DUMMY_EMAIL)
+
+            """
             # create Stripe Customer
             customer = stripe_utils.create_customer(dummy_user.email, dummy_user.name, dummy_user.phone_number)
             plan = stripe_utils.get_plan('Individual')
@@ -66,11 +67,12 @@ class Command(BaseCommand):
             dummy_org.stripe_plan_id = plan['id']
             dummy_org.stripe_subscription_id = subscription['id']
             dummy_org.stripe_subscription_status = subscription['status']
-            dummy_org.save()
+            dummy_org.save()            
+            """
 
             # create credentials for S3
             password = str(uuid.uuid4()).split('-')[0]
-            aws.create_dynamo_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
+            dynamodb.create_dynamodb_credentials(settings.DUMMY_SHORT_NAME, 'admin', password, ['all'])
 
         elif response == 'update':
             try:

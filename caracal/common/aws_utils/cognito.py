@@ -3,8 +3,7 @@ from botocore.exceptions import ClientError, ParamValidationError
 from django.conf import settings
 import uuid
 
-from caracal.common.aws_utils import get_boto_client
-from caracal.common.aws_utils import exceptions
+from caracal.common.aws_utils import exceptions, get_boto_client
 
 
 def change_password(old_password, new_password, access_token):
@@ -23,7 +22,6 @@ def change_password(old_password, new_password, access_token):
         raise exceptions.LimitExceededException
     except ParamValidationError:
         raise exceptions.ParamValidationError
-
 
 
 def confirm_account(email):
@@ -141,6 +139,7 @@ def delete_testing_users():
 def get_is_email_verified(email):
 
     client = get_boto_client('cognito-idp')
+
     cognito_response = client.admin_get_user(
         UserPoolId=settings.COGNITO_USER_POOL_ID,
         Username=email

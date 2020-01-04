@@ -23,8 +23,8 @@ class ForceOrganizationUpdateView(generics.GenericAPIView):
         status.HTTP_400_BAD_REQUEST: '',
     }, security=[settings.SWAGGER_SETTINGS['SECURITY_DEFINITIONS']], operation_id='account - force organization update')
     def post(self, request):
+        # first check if update required
         user = request.user
-
         if not user.organization.update_required:
             return Response({
                 'error': 'update_not_required'

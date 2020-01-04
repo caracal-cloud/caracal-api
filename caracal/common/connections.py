@@ -2,7 +2,8 @@
 from datetime import datetime, timezone
 from django.conf import settings
 
-from caracal.common import aws, agol
+from caracal.common import agol
+from caracal.common.aws_utils import cloudwatch, _lambda
 from outputs.models import AgolAccount, DataConnection
 
 
@@ -60,7 +61,7 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
     #agol.update_disconnected_layer_name(individual_layer, agol_account.feature_service_url, agol_account.oauth_access_token)
 
     # TODO: delete individual rule
-    aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+    cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
 
     connection.delete()
 
@@ -70,7 +71,7 @@ def schedule_realtime_agol(type, source, realtime_account, connection, organizat
     # TODO: schedule individual
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_agol'
-    update_agol_function = aws.get_lambda_function(function_name)
+    update_agol_function = _lambda.get_lambda_function(function_name)
 
     update_agol_input = {
         'connection_uid': str(connection.uid),
@@ -79,7 +80,7 @@ def schedule_realtime_agol(type, source, realtime_account, connection, organizat
     short_name = organization.short_name
     rule_name = get_realtime_update_agol_rule_name(short_name, realtime_account.uid, settings.STAGE, type, source)
 
-    aws.schedule_lambda_function(update_agol_function['arn'], update_agol_function['name'], update_agol_input,
+    _lambda.schedule_lambda_function(update_agol_function['arn'], update_agol_function['name'], update_agol_input,
                                  rule_name, settings.AGOL_UPDATE_RATE_MINUTES)
 
     connection.cloudwatch_update_rule_name = rule_name
@@ -109,7 +110,7 @@ def delete_realtime_kml(realtime_account):
     if realtime_account.cloudwatch_update_kml_rule_names:
         update_kml_rule_names = realtime_account.cloudwatch_update_kml_rule_names.split(',')
         for rule_name in update_kml_rule_names:
-            aws.delete_cloudwatch_rule(rule_name)
+            cloudwatch.delete_cloudwatch_rule(rule_name)
 
     realtime_account.cloudwatch_update_kml_rule_names = None
     realtime_account.save()
@@ -118,7 +119,7 @@ def delete_realtime_kml(realtime_account):
 def schedule_realtime_kml(type, source, realtime_account, organization):
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_kml'
-    update_kml_function = aws.get_lambda_function(function_name)
+    update_kml_function = _lambda.get_lambda_function(function_name)
 
     rule_names = list()
     for period in settings.KML_PERIOD_HOURS:
@@ -135,7 +136,7 @@ def schedule_realtime_kml(type, source, realtime_account, organization):
         rule_name = get_realtime_update_kml_rule_name(short_name, realtime_account.uid, settings.STAGE, type, source, period)
         rule_names.append(rule_name)
 
-        aws.schedule_lambda_function(update_kml_function['arn'], update_kml_function['name'], update_kml_input,
+        _lambda.schedule_lambda_function(update_kml_function['arn'], update_kml_function['name'], update_kml_input,
                                      rule_name, rate_minutes)
 
     realtime_account.cloudwatch_update_kml_rule_names = ','.join(rule_names)

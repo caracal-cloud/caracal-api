@@ -4,7 +4,7 @@ from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
-from caracal.common import aws
+from caracal.common.aws_utils import dynamodb
 
 from public import serializers, tasks
 
@@ -13,7 +13,7 @@ class ContactView(generics.GenericAPIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
-    serializer_class =  serializers.ContactSerializer
+    serializer_class = serializers.ContactSerializer
     throttle_classes = [AnonRateThrottle]
 
     # rate limit this thing...
@@ -41,7 +41,7 @@ class SpeciesSubtypesView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        global_config = aws.get_global_config()
+        global_config = dynamodb.get_global_config()
         species_subtypes = global_config['SPECIES_SUBTYPES']
         return Response(status=status.HTTP_200_OK, data=species_subtypes)
 

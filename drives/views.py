@@ -12,8 +12,9 @@ from sentry_sdk import capture_message
 from account.models import Account
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import agol, aws, connections
+from caracal.common import agol
 from caracal.common import google as google_utils
+from caracal.common.aws_utils import cloudwatch
 from caracal.common.models import get_num_sources
 from drives import serializers
 from drives import connections as drives_connections
@@ -109,7 +110,7 @@ class DeleteDriveFileAccountView(generics.GenericAPIView):
         if drive_account.organization != request.user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        aws.delete_cloudwatch_rule(drive_account.cloudwatch_get_data_rule_name)
+        cloudwatch.delete_cloudwatch_rule(drive_account.cloudwatch_get_data_rule_name)
 
         drives_connections.delete_drives_kml(drive_account)
 

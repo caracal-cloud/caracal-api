@@ -12,7 +12,8 @@ from urllib.parse import urlencode
 
 from account.models import Account
 from auth.backends import CognitoAuthentication
-from caracal.common import agol, aws
+from caracal.common import agol
+from caracal.common.aws_utils import cloudwatch
 from outputs import serializers
 from outputs.models import AgolAccount
 
@@ -36,7 +37,7 @@ class DisconnectAgolView(views.APIView):
         else:
             connections = agol_account.connections.all()
             for connection in connections:
-                aws.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+                cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
 
             agol.verify_access_token_valid(agol_account)
             now = datetime.utcnow().replace(tzinfo=timezone.utc)

@@ -5,18 +5,39 @@ from rest_framework import permissions, status, generics, views
 from rest_framework.authentication import get_authorization_header
 from rest_framework.response import Response
 import sentry_sdk
-import warrant
 
-from auth import cognito
-from auth.backends import CognitoAuthentication
 from account import serializers
 from account.models import Account
+from auth.backends import CognitoAuthentication
+from caracal.common.aws_utils import cognito, exceptions
 
 
-invalid_response = Response({
+incorrect_response = Response({
     'error': 'invalid_credentials',
     'detail': 'invalid email/password combination'
 }, status=status.HTTP_403_FORBIDDEN)
+
+
+def get_tokens(email, password):
+
+    try:
+        tokens = cognito.sign_in_user(email, password)
+    except exceptions.NotAuthorizedException:
+        return incorrect_response
+    except exceptions.UserNotConfirmedException:
+        return Response({ # this won't be happening since users are auto-confirmed
+            'error': 'account_not_confirmed',
+            'detail': 'please verify your email before logging in'
+        }, status=status.HTTP_403_FORBIDDEN)
+    except exceptions.UserNotFoundException:
+        return incorrect_response
+    except exceptions.NewPasswordRequiredError:
+        return Response({
+            'error': 'password_change_required',
+            'detail': 'use forced password reset flow'
+        }, status=status.HTTP_403_FORBIDDEN)
+    else:
+        return tokens
 
 
 class LoginView(generics.GenericAPIView):
@@ -33,55 +54,22 @@ class LoginView(generics.GenericAPIView):
         status.HTTP_401_UNAUTHORIZED: 'invalid_credentials'
     }, security=[], operation_id='account - login')
     def post(self, request):
-        serializer = serializers.LoginSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.data['email'].lower()
         password = serializer.data['password']
 
         try:
-            user = Account.objects.get(email=email)
+            Account.objects.get(email=email, is_active=True)
         except Account.DoesNotExist:
-            return invalid_response
-        else:
-            if not user.is_active:
-                return invalid_response
+            return incorrect_response
 
-        invalid_credentials_message = 'invalid email/password combination'
-
-        warrant_client = cognito.get_warrant_wrapper_client(email)
-        try:
-            tokens = cognito.get_tokens(warrant_client, password)
-        except warrant_client.client.exceptions.UserNotConfirmedException:
-            return Response({
-                'error': 'email_not_confirmed',
-                'message': 'email not confirmed'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except warrant_client.client.exceptions.PasswordResetRequiredException: # RESET_REQUIRED
-            return Response({
-                'error': 'password_reset_required',
-                'message': 'use forgot password flow'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except warrant.exceptions.ForceChangePasswordException: # FORCE_CHANGE_PASSWORD
-            return Response({
-                'error': 'password_change_required',
-                'message': 'use forced password change flow'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        except warrant_client.client.exceptions.NotAuthorizedException:
-            return Response({
-                'error': 'invalid_credentials',
-                'message': invalid_credentials_message
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        except warrant_client.client.exceptions.UserNotFoundException:
-            return Response({
-                'error': 'invalid_credentials',
-                'message': invalid_credentials_message
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            user.custom_access_jwt_id = None
-            user.custom_refresh_jwt_id = None
-            user.save()
-            return Response(tokens, status=status.HTTP_200_OK)
+        token_response = get_tokens(email, password)
+        if isinstance(token_response, Response): # failed
+            return token_response
+        else: # successful, logout of custom auth?
+            return Response(token_response, status=status.HTTP_200_OK)
 
 
 class LogoutView(views.APIView):
@@ -97,16 +85,9 @@ class LogoutView(views.APIView):
         status.HTTP_401_UNAUTHORIZED: 'not_authorized'
     }, security=[], operation_id='account - logout')
     def post(self, request):
-        access_token = get_authorization_header(request).split()[1].decode('utf-8')
-        client = cognito.get_cognito_idp_client()
 
-        response = client.global_sign_out(AccessToken=access_token)
-
-        if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-            return Response(status=status.HTTP_200_OK)
-        else:
-            sentry_sdk.capture_message("Sign out failed", level="warning")
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        cognito.sign_out_user(request.user.email)
+        return Response(status=status.HTTP_200_OK)
 
 
 class RefreshView(generics.GenericAPIView):
@@ -122,27 +103,18 @@ class RefreshView(generics.GenericAPIView):
         status.HTTP_400_BAD_REQUEST: 'invalid_access_token',
     }, security=[], operation_id='account - refresh')
     def post(self, request):
-        serializer = serializers.RefreshSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         refresh_token = serializer.data['refresh_token']
 
-        cognito_idp_client = cognito.get_cognito_idp_client()
         try:
-            res = cognito_idp_client.initiate_auth(
-                ClientId=settings.COGNITO_APP_ID,
-                AuthFlow='REFRESH_TOKEN_AUTH',
-                AuthParameters={
-                    'REFRESH_TOKEN': refresh_token,
-                }
-            )
-        except cognito_idp_client.exceptions.NotAuthorizedException:
+            access_token = cognito.refresh_access_token(refresh_token)
+        except exceptions.NotAuthorizedException:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        else:
             return Response({
-                'error': 'invalid_access_token',
-                'message': 'invalid access token'
-            }, status=status.HTTP_403_FORBIDDEN)
+                'access_token': access_token,
+            }, status=status.HTTP_200_OK)
 
-        return Response({
-            'access_token': res['AuthenticationResult']['AccessToken'],
-        }, status=status.HTTP_200_OK)
 

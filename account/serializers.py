@@ -1,20 +1,14 @@
 
-from botocore.exceptions import ParamValidationError
 from datetime import datetime
 from datetime import timezone as tz
 from django.conf import settings
-from django.db import IntegrityError
-from io import BytesIO
 import pytz
 from rest_framework import serializers, status
-from rest_framework.response import Response
-import sentry_sdk
-import traceback
 import uuid
 
 from account.models import Account, AlertRecipient, Organization
-from auth import cognito
-from caracal.common import aws, constants, image, names
+from caracal.common import constants, image
+from caracal.common.aws_utils import dynamodb, s3
 from caracal.common.fields import CaseInsensitiveEmailField
 
 
@@ -97,7 +91,7 @@ class ForceOrganizationUpdateSerializer(serializers.Serializer):
         account.organization.save()
 
         password = str(uuid.uuid4()).split('-')[0]
-        aws.create_dynamo_credentials(validated_data['organization_short_name'], 'admin', password, ['all'])
+        dynamodb.create_dynamodb_credentials(validated_data['organization_short_name'], 'admin', password, ['all'])
 
         return account
 
@@ -125,7 +119,7 @@ class GetProfileSerializer(serializers.ModelSerializer):
     logo_url = serializers.SerializerMethodField()
     def get_logo_url(self, obj):
         if obj.organization.logo_object_key:
-            url = aws.get_presigned_url(obj.organization.logo_object_key, settings.S3_USER_DATA_BUCKET, 7200)
+            url = s3.get_presigned_url(obj.organization.logo_object_key, settings.S3_USER_DATA_BUCKET, 7200)
             return url
 
     class Meta:
@@ -183,60 +177,10 @@ class RegisterSerializer(serializers.Serializer):
                     'message': 'organization short name must be one word'
                 })
 
-        unknown =  set(self.initial_data) - set(self.fields)
+        unknown = set(self.initial_data) - set(self.fields)
         if unknown:
             raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
         return attrs
-
-
-    def create(self, validated_data):
-
-        organization_name = validated_data['organization_name']
-        account_name = validated_data['account_name']
-        account_email = validated_data['account_email']
-        account_password = validated_data['account_password']
-
-        account_phone_number = validated_data.get('account_phone_number')
-        organization_short_name = names.generate_unique_short_name()
-
-        organization = Organization.objects.create(name=organization_name, short_name=organization_short_name)
-
-        cognito_idp_client = cognito.get_cognito_idp_client()
-
-        try:
-            account = Account.objects.create_user(account_email,
-                                               account_password,
-                                               cognito_idp_client,
-                                               organization=organization,
-                                               name=account_name,
-                                               phone_number=account_phone_number,
-                                               is_admin=True)
-
-            # create credentials for S3
-            password = str(uuid.uuid4()).split('-')[0]
-            aws.create_dynamo_credentials(organization_short_name, 'admin', password, ['all'])
-            return account
-
-        except (IntegrityError, cognito_idp_client.exceptions.UsernameExistsException):
-            organization.delete()
-            raise serializers.ValidationError({
-                'error': 'email_already_exists',
-                'message': 'email already exists'
-            })
-
-        except ParamValidationError:
-            organization.delete()
-            return Response({
-                'error': 'invalid_parameter',
-                'message': 'invalid parameter, min password length 7'
-            })
-
-        except cognito_idp_client.exceptions.InvalidPasswordException:
-            organization.delete()
-            return Response({
-                'error': 'invalid_password',
-                'message': 'invalid password, min length 7'
-            })
 
 
 class SocialAuthGoogleSerializer(serializers.Serializer):
@@ -269,7 +213,7 @@ class UpdateAccountSerializer(serializers.Serializer):
             object_key = save_logo(logo, account)
             account.organization.logo_object_key = object_key
 
-        short_name =  validated_data.get('organization_short_name')
+        short_name = validated_data.get('organization_short_name')
         if short_name is not None and short_name != account.organization.short_name:
             account.organization.short_name = short_name
             # TODO: update short_name elsewhere...
@@ -303,9 +247,11 @@ def save_logo(logo, account):
     logo.file.seek(0)
     png_logo = image.get_rgba_image(logo.file.read())
     png_logo_buffer = image.get_image_bufer(png_logo)
+
     # standardizing ending so Lambda can use suffix filter
     object_key = f'{account.organization.short_name}/static/logo.{constants.DEFAULT_IMAGE_FORMAT}'
-    aws.put_s3_item(png_logo_buffer.getvalue(), settings.S3_USER_DATA_BUCKET, object_key)
+    s3.put_s3_item(png_logo_buffer.getvalue(), settings.S3_USER_DATA_BUCKET, object_key)
+
     return object_key
 
 

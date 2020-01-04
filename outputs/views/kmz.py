@@ -5,7 +5,7 @@ from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 
 from auth.backends import CognitoAuthentication
-from caracal.common import aws
+from caracal.common.aws_utils import dynamodb, s3
 
 
 class GetKmzHrefsView(views.APIView):
@@ -16,11 +16,11 @@ class GetKmzHrefsView(views.APIView):
     def get(self, request):
         user = request.user
 
-        kmz_object_keys = aws.get_s3_files(f'{user.organization.short_name}/kmz', '.kmz', settings.S3_USER_DATA_BUCKET)
+        kmz_object_keys = s3.get_files(f'{user.organization.short_name}/kmz', '.kmz', settings.S3_USER_DATA_BUCKET)
 
         # [{'p': 'cd13ed3c', 'u': 'admin', 'permissions': ['all']}]
         # todo: returning all for now...
-        credentials = aws.get_dynamo_credentials(user.organization.short_name)
+        credentials = dynamodb.get_dynamodb_credentials(user.organization.short_name)
 
         hrefs = dict()
         for object_key in kmz_object_keys:
@@ -40,4 +40,6 @@ class GetKmzHrefsView(views.APIView):
                 hrefs[category].append(href)
 
         return Response(data=hrefs, status=status.HTTP_200_OK)
+
+
 

@@ -6,7 +6,8 @@ import stripe
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from caracal.common import agol, aws
+from caracal.common import agol
+from caracal.common.aws_utils import kinesis
 from caracal.common.models import get_num_sources
 from custom_source import serializers
 from custom_source import connections as source_connections
@@ -52,7 +53,7 @@ class AddRecordView(views.APIView):
             'temp_c': serializer.data.get('temp_c')
         }
 
-        aws.put_firehose_record(payload, 'caracal_realtime_user')
+        kinesis.put_firehose_record(payload, 'caracal_realtime_user') # fixme: move to env vars
 
         return Response(status=status.HTTP_201_CREATED)
 

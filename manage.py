@@ -2,7 +2,7 @@
 import os
 import sys
 
-from auth import cognito
+from caracal.common.aws_utils import cognito
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == "test":
@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     if os.environ['DJANGO_SETTINGS_MODULE'] == 'caracal.settings.testing':
         if input('Do you want to clear testing Cognito users? [y/n] ').lower() in ['y', 'yes']:
-            cognito.remove_testing_users()
+            cognito.delete_testing_users()
 
     try:
         from django.core.management import execute_from_command_line

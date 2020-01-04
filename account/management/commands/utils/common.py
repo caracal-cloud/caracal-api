@@ -10,7 +10,8 @@ from activity.models import ActivityAlert, ActivityChange
 from account.models import Account, Organization
 from auth import cognito
 
-from caracal.common import aws, constants, stripe_utils
+from caracal.common import constants, stripe_utils
+from caracal.common.aws_utils import dynamodb
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 from drives.models import DriveFileAccount
 from outputs.models import DataConnection
@@ -81,7 +82,7 @@ def add_dummy_collars(account):
 
     organization = account.organization
 
-    global_config = aws.get_global_config()
+    global_config = dynamodb.get_global_config()
     species_subtypes = global_config['SPECIES_SUBTYPES']
 
     names = ['James', 'Casey', 'Crosby', 'Carly', 'Kevin',
