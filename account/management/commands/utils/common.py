@@ -1,6 +1,7 @@
 
-import datetime
+from datetime import datetime, timedelta, timezone
 from django.conf import settings
+from django.contrib.gis.geos import Point
 from django.utils import timezone
 import json
 import random
@@ -14,6 +15,7 @@ from caracal.common import constants, stripe_utils
 from caracal.common.aws_utils import dynamodb
 from caracal.common.models import RealTimeAccount, RealTimeIndividual, RealTimePosition, RealTimePositionHash
 from drives.models import DriveFileAccount
+from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 from outputs.models import DataConnection
 
 
@@ -135,6 +137,83 @@ def add_dummy_collars(account):
                 RealTimeIndividual.objects.create(**individual)
 
 
+def add_dummy_jackal_calls(network, phone, other_phone):
+
+    now = datetime.now().replace(tzinfo=timezone.utc)
+
+    for i in range(10):
+        Call.objects.create(network=network, phone=phone, other_phone=other_phone, 
+                            datetime_recorded=now-timedelta(hours=i),
+                            is_sent=bool(random.getrandbits(1)), duration_secs=random.randint(10, 99))
+
+
+def add_dummy_jackal_contacts(network, phone, other_phone):
+    now = datetime.now().replace(tzinfo=timezone.utc)
+    Contact.objects.create(network=network, phone=phone, other_phone=other_phone, datetime_recorded=now)
+
+
+def add_dummy_jackal_locations(network, phone):
+
+    now = datetime.now().replace(tzinfo=timezone.utc)
+
+    for i in range(20):
+
+        lon = round(random.uniform(10.0, 20.0), 6)
+        lat = round(random.uniform(10.0, 20.0), 6)
+        point = Point(lon, lat, srid=settings.SRID)   
+
+        Location.objects.create(network=network, phone=phone, position=point,
+                                accuracy_m=random.randint(1, 20),
+                                datetime_recorded=now-timedelta(hours=i)) 
+
+
+
+def add_dummy_jackal_texts(network, phone, other_phone):
+
+    now = datetime.now().replace(tzinfo=timezone.utc)
+
+    texts = [
+        {
+            'is_sent': True,
+            'message': 'Hello how are you?',
+            'datetime_recorded': now - timedelta(hours=4)
+        },
+        {
+            'is_sent': False,
+            'message': 'I am great! How are you?',
+            'datetime_recorded': now - timedelta(hours=2)
+        },
+        {
+            'is_sent': True,
+            'message': 'All is well. Did you watch the football game?',
+            'datetime_recorded': now - timedelta(hours=2)
+        },
+        {
+            'is_sent': False,
+            'message': 'Yea, I can\'t believe they lost! What a shame.',
+            'datetime_recorded': now - timedelta(hours=1)
+        }
+    ]
+
+    for text in texts:
+        Text.objects.create(network=network, phone=phone, other_phone=other_phone, **text)
+
+
+
+def add_dummy_jackal(account):
+    print('...adding dummy jackal')
+
+    network = Network.objects.create(organization=account.organization, write_key='abc123')
+    phone = Phone.objects.create(network=network, device_id='p1', name='Test Phone 1')
+    other_phone = OtherPhone.objects.create(network=network, phone_number='+18057292585')
+
+    add_dummy_jackal_calls(network, phone, other_phone)
+    add_dummy_jackal_contacts(network, phone, other_phone)
+    add_dummy_jackal_locations(network, phone)
+    add_dummy_jackal_texts(network, phone, other_phone)
+
+
+
 # add dummy drives or only stuff that user can't receive anonymous data?
 
 def add_dummy_radios(account):
@@ -194,6 +273,15 @@ def clear_all_content():
     organizations = Organization.objects.all()
     for organization in organizations:
         stripe_utils.delete_customer(organization.stripe_customer_id)
+
+    # Jackal
+    Call.objects.all().delete()
+    Contact.objects.all().delete()
+    Location.objects.all().delete()
+    Text.objects.all().delete()
+    OtherPhone.objects.all().delete()
+    Phone.objects.all().delete()
+    Network.objects.all().delete()
 
     ActivityAlert.objects.all().delete()
     ActivityChange.objects.all().delete()

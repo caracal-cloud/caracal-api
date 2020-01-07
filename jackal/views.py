@@ -209,6 +209,63 @@ class CreateNetworkView(views.APIView):
         }, status=status.HTTP_201_CREATED)
 
 
+
+class GetCallsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.CallSerializer
+
+    def get_queryset(self):
+        return get_recording_queryset(self.request, Call)
+
+
+class GetContactsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.ContactSerializer
+
+    def get_queryset(self):
+        return get_recording_queryset(self.request, Contact)
+
+
+class GetLocationsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.LocationSerializer
+
+    def get_queryset(self):
+        return get_recording_queryset(self.request, Location)
+
+
+class GetTextsView(generics.ListAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.TextSerializer
+
+    def get_queryset(self):
+        return get_recording_queryset(self.request, Text)
+
+
+def get_recording_queryset(request, _class):
+        serializer = serializers.GetPhoneRecordingQueryParamSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        phone_uid = serializer.data['phone_uid']
+
+        try:
+            phone = Phone.objects.get(uid=phone_uid)
+        except:
+            return _class.objects.none()
+
+        if phone.network.organization != request.user.organization:
+            return _class.objects.none()
+
+        return _class.objects.filter(phone=phone)
+
+
 class GetPhonesView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]

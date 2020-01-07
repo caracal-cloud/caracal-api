@@ -106,6 +106,10 @@ class LocationSerializer(serializers.ModelSerializer):
     def get_latitude(self, location):
         return location.position.coords[1]
 
+    accuracy_m = serializers.SerializerMethodField()
+    def get_accuracy_m(self, location):
+        return round(float(location.accuracy_m), 2)
+
     class Meta:
         model = Location
         fields = ['datetime_recorded', 'longitude', 'latitude', 'accuracy_m']
@@ -131,6 +135,10 @@ class GetPhoneDetailSerializer(serializers.ModelSerializer):
         model = Phone
         fields = ['uid', 'device_id', 'status', 'name', 'description', 'mark', 'phone_numbers',
                   'calls', 'contacts', 'locations', 'texts']
+
+
+class GetPhoneRecordingQueryParamSerializer(serializers.Serializer):
+    phone_uid = serializers.UUIDField()
 
 
 class UpdatePhoneSerializer(serializers.Serializer):

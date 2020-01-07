@@ -89,6 +89,7 @@ class Command(BaseCommand):
         common.add_dummy_alerts(dummy_user)
         common.add_dummy_changes(dummy_user)
         common.add_dummy_collars(dummy_user)
+        common.add_dummy_jackal(dummy_user)
         common.add_dummy_radios(dummy_user)
 
 

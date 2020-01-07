@@ -28,7 +28,7 @@ DATABASES = {
         'USER': os.environ['LOCAL_PG_USER'],
         'PASSWORD': os.environ['LOCAL_PG_PASSWORD'],
         'HOST': os.environ['LOCAL_PG_HOST'],
-        'PORT': '5432'
+        'PORT': '5433' # different port than deployed versions 
     },
     'OPTIONS': {
         'charset': 'utf8',

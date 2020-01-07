@@ -6,7 +6,7 @@ from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, T
 
 @admin.register(Call)
 class CallAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'other_phone', 'network', 'duration_secs']
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'other_phone', 'network', 'duration_secs']
     search_fields = ['other_phone__phone_number', 'other_phone__name']
     list_filter = []
     ordering = ['-datetime_created']
@@ -24,7 +24,7 @@ class ContactAdmin(admin.ModelAdmin):
 
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'network', 'position', 'accuracy_m']
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'position', 'accuracy_m']
     search_fields = []
     list_filter = []
     ordering = ['-datetime_created']
@@ -33,7 +33,7 @@ class LocationAdmin(admin.ModelAdmin):
 
 @admin.register(Text)
 class TextAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'other_phone', 'network', 'message']
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'other_phone', 'network', 'message']
     search_fields = ['other_phone__name', 'other_phone__phone_number', 'message']
     list_filter = []
     ordering = ['-datetime_created']
