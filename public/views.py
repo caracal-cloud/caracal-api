@@ -13,12 +13,12 @@ class ContactView(generics.GenericAPIView):
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
-    serializer_class = serializers.ContactSerializer
+    serializer_class = serializers.ContactMessageSerializer
     throttle_classes = [AnonRateThrottle]
 
     # rate limit this thing...
     def post(self, request):
-        serializer = serializers.ContactSerializer(data=request.data)
+        serializer = serializers.ContactMessageSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         name = serializer.data['name']
