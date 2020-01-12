@@ -8,6 +8,7 @@ import requests
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 from sentry_sdk import capture_message
+import simple_arcgis_wrapper as saw
 from urllib.parse import urlencode
 
 from account.models import Account
@@ -39,10 +40,20 @@ class DisconnectAgolView(views.APIView):
             for connection in connections:
                 cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
 
-            agol.verify_access_token_valid(agol_account)
             now = datetime.utcnow().replace(tzinfo=timezone.utc)
-            new_name = f'Caracal (Disconnected - {str(now).split(".")[0]})'
-            agol.update_caracal_feature_service_name(new_name, agol_account)
+            title = f'Caracal (Disconnected - {str(now).split(".")[0]})'
+
+            arcgis = saw.ArcgisAPI(
+                access_token=agol_account.oauth_access_token,   
+                refresh_token=agol_account.oauth_refresh_token, 
+                username=agol_account.username,           
+                client_id=settings.AGOL_CLIENT_ID
+            )
+
+            try:
+                arcgis.services.update_feature_service(agol_account.feature_service_id, title=title)
+            except saw.exceptions.ArcGISException as e:
+                print(str(e)) # likely agol account exists in db but no service in agol
 
             connections.delete()
             agol_account.delete()
@@ -63,19 +74,21 @@ class GetAgolAccountView(views.APIView):
 
         try:
             agol_account = user.agol_account
-            access_token = agol.refresh_access_token(agol_account.oauth_refresh_token)
-            agol_account.oauth_access_token = access_token
-            agol_account.save()
+            
+            arcgis = saw.ArcgisAPI(
+                access_token=agol_account.oauth_access_token,   
+                refresh_token=agol_account.oauth_refresh_token, 
+                username=agol_account.username,           
+                client_id=settings.AGOL_CLIENT_ID
+            )
 
-            if access_token is not None:
-                data = {
-                    'is_connected': True,
-                    'username': agol_account.username
-                }
-            else:
-                data = {
-                    'is_connected': False
-                }
+            # quick hack to see if tokens valid and can refresh
+            is_connected = arcgis.requester._refresh_access_token()
+
+            data = {
+                'is_connected': is_connected,
+                'username': arcgis.username
+            }
 
         except AgolAccount.DoesNotExist:
             data = {
@@ -205,22 +218,27 @@ class AgolOauthResponseView(views.APIView):
                                                       oauth_refresh_token=refresh_token,
                                                       username=username)
 
-            # TODO: create group? - not a priority right now
-            #agol.create_caracal_folder(username, access_token) # save id
+            arcgis = saw.ArcgisAPI(
+                access_token=access_token,   
+                refresh_token=refresh_token, 
+                username=username,           
+                client_id=settings.AGOL_CLIENT_ID
+            )
+            
+            service = arcgis.services.get_feature_service(name='Caracal', owner_username=username)
+            if service is None:
+                service = arcgis.services.create_feature_service('Caracal', 'Caracal data integration outputs')                
 
-            feature_service_data = agol.get_caracal_feature_service(username, access_token)
-            if feature_service_data is None:
-                feature_service_data = agol.create_caracal_feature_service(username, access_token)
-
-            print('feature_service_data', feature_service_data)
-            if feature_service_data is not None:
-                agol_account.feature_service_url = feature_service_data['url']
-                agol_account.feature_service_id = feature_service_data['id']
+            if service is not None:
+                agol_account.feature_service_url = service.url
+                agol_account.feature_service_id = service.id
                 agol_account.save()
-
-                agol.update_caracal_feature_service_name('Caracal', agol_account)
+                
+                # changed a name like Caracal (Disconnected) back to Caracal
+                if service.title != 'Caracal':
+                    arcgis.services.update_feature_service(agol_account.feature_service_id, title='Caracal')
             else:
-                print("failed to add AGOL account")
+                sentry_sdk.capture_message(f'failed to add AGOL account to {username}')
                 agol_account.delete()
 
             return redirect(state['callback'])

@@ -65,8 +65,7 @@ def create_user(email, password, registration_method="email"):
     except client.exceptions.UsernameExistsException:
         raise exceptions.UsernameExistsException
     else:
-        sub = response['UserSub']
-        return sub
+        return response.get('UserSub')
 
 
 def create_sub_user(email):
@@ -91,6 +90,12 @@ def create_sub_user(email):
     except client.exceptions.UsernameExistsException:
         raise exceptions.UsernameExistsException
     else:
+
+        # when ready, use this method below instead
+        #attrs = {a['Name']: a['Value'] for a in response['User']['Attributes']}
+        #return attrs.get('sub')
+
+        # TODO: clean this up
         for attr in response['User']['Attributes']:
             if attr['Name'] == 'sub':
                 return attr['Value']
@@ -145,12 +150,11 @@ def get_is_email_verified(email):
         Username=email
     )
 
-    is_email_verified = False
-    for attr in cognito_response['UserAttributes']: # TODO: better way to loop through dictionary to compare a value?
+    for attr in cognito_response['UserAttributes']:
         if attr['Name'] == 'email_verified':
-            is_email_verified = attr['Value'] == 'true'
+            return attr['Value'] == 'true'
 
-    return is_email_verified
+    return False
 
 
 def refresh_access_token(refresh_token):

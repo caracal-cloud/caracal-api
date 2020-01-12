@@ -8,7 +8,7 @@ import uuid
 
 from account.models import Account, AlertRecipient, Organization
 from caracal.common import constants, image
-from caracal.common.aws_utils import dynamodb, s3
+from caracal.common.aws_utils import cognito, dynamodb, s3
 from caracal.common.fields import CaseInsensitiveEmailField
 
 
@@ -122,12 +122,16 @@ class GetProfileSerializer(serializers.ModelSerializer):
             url = s3.get_presigned_url(obj.organization.logo_object_key, settings.S3_USER_DATA_BUCKET, 7200)
             return url
 
+    is_email_verified = serializers.SerializerMethodField()
+    def get_is_email_verified(self, account):
+        return cognito.get_is_email_verified(account.email)
+
     class Meta:
         model = Account
         fields = ['uid', 'email', 'name', 'phone_number',
                   'organization_name', 'organization_short_name',
                   'organization_update_required', 'timezone',
-                  'logo_url']
+                  'logo_url', 'is_email_verified']
 
 
 class GetRecipientsSerializer(serializers.ModelSerializer):
