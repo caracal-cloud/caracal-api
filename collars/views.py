@@ -40,12 +40,14 @@ class AddCollarAccountView(generics.GenericAPIView):
         species = data['type']
         provider = data['provider']
 
-        # make sure user has an AGOL account set up and feature service exists
-        agol_account = None
         if data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+            try:
+                agol_account = user.agol_account
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         if provider == 'orbcomm':
             title = f'{species.capitalize()} - Orbcomm'
@@ -85,17 +87,17 @@ class DeleteCollarAccountView(generics.GenericAPIView):
         serializer = common_serializers.DeleteAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = request.user
+        user, data = request.user, serializer.data
 
         try:
-            realtime_account = RealTimeAccount.objects.get(uid=serializer.data['account_uid'], is_active=True)
+            realtime_account = RealTimeAccount.objects.get(uid=data['account_uid'], is_active=True)
         except RealTimeAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
                 'message': 'account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        if realtime_account.organization != request.user.organization and not request.user.is_superuser:
+        if realtime_account.organization != request.user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         cloudwatch.delete_cloudwatch_rule(realtime_account.cloudwatch_get_data_rule_name)
@@ -108,7 +110,7 @@ class DeleteCollarAccountView(generics.GenericAPIView):
             pass
 
         realtime_account.is_active = False
-        realtime_account.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc)
+        realtime_account.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc) # TODO: use shared function
         realtime_account.save()
 
         return Response(status=status.HTTP_200_OK)
@@ -187,11 +189,14 @@ class UpdateCollarAccountView(generics.GenericAPIView):
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
-        # make sure user has an AGOL account set up and feature service exists
         if update_data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+            try:
+                agol_account = user.agol_account
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             realtime_account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)

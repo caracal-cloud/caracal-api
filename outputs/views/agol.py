@@ -218,6 +218,7 @@ class AgolOauthResponseView(views.APIView):
                                                       oauth_refresh_token=refresh_token,
                                                       username=username)
 
+            # create a feature service in AGOL, update name if changed
             arcgis = saw.ArcgisAPI(
                 access_token=access_token,   
                 refresh_token=refresh_token, 

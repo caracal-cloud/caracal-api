@@ -6,6 +6,7 @@ from outputs.models import AgolAccount, DataConnection
 
 
 def schedule_source_outputs(data, source, user, agol_account=None):
+    'docs'
 
     organization = user.organization
 
@@ -15,11 +16,11 @@ def schedule_source_outputs(data, source, user, agol_account=None):
                                                    custom_source=source, agol_account=agol_account)
         schedule_source_agol(source, connection, organization)
 
-        # create an ArcGIS Layer and update the connection object
-        agol.verify_access_token_valid(agol_account)
-        layer_id = agol.create_custom_source_layer(source.name, source.description, agol_account.feature_service_url,
-                                              agol_account.oauth_access_token)
-        connection.agol_layer_id = layer_id
+        # get or create AGOL resources
+        feature_service = agol.get_or_create_caracal_feature_service(agol_account)
+        layer = agol.create_custom_source_feature_layer(source.name, source.description, feature_service, agol_account)
+
+        connection.agol_layer_id = layer.id
         connection.save()
 
     if data.get('output_kml', False):
@@ -28,6 +29,7 @@ def schedule_source_outputs(data, source, user, agol_account=None):
 # KML
 
 def delete_source_kml(source):
+    'docs'
 
     if source.cloudwatch_update_kml_rule_names:
         update_kml_rule_names = source.cloudwatch_update_kml_rule_names.split(',')
@@ -39,6 +41,7 @@ def delete_source_kml(source):
 
 
 def schedule_source_kml(source, organization):
+    'docs'
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_custom_source_kml'
     update_kml_function = _lambda.get_lambda_function(function_name)
@@ -65,6 +68,7 @@ def schedule_source_kml(source, organization):
 
 
 def get_source_update_kml_rule_name(short_name, source_uid, stage, period):
+    'docs'
 
     stage = stage[:4]
     source_uid = str(source_uid).split('-')[0][:8]
@@ -79,6 +83,7 @@ def get_source_update_kml_rule_name(short_name, source_uid, stage, period):
 # ArcGIS Online
 
 def delete_source_agol(agol_account=None, source=None, connection=None):
+    'docs'
 
     if connection is None:
         try:
@@ -89,16 +94,18 @@ def delete_source_agol(agol_account=None, source=None, connection=None):
 
     agol_account = connection.agol_account
 
-    # update layer name...
-    agol.verify_access_token_valid(agol_account)
-    layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
-    agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+    agol.delete_feature_layers(
+        layer_ids=[connection.agol_layer_id],
+        feature_service_url=agol_account.feature_service_url,
+        agol_account=agol_account
+    )
 
     cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
     connection.delete()
 
 
 def schedule_source_agol(source, connection, organization):
+    'docs'
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_custom_source_agol'
     update_agol_function = _lambda.get_lambda_function(function_name)
@@ -118,6 +125,7 @@ def schedule_source_agol(source, connection, organization):
 
 
 def get_source_update_agol_rule_name(short_name, source_uid, stage):
+    'docs'
 
     stage = stage[:4]
     source_uid = str(source_uid).split('-')[0][:4]
@@ -130,6 +138,7 @@ def get_source_update_agol_rule_name(short_name, source_uid, stage):
 
 
 def update_source_outputs(data, source, user):
+    'docs'
 
     # output flag exists
     output_kml = data.get('output_kml')
@@ -166,18 +175,13 @@ def update_source_outputs(data, source, user):
                                                            custom_source=source, agol_account=user.agol_account)
                 schedule_source_agol(source, connection, user.organization)
 
-                # create a layer and update the connection object
-                agol.verify_access_token_valid(agol_account)
-                layer_id = agol.create_custom_source_layer(source.name, source.description, agol_account.feature_service_url,
-                                                      agol_account.oauth_access_token)
-                connection.agol_layer_id = layer_id
+                # get or create AGOL resources
+                feature_service = agol.get_or_create_caracal_feature_service(agol_account)
+                layer = agol.create_custom_source_feature_layer(source.name, source.description, feature_service, agol_account)
+
+                connection.agol_layer_id = layer.id
                 connection.save()
 
             else:
-                # update layer name
-                agol.verify_access_token_valid(agol_account)
-                layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
-                agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
-
                 delete_source_agol(connection=connection)
 

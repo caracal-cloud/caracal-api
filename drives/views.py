@@ -51,12 +51,15 @@ class AddDriveFileAccountView(generics.GenericAPIView):
                 'message': 'Request a new oauth url and log in to Google.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # make sure user has an AGOL account set up and feature service exists
-        agol_account = None
-        if serializer.validated_data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+        # make sure user has an AGOL account
+        if data.get('output_agol', False):
+            try:
+                agol_account = user.agol_account
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         drive_account = serializer.save(user=request.user)
 
@@ -73,8 +76,17 @@ class AddDriveFileAccountView(generics.GenericAPIView):
 
         drive_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
         drive_account.save()
+        
+        if drive_account.provider == 'google':
+            google_utils.verify_google_access_token_valid(drive_account)
+            if drive_account.google_oauth_access_token is None:
+                drive_account.delete()
+                return Response({
+                    'error': 'google_authentication_error',
+                    'message': 'Failed to refresh token'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        # this schedules AGOL and KML and adds connections
+        # schedule AGOL and KML and adds connections
         drives_connections.schedule_drives_outputs(original_data, drive_account, user, agol_account=agol_account)
 
         message = f'{drive_account.provider.capitalize()} account added by {user.name}'
@@ -352,11 +364,15 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
-        # make sure user has an AGOL account set up and feature service exists
+        # make sure user has an AGOL account set up
         if update_data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+            try:
+                agol_account = AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             drive_account = DriveFileAccount.objects.get(uid=account_uid)

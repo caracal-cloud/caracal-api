@@ -36,11 +36,14 @@ class AddAccountView(generics.GenericAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure user has an AGOL account set up and feature service exists
-        agol_account = None
         if data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+            try:
+                agol_account = AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # enforce max number of accounts
         accounts = RealTimeAccount.objects.filter(organization=user.organization, source='radio', is_active=True)
@@ -190,9 +193,13 @@ class UpdateRadioAccountView(generics.GenericAPIView):
         account_uid = update_data.pop('account_uid')
 
         if update_data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+            try:
+                agol_account = AgolAccount.objects.get(account=user)
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             radio_account = RealTimeAccount.objects.get(uid=account_uid, is_active=True)

@@ -61,6 +61,7 @@ def schedule_drives_outputs(data, drive_account, user, agol_account=None):
         schedule_drives_agol(drive_account, connection, organization) # todo: should we schedule after creating layer?
 
         # create an ArcGIS Layer and update the connection object
+
         agol.verify_access_token_valid(agol_account)
         sheet_ids_to_layer_ids = agol.create_drive_layers(drive_account, agol_account.feature_service_url,
                                               agol_account.oauth_access_token)

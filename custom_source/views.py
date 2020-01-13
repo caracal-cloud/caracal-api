@@ -81,11 +81,15 @@ class AddSourceView(generics.GenericAPIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure user has an AGOL account set up and feature service exists
-        agol_account = None
+
         if data.get('output_agol', False):
-            agol_account = agol.verify_agol_state_and_get_account(user)
-            if isinstance(agol_account, Response):
-                return agol_account
+            try:
+                agol_account = user.agol_account
+            except AgolAccount.DoesNotExist:
+                return Response({
+                    'error': 'agol_account_required',
+                    'message': 'ArcGIS Online account required'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         source = serializer.save(account=request.user)
 
@@ -249,7 +253,7 @@ class UpdateSourceView(generics.GenericAPIView):
 
         if update_data.get('output_agol', False):
             try:
-                AgolAccount.objects.get(account=user)
+                agol_account = AgolAccount.objects.get(account=user)
             except AgolAccount.DoesNotExist:
                 return Response({
                     'error': 'agol_account_required',

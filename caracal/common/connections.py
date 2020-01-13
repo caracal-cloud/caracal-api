@@ -7,36 +7,36 @@ from caracal.common.aws_utils import cloudwatch, _lambda
 from outputs.models import AgolAccount, DataConnection
 
 
-def schedule_realtime_outputs(data, type, source, realtime_account, user, agol_account=None):
-
+def schedule_realtime_outputs(data, _type, source, realtime_account, user, agol_account=None):
+    'collars and radios...'
+    
     organization = user.organization
 
     if data.get('output_agol', False) and agol_account is not None:
         # create a connection and schedule update
         connection = DataConnection.objects.create(organization=organization, account=user,
                                                    realtime_account=realtime_account, agol_account=agol_account)
-        schedule_realtime_agol(type, source, realtime_account, connection, organization)
+        schedule_realtime_agol(_type, source, realtime_account, connection, organization)
 
-        # create an ArcGIS Layer and update the connection object
-        agol.verify_access_token_valid(agol_account)
-        layer_id = agol.create_realtime_layer(realtime_account.title, agol_account.feature_service_url,
-                                              agol_account.oauth_access_token)
+        feature_service = agol.get_or_create_caracal_feature_service(agol_account)
+        layer_everything = agol.create_realtime_feature_layer(realtime_account.title, feature_service, agol_account)
 
         individual_layer_title = f'{realtime_account.title} - Individuals'
-        individual_layer_id = agol.create_realtime_layer(individual_layer_title, agol_account.feature_service_url,
-                                              agol_account.oauth_access_token)
+        layer_individuals = agol.create_realtime_feature_layer(individual_layer_title, feature_service, agol_account)
 
-        connection.agol_layer_id = layer_id
-        connection.agol_individual_layer_id = individual_layer_id
+        connection.agol_layer_id = layer_everything.id
+        connection.agol_individual_layer_id = layer_individuals.id
         connection.save()
 
     if data.get('output_kml', False):
-        schedule_realtime_kml(type, source, realtime_account, organization)
+        schedule_realtime_kml(_type, source, realtime_account, organization)
 
 
 # ArcGIS Online
 
 def delete_realtime_agol(agol_account=None, realtime_account=None, connection=None):
+    'docs'
+
     # can be called with a connection, or accounts for connection lookup
     if connection is None:
         try:
@@ -47,18 +47,11 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
 
     agol_account = connection.agol_account
 
-    # delete layers
-    agol.verify_access_token_valid(agol_account)
-    agol.delete_layers([connection.agol_layer_id, connection.agol_individual_layer_id],
-                       agol_account.feature_service_url, agol_account.oauth_access_token)
-
-    # update layer name...
-    #layer = agol.get_layer(connection.agol_layer_id, agol_account.feature_service_url, agol_account.oauth_access_token)
-    #agol.update_disconnected_layer_name(layer, agol_account.feature_service_url, agol_account.oauth_access_token)
-
-    #individual_layer = agol.get_layer(connection.agol_individual_layer_id, agol_account.feature_service_url,
-    #                                  agol_account.oauth_access_token)
-    #agol.update_disconnected_layer_name(individual_layer, agol_account.feature_service_url, agol_account.oauth_access_token)
+    agol.delete_feature_layers(
+        layer_ids=[connection.agol_layer_id, connection.agol_individual_layer_id],
+        feature_service_url=agol_account.feature_service_url,
+        agol_account=agol_account
+    )
 
     # TODO: delete individual rule
     cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
@@ -67,7 +60,7 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
 
 
 def schedule_realtime_agol(type, source, realtime_account, connection, organization):
-
+    'docs'
     # TODO: schedule individual
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_agol'
@@ -88,6 +81,7 @@ def schedule_realtime_agol(type, source, realtime_account, connection, organizat
 
 
 def get_realtime_update_agol_rule_name(short_name, realtime_account_uid, stage, type, source):
+    'docs'
 
     stage = stage[:4]
     type = type[:5]
@@ -106,6 +100,7 @@ def get_realtime_update_agol_rule_name(short_name, realtime_account_uid, stage, 
 # TODO: one function for all inputs (realtime, drive, custom_source)
 # TODO: make abstract model for inputs with cloudwatch_update_kml_rule_names and stuff...
 def delete_realtime_kml(realtime_account):
+    'docs'
 
     if realtime_account.cloudwatch_update_kml_rule_names:
         update_kml_rule_names = realtime_account.cloudwatch_update_kml_rule_names.split(',')
@@ -117,6 +112,7 @@ def delete_realtime_kml(realtime_account):
 
 
 def schedule_realtime_kml(type, source, realtime_account, organization):
+    'docs'
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_realtime_kml'
     update_kml_function = _lambda.get_lambda_function(function_name)
@@ -142,7 +138,9 @@ def schedule_realtime_kml(type, source, realtime_account, organization):
     realtime_account.cloudwatch_update_kml_rule_names = ','.join(rule_names)
     realtime_account.save()
 
+
 def get_realtime_update_kml_rule_name(short_name, realtime_account_uid, stage, type, source, period):
+    'docs'
 
     stage = stage[:4]
     type = type[:5]
@@ -159,6 +157,7 @@ def get_realtime_update_kml_rule_name(short_name, realtime_account_uid, stage, t
 
 
 def update_realtime_outputs(data, realtime_account, user):
+    'docs'
 
     # output flag exists
     output_kml = data.get('output_kml')
@@ -190,24 +189,28 @@ def update_realtime_outputs(data, realtime_account, user):
             agol_account = user.agol_account
 
             if output_agol:
+
                 # create a connection and schedule update
                 connection = DataConnection.objects.create(organization=user.organization, account=user,
                                                            realtime_account=realtime_account, agol_account=user.agol_account)
+
+                # schedule the Lambda AGOL update
                 schedule_realtime_agol(realtime_account.type, realtime_account.source, realtime_account, connection, user.organization)
 
-                # create a layer and update the connection object
-                agol.verify_access_token_valid(agol_account)
-                layer_id = agol.create_realtime_layer(realtime_account.title, agol_account.feature_service_url,
-                                                      agol_account.oauth_access_token)
+                # create the AGOL resources (service and layers)
+                feature_service = agol.get_or_create_caracal_feature_service(agol_account)
+                layer_everything = agol.create_realtime_feature_layer(realtime_account.title, feature_service, agol_account)
 
                 individual_layer_title = f'{realtime_account.title} - Individuals'
-                individual_layer_id = agol.create_realtime_layer(individual_layer_title, agol_account.feature_service_url,
-                                                      agol_account.oauth_access_token)
+                layer_individuals = agol.create_realtime_feature_layer(individual_layer_title, feature_service, agol_account)
 
-                connection.agol_layer_id = layer_id
-                connection.agol_individual_layer_id = individual_layer_id
+                # update the connection
+                connection.agol_layer_id = layer_everything.id
+                connection.agol_individual_layer_id = layer_individuals.id
                 connection.save()
 
             else:
                 delete_realtime_agol(connection=connection)
+
+
 

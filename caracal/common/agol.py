@@ -5,113 +5,108 @@ import json
 import requests
 from rest_framework import status
 from rest_framework.response import Response
+import simple_arcgis_wrapper as saw
 
 from caracal.common import google
 from outputs.models import AgolAccount
 
 
 AGOL_ROOT = 'https://www.arcgis.com/sharing/rest'
-X_MIN = -26
-X_MAX = 56
-Y_MIN = -35
-Y_MAX = 39
+X_MIN, Y_MIN, X_MAX, Y_MAX = -26, -35, 56, 39
 WKID = 4326
 
+CARACAL_SERVICE_NAME = 'Caracal'
+CARACAL_SERVICE_DESCRIPTION = 'Caracal data integration outputs'
 
-def create_caracal_feature_service(username, access_token, folder_id=None):
+# new stuff with saw
 
-    # https://caracal.maps.arcgis.com/sharing/rest/content/users/caseyslaught/a58762190c8d4c04a0e8552ed0735560/createService
-    if folder_id is not None:
-        create_service_url = f'{AGOL_ROOT}/content/users/{username}/{folder_id}/createService'
-    else:
-        create_service_url = f'{AGOL_ROOT}/content/users/{username}/createService'
+def create_custom_source_feature_layer(title, description, feature_service, agol_account):
+    
+    fields = saw.fields.Fields()
+    fields.add_field('Date', saw.fields.DateField)    
+    fields.add_field('DeviceId', saw.fields.StringField)    
+    fields.add_field('AltM', saw.fields.DoubleField)    
+    fields.add_field('SpeedKmh', saw.fields.DoubleField)    
+    fields.add_field('TempC', saw.fields.DoubleField)    
 
-    create_params = {
-        "name": 'Caracal',
-        "serviceDescription": 'Caracal data integration outputs',
-        "hasStaticData": False
-    }
-
-    data = {
-        'token': access_token,
-        'f': 'json',
-        'createParameters': json.dumps(create_params),
-        'outputType': 'featureService'
-    }
-
-    res = requests.post(create_service_url, data=data).json()
-
-    print(res)
-
-    if res.get('success', False):
-        return {
-            'id': res['itemId'],
-            'url': res['encodedServiceURL']
-        }
+    feature_layer = _create_feature_layer(title, fields, feature_service, agol_account, description=description)    
+    return feature_layer
 
 
-def get_caracal_feature_service(username, access_token):
+def create_realtime_feature_layer(title, feature_service, agol_account):
 
-    search_url = f'{AGOL_ROOT}/search'
-    params = {
-        'q': f'title: Caracal AND owner: {username} AND type: \"Feature Service\"',
-        'token': access_token,
-        'f': 'json'
-    }
+    fields = saw.fields.Fields()
+    fields.add_field('Date', saw.fields.DateField)    
+    fields.add_field('DeviceId', saw.fields.StringField)    
+    fields.add_field('Type', saw.fields.StringField)    
+    fields.add_field('Name', saw.fields.StringField)    
+    fields.add_field('Sex', saw.fields.StringField)    
+    fields.add_field('Status', saw.fields.StringField)    
+    fields.add_field('Provider', saw.fields.StringField)    
 
-    res = requests.get(search_url, params=params).json()
-    print(res)
-
-    if len(res.get('results', [])) > 0:
-        feature_service = res['results'][0]
-        # double check cause search returns best matches (not-exact)
-        print(feature_service)
-        if feature_service['name'] == 'Caracal':
-            return {
-                'url': feature_service['url'],
-                'id': feature_service['id']
-            }
+    feature_layer = _create_feature_layer(title, fields, feature_service, agol_account)    
+    return feature_layer
 
 
-def create_custom_source_layer(layer_name, description, feature_service_url, access_token):
+def _create_feature_layer(title, fields, feature_service, agol_account, description=''):
 
-    create_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/addToDefinition'
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    )
 
-    addToDefinition = {
-        "layers": [
-            {
-                "name": layer_name,
-                "description": description,
-                "type": "Feature Layer",
-                "geometryType": "esriGeometryPoint",
-                "extent": {
-                    "type": "extent",
-                    "xmin": X_MIN,
-                    "ymin": Y_MIN,
-                    "xmax": X_MAX,
-                    "ymax": Y_MAX,
-                    "spatialReference": {
-                        "wkid": WKID
-                    }
-                },
-                "objectIdField": "OBJECTID",
-                "fields": custom_source_point_fields
-            }
-        ]
-    }
+    feature_layer = arcgis.services.create_feature_layer(
+        layer_type='point',
+        name=title,
+        description=description,
+        feature_service_url=feature_service.url,
+        fields=fields,
+        x_min=X_MIN, y_min=Y_MIN,
+        x_max=X_MAX, y_max=Y_MAX
+    )
 
-    data = {
-        'token': access_token,
-        'f': 'json',
-        'addToDefinition': json.dumps(addToDefinition),
-        'outputType': 'featureService',
-    }
+    return feature_layer
 
-    res = requests.post(create_layer_url, data=data)
-    res_data = res.json()
 
-    if res_data.get('success', False):
-        return res_data['layers'][0]['id']
+def delete_feature_layers(layer_ids, feature_service_url, agol_account):
+
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    )
+
+    arcgis.services.delete_feature_layers(layer_ids, feature_service_url)
+
+
+def get_or_create_caracal_feature_service(agol_account):
+
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    )
+
+    feature_service = arcgis.services.get_feature_service(name=CARACAL_SERVICE_NAME, owner_username=agol_account.username)
+    if feature_service is None:
+        print('creating feature service')
+        feature_service = arcgis.services.create_feature_service(CARACAL_SERVICE_NAME, CARACAL_SERVICE_DESCRIPTION)                
+
+    return feature_service
+
+
+
+
+
+
+# old stuff - to be removed
+
+
+
 
 
 def create_drive_layers(drive_account, feature_service_url, agol_access_token):
@@ -121,12 +116,6 @@ def create_drive_layers(drive_account, feature_service_url, agol_access_token):
     sheet_id_to_layer_id = dict()
 
     if drive_account.provider == 'google':
-
-        google.verify_google_access_token_valid(drive_account)
-        google_access_token = drive_account.google_oauth_access_token
-        if google_access_token is None:
-            print('google_oauth_access_token is None')
-            return
 
         if drive_account.file_type == 'google_sheet':
 
@@ -338,24 +327,6 @@ def verify_access_token_valid(agol_account):
     if agol_account.oauth_access_token_expiry <= now:
         agol_account.oauth_access_token = refresh_access_token(agol_account.oauth_refresh_token)
         agol_account.save()
-
-
-def verify_agol_state_and_get_account(user):
-    try:
-        agol_account = user.agol_account
-        verify_access_token_valid(agol_account)
-        if get_caracal_feature_service(agol_account.username, agol_account.oauth_access_token) is None:
-            return Response({
-                'error': 'feature_service_required',
-                'message': 'The Caracal feature service is missing. Reconnect to ArcGIS Online to initialize it.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-    except AgolAccount.DoesNotExist:
-        return Response({
-            'error': 'agol_account_required',
-            'message': 'ArcGIS Online account required'
-        }, status=status.HTTP_400_BAD_REQUEST)
-    else:
-        return agol_account
 
 
 def update_caracal_feature_service_name(new_name, agol_account):
