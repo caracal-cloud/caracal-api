@@ -7,6 +7,7 @@ import uuid
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol, connections
+from caracal.common.decorators import check_source_limit
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from outputs.models import AgolAccount
@@ -19,6 +20,7 @@ class AddAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = radios_serializers.AddAccountSerializer
 
+    @check_source_limit
     def post(self, request):
         serializer = radios_serializers.AddAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -27,13 +29,6 @@ class AddAccountView(generics.GenericAPIView):
         organization = user.organization
 
         data = serializer.data
-
-        num_sources = get_num_sources(organization) # unlimited source_limit is -1
-        if 0 < organization.source_limit <= num_sources:
-            return Response({
-                'error': 'source_limit_reached',
-                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
-            }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure user has an AGOL account set up and feature service exists
         if data.get('output_agol', False):

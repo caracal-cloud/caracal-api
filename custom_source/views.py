@@ -9,6 +9,7 @@ from auth.backends import CognitoAuthentication
 from caracal.common import agol
 from caracal.common.aws_utils import kinesis
 from caracal.common.models import get_num_sources
+from caracal.common.decorators import check_source_limit
 from custom_source import serializers
 from custom_source import connections as source_connections
 from custom_source.models import Device, Source
@@ -64,6 +65,7 @@ class AddSourceView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.AddSourceSerializer
 
+    @check_source_limit
     def post(self, request):
         serializer = serializers.AddSourceSerializer(data=request.data)
         serializer.is_valid(True)
@@ -72,13 +74,6 @@ class AddSourceView(generics.GenericAPIView):
         organization = user.organization
 
         data = serializer.validated_data
-
-        num_sources = get_num_sources(organization) # unlimited source_limit is -1
-        if 0 < organization.source_limit <= num_sources:
-            return Response({
-                'error': 'source_limit_reached',
-                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
-            }, status=status.HTTP_400_BAD_REQUEST)
 
         # make sure user has an AGOL account set up and feature service exists
 

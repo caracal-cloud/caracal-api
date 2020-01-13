@@ -15,6 +15,7 @@ from auth.backends import CognitoAuthentication
 from caracal.common import agol
 from caracal.common import google as google_utils
 from caracal.common.aws_utils import cloudwatch
+from caracal.common.decorators import check_source_limit
 from caracal.common.models import get_num_sources
 from drives import serializers
 from drives import connections as drives_connections
@@ -28,6 +29,7 @@ class AddDriveFileAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.AddDriveFileSerializer
 
+    @check_source_limit
     def post(self, request):
         serializer = serializers.AddDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
@@ -36,13 +38,6 @@ class AddDriveFileAccountView(generics.GenericAPIView):
         organization = user.organization
 
         original_data = serializer.validated_data
-
-        num_sources = get_num_sources(organization) # unlimited source_limit is -1
-        if 0 < organization.source_limit <= num_sources:
-            return Response({
-                'error': 'source_limit_reached',
-                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
-            }, status=status.HTTP_400_BAD_REQUEST)
 
         # user needs to authenticate again...
         if user.temp_google_oauth_refresh_token is None:

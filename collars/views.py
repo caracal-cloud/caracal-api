@@ -9,6 +9,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol, connections
 from caracal.common.aws_utils import cloudwatch, dynamodb
+from caracal.common.decorators import check_source_limit
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from collars import connections as collar_connections
@@ -22,19 +23,16 @@ class AddCollarAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = collar_serializers.AddCollarAccountSerializer
 
+    @check_source_limit
     def post(self, request):
         serializer = collar_serializers.AddCollarAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        # todo; remove me
+        return Response(status=status.HTTP_402_PAYMENT_REQUIRED)
+
         user = request.user
         organization = user.organization
-
-        num_sources = get_num_sources(organization) # unlimited source_limit is -1
-        if 0 < organization.source_limit <= num_sources:
-            return Response({
-                'error': 'source_limit_reached',
-                'message': 'You have reached the limit of your plan. Consider upgrading for unlimited sources.'
-            }, status=status.HTTP_400_BAD_REQUEST)
 
         data = serializer.validated_data
         species = data['type']
