@@ -1,6 +1,7 @@
 
 from datetime import datetime, timedelta, timezone
 from django.conf import settings
+from django.shortcuts import render
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
@@ -10,6 +11,7 @@ from account.models import Account
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import stripe_utils
+from caracal.common.aws_utils import cognito
 
 
 class ForceOrganizationUpdateView(generics.GenericAPIView):
@@ -147,4 +149,31 @@ class UpdateAccountView(generics.GenericAPIView):
 
 
 
+class VerifyEmailView(views.APIView):
+
+    def get(self, request):
+
+        # because Cognito invoked Lambda functions have really short timeouts (5 sec),
+        # we cannot write to the database with the verify code, so for now just checking the sub matches
+        # todo: have Cognito invoke Lambda function that writes to database..
+
+        params = request.query_params
+        try:
+            account = Account.objects.get(uid_cognito=params['sub'])
+
+            if cognito.get_is_email_verified(account.email):
+                message = 'Your email is already verified.'
+            else:
+                cognito.verify_email(account.email)
+                message = 'Your email has been verified!'
+
+        except Account.DoesNotExist:
+            message = 'User not found.'
+        except KeyError:
+            message = 'Invalid request.'
+
+        context = {
+            'message': message,
+        }
+        return render(request, "verify_email.html", context=context)
 

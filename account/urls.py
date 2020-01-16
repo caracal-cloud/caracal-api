@@ -36,5 +36,6 @@ urlpatterns = [
         path('google/', social_auth.GoogleAuthView.as_view()),
         path('test/', social_auth.TestSocialAuthView.as_view())
     ])),
-    path('update_account/', profile.UpdateAccountView.as_view())
+    path('update_account/', profile.UpdateAccountView.as_view()),
+    path('verify_email/', profile.VerifyEmailView.as_view())
 ]

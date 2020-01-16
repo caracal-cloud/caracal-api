@@ -41,7 +41,7 @@ class Organization(m.Model):
         ordering = ['name']
 
     def __str__(self):
-        return "%s" % (self.name)
+        return f'{self.name} - {self.short_name}'
 
 
 class UserManager(BaseUserManager):
