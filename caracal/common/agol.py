@@ -98,15 +98,20 @@ def get_or_create_caracal_feature_service(agol_account):
 
     return feature_service
 
+def is_account_connected(agol_account):
+    'Uses a hack to see if account is connected by trying to refresh token.'
 
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    )
 
-
+    return arcgis.requester._refresh_access_token()
 
 
 # old stuff - to be removed
-
-
-
 
 
 def create_drive_layers(drive_account, feature_service_url, agol_access_token):

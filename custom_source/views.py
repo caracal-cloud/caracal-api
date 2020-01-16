@@ -9,7 +9,7 @@ from auth.backends import CognitoAuthentication
 from caracal.common import agol
 from caracal.common.aws_utils import kinesis
 from caracal.common.models import get_num_sources
-from caracal.common.decorators import check_source_limit
+from caracal.common.decorators import check_agol_account_connected, check_source_limit
 from custom_source import serializers
 from custom_source import connections as source_connections
 from custom_source.models import Device, Source
@@ -66,6 +66,7 @@ class AddSourceView(generics.GenericAPIView):
     serializer_class = serializers.AddSourceSerializer
 
     @check_source_limit
+    @check_agol_account_connected
     def post(self, request):
         serializer = serializers.AddSourceSerializer(data=request.data)
         serializer.is_valid(True)
@@ -75,19 +76,9 @@ class AddSourceView(generics.GenericAPIView):
 
         data = serializer.validated_data
 
-        # make sure user has an AGOL account set up and feature service exists
-
-        if data.get('output_agol', False):
-            try:
-                agol_account = user.agol_account
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
         source = serializer.save(account=request.user)
 
+        agol_account = user.agol_account if hasattr(user, 'agol_account') else None
         source_connections.schedule_source_outputs(data, source, user, agol_account=agol_account)
 
         return Response({

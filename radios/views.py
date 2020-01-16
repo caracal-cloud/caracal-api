@@ -7,7 +7,7 @@ import uuid
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol, connections
-from caracal.common.decorators import check_source_limit
+from caracal.common.decorators import check_agol_account_connected, check_source_limit
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from outputs.models import AgolAccount
@@ -21,6 +21,7 @@ class AddAccountView(generics.GenericAPIView):
     serializer_class = radios_serializers.AddAccountSerializer
 
     @check_source_limit
+    @check_agol_account_connected
     def post(self, request):
         serializer = radios_serializers.AddAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -29,16 +30,6 @@ class AddAccountView(generics.GenericAPIView):
         organization = user.organization
 
         data = serializer.data
-
-        # make sure user has an AGOL account set up and feature service exists
-        if data.get('output_agol', False):
-            try:
-                agol_account = AgolAccount.objects.get(account=user)
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
 
         # enforce max number of accounts
         accounts = RealTimeAccount.objects.filter(organization=user.organization, source='radio', is_active=True)
@@ -54,6 +45,7 @@ class AddAccountView(generics.GenericAPIView):
         radio_account = RealTimeAccount.objects.create(organization=user.organization, source='radio',
                                                  type=str(uuid.uuid4()), title=title)
 
+        agol_account = user.agol_account if hasattr(user, 'agol_account') else None
         connections.schedule_realtime_outputs(data, radio_account.type, 'radio', radio_account, user, agol_account=agol_account)
 
         message = f'{provider} radio account added by {user.name}'

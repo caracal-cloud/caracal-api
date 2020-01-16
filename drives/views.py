@@ -15,7 +15,7 @@ from auth.backends import CognitoAuthentication
 from caracal.common import agol
 from caracal.common import google as google_utils
 from caracal.common.aws_utils import cloudwatch
-from caracal.common.decorators import check_source_limit
+from caracal.common.decorators import check_agol_account_connected, check_source_limit
 from caracal.common.models import get_num_sources
 from drives import serializers
 from drives import connections as drives_connections
@@ -30,6 +30,7 @@ class AddDriveFileAccountView(generics.GenericAPIView):
     serializer_class = serializers.AddDriveFileSerializer
 
     @check_source_limit
+    @check_agol_account_connected
     def post(self, request):
         serializer = serializers.AddDriveFileSerializer(data=request.data)
         serializer.is_valid(True)
@@ -45,16 +46,6 @@ class AddDriveFileAccountView(generics.GenericAPIView):
                 'error': 'google_login_required',
                 'message': 'Request a new oauth url and log in to Google.'
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        # make sure user has an AGOL account
-        if data.get('output_agol', False):
-            try:
-                agol_account = user.agol_account
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
 
         drive_account = serializer.save(user=request.user)
 
@@ -82,8 +73,10 @@ class AddDriveFileAccountView(generics.GenericAPIView):
                 }, status=status.HTTP_400_BAD_REQUEST)
 
         # schedule AGOL and KML and adds connections
+        agol_account = user.agol_account if hasattr(user, 'agol_account') else None
         drives_connections.schedule_drives_outputs(original_data, drive_account, user, agol_account=agol_account)
 
+        # add event
         message = f'{drive_account.provider.capitalize()} account added by {user.name}'
         ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 

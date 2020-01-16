@@ -74,20 +74,9 @@ class GetAgolAccountView(views.APIView):
 
         try:
             agol_account = user.agol_account
-            
-            arcgis = saw.ArcgisAPI(
-                access_token=agol_account.oauth_access_token,   
-                refresh_token=agol_account.oauth_refresh_token, 
-                username=agol_account.username,           
-                client_id=settings.AGOL_CLIENT_ID
-            )
-
-            # quick hack to see if tokens valid and can refresh
-            is_connected = arcgis.requester._refresh_access_token()
-
             data = {
-                'is_connected': is_connected,
-                'username': arcgis.username
+                'is_connected': agol.is_account_connected(agol_account),
+                'username': agol_account.username
             }
 
         except AgolAccount.DoesNotExist:

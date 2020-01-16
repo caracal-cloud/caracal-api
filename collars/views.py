@@ -9,7 +9,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol, connections
 from caracal.common.aws_utils import cloudwatch, dynamodb
-from caracal.common.decorators import check_source_limit
+from caracal.common.decorators import check_agol_account_connected, check_source_limit
 from caracal.common.models import get_num_sources, RealTimeAccount, RealTimeIndividual
 import caracal.common.serializers as common_serializers
 from collars import connections as collar_connections
@@ -24,12 +24,10 @@ class AddCollarAccountView(generics.GenericAPIView):
     serializer_class = collar_serializers.AddCollarAccountSerializer
 
     @check_source_limit
+    @check_agol_account_connected
     def post(self, request):
         serializer = collar_serializers.AddCollarAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        # todo; remove me
-        return Response(status=status.HTTP_402_PAYMENT_REQUIRED)
 
         user = request.user
         organization = user.organization
@@ -37,15 +35,6 @@ class AddCollarAccountView(generics.GenericAPIView):
         data = serializer.validated_data
         species = data['type']
         provider = data['provider']
-
-        if data.get('output_agol', False):
-            try:
-                agol_account = user.agol_account
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
 
         if provider == 'orbcomm':
             title = f'{species.capitalize()} - Orbcomm'
@@ -65,6 +54,8 @@ class AddCollarAccountView(generics.GenericAPIView):
         collar_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
         collar_account.save()
 
+        agol_account = user.agol_account if hasattr(user, 'agol_account') else None
+        print('agol_account', agol_account)
         connections.schedule_realtime_outputs(data, species, 'collar', collar_account, user, agol_account=agol_account)
 
         message = f'{species} collar account added by {user.name}'
