@@ -58,3 +58,8 @@ def check_agol_account_connected(f):
         return f(view, request, *args, **kwargs)
     
     return wrapper
+
+
+
+
+    

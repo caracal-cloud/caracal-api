@@ -33,6 +33,16 @@ def create_custom_source_feature_layer(title, description, feature_service, agol
     return feature_layer
 
 
+def create_drive_feature_layer(title, description, feature_service, agol_account, extra_fields=list()):
+
+    fields = saw.fields.Fields()
+    for extra_field in extra_fields:
+        fields.add_field(extra_field, saw.fields.StringField)
+
+    feature_layer = _create_feature_layer(title, fields, feature_service, agol_account, description=description)    
+    return feature_layer
+    
+
 def create_realtime_feature_layer(title, feature_service, agol_account):
 
     fields = saw.fields.Fields()

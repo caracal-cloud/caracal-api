@@ -14,6 +14,7 @@ from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol
 from caracal.common import google as google_utils
+from caracal.common.google import GoogleException
 from caracal.common.aws_utils import cloudwatch
 from caracal.common.decorators import check_agol_account_connected, check_source_limit
 from caracal.common.models import get_num_sources
@@ -40,20 +41,26 @@ class AddDriveFileAccountView(generics.GenericAPIView):
 
         original_data = serializer.validated_data
 
-        # user needs to authenticate again...
-        if user.temp_google_oauth_refresh_token is None:
-            return Response({
-                'error': 'google_login_required',
-                'message': 'Request a new oauth url and log in to Google.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
+        # create the drive account, saving the Google tokens
         drive_account = serializer.save(user=request.user)
 
-        # remove temporary google tokens...
-        user.temp_google_oauth_access_token = None
-        user.temp_google_oauth_access_token_expiry = None
-        user.temp_google_oauth_refresh_token = None
-        user.save()
+        # verify that the provider's token is valid and if so remove temporary tokens
+        if original_data['provider'] == 'google':
+            try:
+                google_utils.refresh_drive_account_token(drive_account)
+            except GoogleException:
+                drive_account.delete()
+                return Response({
+                    'error': 'google_login_required',
+                    'message': 'Request a new oauth url and log in to Google.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            user.temp_google_oauth_access_token = None
+            user.temp_google_oauth_access_token_expiry = None
+            user.temp_google_oauth_refresh_token = None
+            user.save()
+
+        # at this point the drive account will have active tokens
 
         # schedule the function that pulls data from Google Sheets and adds it to S3
         schedule_res = drives_connections.schedule_drives_get_data(drive_account, organization)
@@ -62,15 +69,6 @@ class AddDriveFileAccountView(generics.GenericAPIView):
 
         drive_account.cloudwatch_get_data_rule_name = schedule_res['rule_name']
         drive_account.save()
-        
-        if drive_account.provider == 'google':
-            google_utils.verify_google_access_token_valid(drive_account)
-            if drive_account.google_oauth_access_token is None:
-                drive_account.delete()
-                return Response({
-                    'error': 'google_authentication_error',
-                    'message': 'Failed to refresh token'
-                }, status=status.HTTP_400_BAD_REQUEST)
 
         # schedule AGOL and KML and adds connections
         agol_account = user.agol_account if hasattr(user, 'agol_account') else None
@@ -342,6 +340,7 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.UpdateDriveFileAccountSerializer
 
+    @check_agol_account_connected
     def post(self, request):
         serializer = serializers.UpdateDriveFileAccountSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -352,22 +351,12 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         update_data = serializer.data
         account_uid = update_data.pop('account_uid')
 
-        # make sure user has an AGOL account set up
-        if update_data.get('output_agol', False):
-            try:
-                agol_account = AgolAccount.objects.get(account=user)
-            except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
         try:
             drive_account = DriveFileAccount.objects.get(uid=account_uid)
         except DriveFileAccount.DoesNotExist:
             return Response({
                 'error': 'account_does_not_exist',
-                'message': 'account does not exist'
+                'message': 'Drive account does not exist'
             }, status=status.HTTP_400_BAD_REQUEST)
 
         # different organization
@@ -379,6 +368,17 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
         update_data.pop('output_kml', None)
 
         DriveFileAccount.objects.filter(uid=account_uid).update(**update_data)
+
+        # refresh the provider's token
+        if drive_account.provider == 'google':
+            try:
+                google_utils.refresh_drive_account_token(drive_account)
+            except GoogleException:
+                return Response({
+                    'error': 'google_login_required',
+                    'message': 'Access has been revoked. Remove the drive account and try again.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
 
         drives_connections.update_drives_outputs(serializer.data, drive_account, user)
 

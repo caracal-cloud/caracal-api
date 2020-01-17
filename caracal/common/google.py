@@ -5,6 +5,7 @@ import requests
 
 
 def get_extra_headers(sheet_name, drive_account, access_token):
+    'Extracts extra headers, those that are not x, y, date or gzd.'
 
     header_data = get_spreadsheet_sheet_headers(drive_account.header_row_index, sheet_name,
                                                        drive_account.file_id, access_token)
@@ -146,18 +147,29 @@ def refresh_google_token(refresh_token):
             'expiry': datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(seconds=token_res['expires_in'])
         }
     except:
-        return dict()
+        raise GoogleException('Failed to refresh access token')
 
 
+def refresh_drive_account_token(drive_account):
+
+    tokens = refresh_google_token(drive_account.google_oauth_refresh_token)
+    drive_account.google_oauth_access_token = tokens['access_token']
+    drive_account.google_oauth_access_token_expiry = tokens['expiry']
+    drive_account.save()
+
+
+# deprecated
 def verify_google_access_token_valid(drive_account):
 
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
-
-    if drive_account.google_oauth_access_token_expiry <= now:
-
+    try:
         token_res = refresh_google_token(drive_account.google_oauth_refresh_token)
         drive_account.google_oauth_access_token = token_res.get('access_token')
         drive_account.google_oauth_access_token_expiry = token_res.get('expiry')
         drive_account.save()
+        return True
+    except GoogleException:
+        return False
 
 
+class GoogleException(Exception):
+    pass
