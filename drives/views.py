@@ -379,7 +379,6 @@ class UpdateDriveFileAccountView(generics.GenericAPIView):
                     'message': 'Access has been revoked. Remove the drive account and try again.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-
         drives_connections.update_drives_outputs(serializer.data, drive_account, user)
 
         message = f'{drive_account.provider.capitalize()} account updated by {user.name}'

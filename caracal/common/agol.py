@@ -92,6 +92,20 @@ def delete_feature_layers(layer_ids, feature_service_url, agol_account):
     arcgis.services.delete_feature_layers(layer_ids, feature_service_url)
 
 
+def get_collar_features(device_id, layer_id, feature_service_url, agol_account):
+    'docs'
+
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    ) 
+
+    where = f"DeviceId = '{device_id}'"
+    features = api.services.get_features(feature_service_url, layer_id, where, ["OBJECTID"])
+    return features
+
 def get_or_create_caracal_feature_service(agol_account):
 
     arcgis = saw.ArcgisAPI(
@@ -121,199 +135,22 @@ def is_account_connected(agol_account):
     return arcgis.requester._refresh_access_token()
 
 
+def update_features(updates, agol_account):
+    'docs'
+
+    # TODO: validate updates?
+
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    )
+
+    return api.services.update_features(updates, fl.id, feature_service.url)
+
+
 # old stuff - to be removed
-
-
-def create_drive_layers(drive_account, feature_service_url, agol_access_token):
-
-    create_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/addToDefinition'
-
-    sheet_id_to_layer_id = dict()
-
-    if drive_account.provider == 'google':
-
-        if drive_account.file_type == 'google_sheet':
-
-            sheet_ids = json.loads(drive_account.sheet_ids)
-            for sheet_id in sheet_ids:
-                sheet_id = str(sheet_id)
-
-                sheet_name = google.get_sheet_name(sheet_id, drive_account.file_id, google_access_token)
-                if sheet_name is None:
-                    print(f'invalid sheet_id: {sheet_id}')
-                    continue
-
-                extra_headers = google.get_extra_headers(sheet_name, drive_account, google_access_token)
-                if extra_headers is None:
-                    continue
-
-                extra_fields = [
-                    {
-                        "name": extra_header.title().replace(' ', ''),
-                        "type": "esriFieldTypeString",
-                        "alias": extra_header.title().replace(' ', ''),
-                        "sqlType": "sqlTypeNVarchar",
-                        "nullable": True,
-                        "editable": True,
-                        "domain": None,
-                        "defaultValue": None,
-                        "length": 256
-                    }
-
-                    for extra_header in extra_headers
-                ]
-
-                addToDefinition = {
-                    "layers": [
-                        {
-                            "name": f'{drive_account.title} - {sheet_name}',
-                            "type": "Feature Layer",
-                            "geometryType": "esriGeometryPoint",
-                            "extent": {
-                                "type": "extent",
-                                "xmin": X_MIN,
-                                "ymin": Y_MIN,
-                                "xmax": X_MAX,
-                                "ymax": Y_MAX,
-                                "spatialReference": {
-                                    "wkid": WKID
-                                }
-                            },
-                            "objectIdField": "OBJECTID",
-                            "fields": base_point_fields + extra_fields
-                        }
-                    ]
-                }
-
-                data = {
-                    'token': agol_access_token,
-                    'f': 'json',
-                    'addToDefinition': json.dumps(addToDefinition),
-                    'outputType': 'featureService',
-                }
-
-                res = requests.post(create_layer_url, data=data)
-                res_data = res.json()
-
-                if res_data.get('success', False):
-                    layer_id = res_data['layers'][0]['id']
-                    sheet_id_to_layer_id[sheet_id] = layer_id
-
-    return sheet_id_to_layer_id
-
-
-def create_caracal_folder(username, access_token):
-
-    create_folder_url = f'{AGOL_ROOT}/content/users/{username}/createFolder'
-
-    data = {
-        'title': 'Caracal',
-        'f': 'json',
-        'token': access_token
-    }
-
-    res = requests.post(create_folder_url, data).json()
-    print(res)
-
-
-def create_caracal_group(access_token):
-
-    create_group_url = f'{AGOL_ROOT}/community/createGroup'
-
-    data = {
-        'title': 'Caracal',
-        'description': 'Caracal resources',
-        'access': 'private',
-        'tags': 'caracal',
-        'sortField': 'title',
-        'sortOrder': 'asc',
-        'f': 'json',
-        'token': access_token
-    }
-
-    res = requests.post(create_group_url, data).json()
-    if res.get('success', False):
-        return res['group']['id']
-
-
-def create_realtime_layer(layer_name, feature_service_url, access_token):
-
-    create_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/addToDefinition'
-
-    addToDefinition = {
-        "layers": [
-            {
-                "name": layer_name,
-                "type": "Feature Layer",
-                "geometryType": "esriGeometryPoint",
-                "extent": {
-                    "type": "extent",
-                    "xmin": X_MIN,
-                    "ymin": Y_MIN,
-                    "xmax": X_MAX,
-                    "ymax": Y_MAX,
-                    "spatialReference": {
-                        "wkid": WKID
-                    }
-                },
-                "objectIdField": "OBJECTID",
-                "fields": realtime_point_fields
-            }
-        ]
-    }
-
-    data = {
-        'token': access_token,
-        'f': 'json',
-        'addToDefinition': json.dumps(addToDefinition),
-        'outputType': 'featureService',
-    }
-
-    res = requests.post(create_layer_url, data=data)
-    res_data = res.json()
-
-    if res_data.get('success', False):
-        return res_data['layers'][0]['id']
-
-
-def delete_layers(layer_ids, feature_service_url, access_token):
-
-    delete_layer_url = feature_service_url.replace('/services/', '/admin/services/') + '/deleteFromDefinition'
-
-    layers = [{ 'id': f'{layer_id}' } for layer_id in layer_ids]
-
-    deleteFromDefinition = {
-        "layers": layers
-    }
-
-    data = {
-        'token': access_token,
-        'f': 'json',
-        'deleteFromDefinition': json.dumps(deleteFromDefinition),
-    }
-
-    res = requests.post(delete_layer_url, data=data)
-    res_data = res.json()
-
-    return res_data.get('success', False)
-
-def get_layer(layer_id, feature_service_url, access_token):
-
-    if layer_id is None:
-        return None
-
-    params = {
-        'token': access_token,
-        'f': 'json'
-    }
-
-    res = requests.get(feature_service_url, params=params)
-    res_data = res.json()
-
-    for layer in res_data.get('layers', []):
-        if layer['id'] == int(layer_id):
-            return layer
-
 
 def refresh_access_token(refresh_token):
 
@@ -335,13 +172,6 @@ def refresh_access_token(refresh_token):
     else:
         return tokens['access_token']
 
-
-def verify_access_token_valid(agol_account):
-
-    now = datetime.utcnow().replace(tzinfo=timezone.utc)
-    if agol_account.oauth_access_token_expiry <= now:
-        agol_account.oauth_access_token = refresh_access_token(agol_account.oauth_refresh_token)
-        agol_account.save()
 
 
 def update_caracal_feature_service_name(new_name, agol_account):
@@ -414,6 +244,8 @@ def update_realtime_attribute(device_id, attributes, connection):
     feature_service_url = connection.agol_account.feature_service_url
     layer_id = connection.agol_layer_id
 
+    # TODO: create update feature saw
+
     # TODO: get all the OBJECTIDs for device_id
 
     query_url = f'{feature_service_url}/{layer_id}/query'
@@ -455,6 +287,7 @@ def update_realtime_attribute(device_id, attributes, connection):
     }
 
     res = requests.post(update_features_url, data=data).json()
+
 
 base_point_fields = [
     {
