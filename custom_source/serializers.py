@@ -2,7 +2,7 @@
 from rest_framework import serializers
 import uuid
 
-from custom_source.models import Source
+from custom_source.models import Device, Source
 
 
 class AddRecordSerializer(serializers.Serializer):
@@ -59,17 +59,17 @@ class GetDevicesSerializer(serializers.HyperlinkedModelSerializer):
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='device-detail')
 
     class Meta:
-        model = Source
+        model = Device
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'name', 'description']
+                  'name', 'description', 'device_id']
 
 
 class GetDeviceDetailSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
-        model = Source
+        model = Device
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'name', 'description']
+                  'name', 'description', 'device_id']
 
 
 class GetSourcesSerializer(serializers.HyperlinkedModelSerializer):

@@ -18,13 +18,13 @@ WKID = 4326
 CARACAL_SERVICE_NAME = 'Caracal'
 CARACAL_SERVICE_DESCRIPTION = 'Caracal data integration outputs'
 
-# new stuff with saw
 
 def create_custom_source_feature_layer(title, description, feature_service, agol_account):
     
     fields = saw.fields.Fields()
     fields.add_field('Date', saw.fields.DateField)    
-    fields.add_field('DeviceId', saw.fields.StringField)    
+    fields.add_field('DeviceId', saw.fields.StringField)
+    fields.add_field('Name', saw.fields.StringField)    
     fields.add_field('AltM', saw.fields.DoubleField)    
     fields.add_field('SpeedKmh', saw.fields.DoubleField)    
     fields.add_field('TempC', saw.fields.DoubleField)    
@@ -89,7 +89,24 @@ def delete_feature_layers(layer_ids, feature_service_url, agol_account):
         client_id=settings.AGOL_CLIENT_ID
     )
 
-    arcgis.services.delete_feature_layers(layer_ids, feature_service_url)
+    return arcgis.services.delete_feature_layers(layer_ids, feature_service_url)
+
+def get_custom_source_features(device_id, layer_id, feature_service_url, agol_account):
+    'docs'
+    
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,   
+        refresh_token=agol_account.oauth_refresh_token, 
+        username=agol_account.username,           
+        client_id=settings.AGOL_CLIENT_ID
+    ) 
+
+    return arcgis.services.get_features(
+        where=f"DeviceId = '{device_id}'",
+        layer_id=layer_id,
+        feature_service_url=feature_service_url,
+        out_fields=['OBJECTID']
+    )
 
 
 def get_collar_features(device_id, layer_id, feature_service_url, agol_account):
@@ -102,9 +119,13 @@ def get_collar_features(device_id, layer_id, feature_service_url, agol_account):
         client_id=settings.AGOL_CLIENT_ID
     ) 
 
-    where = f"DeviceId = '{device_id}'"
-    features = api.services.get_features(feature_service_url, layer_id, where, ["OBJECTID"])
-    return features
+    return arcgis.services.get_features(
+        where=f"DeviceId = '{device_id}'",
+        layer_id=layer_id,
+        feature_service_url=feature_service_url,
+        out_fields=['OBJECTID']
+    )
+
 
 def get_or_create_caracal_feature_service(agol_account):
 
@@ -135,7 +156,7 @@ def is_account_connected(agol_account):
     return arcgis.requester._refresh_access_token()
 
 
-def update_features(updates, agol_account):
+def update_features(updates, layer_id, feature_service_url, agol_account):
     'docs'
 
     # TODO: validate updates?
@@ -147,7 +168,7 @@ def update_features(updates, agol_account):
         client_id=settings.AGOL_CLIENT_ID
     )
 
-    return api.services.update_features(updates, fl.id, feature_service.url)
+    return arcgis.services.update_features(updates, layer_id, feature_service_url)
 
 
 # old stuff - to be removed

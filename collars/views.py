@@ -324,6 +324,8 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
 
                 agol_account = agol_connection.agol_account
 
+                # TODO: this is grossly inefficient, but AGOL doesn't seem to have an update with where clause
+
                 features = agol.get_collar_features(
                     device_id=individual.device_id,
                     layer_id=agol_connection.agol_layer_id,
@@ -331,8 +333,15 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
                     agol_account=agol_account
                 )
 
-                updates = [(f.id, attributes, None) for f in features]
-                agol.update_features(updates, agol_account)
+                print(f'Updating {len(features)} features')
+                updates = [(f.id, attributes, None) for f in features]  
+
+                agol.update_features(
+                    updates=updates,
+                    layer_id=agol_connection.agol_layer_id,
+                    feature_service_url=agol_account.feature_service_url,
+                    agol_account=agol_account
+                )
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         RealTimeIndividual.objects.filter(uid=individual_uid).update(

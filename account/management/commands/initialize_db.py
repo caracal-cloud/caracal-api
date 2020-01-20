@@ -11,7 +11,7 @@ from caracal.common.aws_utils import cognito, dynamodb
 from .utils import common
 
 class Command(BaseCommand):
-    help = 'Initializes the all JWKs from all user pools in Cognito.'
+    help = 'Initializes dummy data.'
 
     def handle(self, *args, **options):
 
@@ -46,6 +46,8 @@ class Command(BaseCommand):
             # create superuser
             Account.objects.create_superuser(os.environ['CARACAL_OVERLORD_EMAIL'],
                                              os.environ['CARACAL_OVERLORD_PASSWORD'])
+
+            print(f'Created superuser {os.environ["CARACAL_OVERLORD_EMAIL"]} with password {os.environ["CARACAL_OVERLORD_PASSWORD"]}')
 
             # create dummy user
             dummy_org = Organization.objects.create(name='Dummy Inc.', short_name=settings.DUMMY_SHORT_NAME)

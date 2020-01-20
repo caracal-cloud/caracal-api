@@ -1,4 +1,3 @@
-
 from datetime import datetime, timezone
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
@@ -26,35 +25,39 @@ class AddRecordView(views.APIView):
         serializer = serializers.AddRecordSerializer(data=request.data)
         serializer.is_valid(True)
 
-        device_id = serializer.data['device_id']
-        write_key = serializer.data['write_key']
+        device_id = serializer.data["device_id"]
+        write_key = serializer.data["write_key"]
 
         try:
             source = Source.objects.get(write_key=write_key, is_active=True)
         except Source.DoesNotExist:
-            return Response({
-                'error': 'source_does_not_exist',
-                'message': 'source account does not exist'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "error": "source_does_not_exist",
+                    "message": "source account does not exist",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        try: # this might be a bottleneck later on
+        try:  # this might be a bottleneck later on
             device = Device.objects.get(device_id=device_id, source=source)
         except Device.DoesNotExist:
             device = Device.objects.create(device_id=device_id, source=source)
 
         payload = {
-            'device_id': device.pk,
-            'source_id': source.pk,
-            'datetime_recorded': serializer.data['datetime_recorded'],
-            'lat': serializer.data['lat'],
-            'lon': serializer.data['lon'],
-
-            'alt_m': serializer.data.get('alt_m'),
-            'speed_kmh': serializer.data.get('speed_kmh'),
-            'temp_c': serializer.data.get('temp_c')
+            "device_id": device.pk,
+            "source_id": source.pk,
+            "datetime_recorded": serializer.data["datetime_recorded"],
+            "lat": serializer.data["lat"],
+            "lon": serializer.data["lon"],
+            "alt_m": serializer.data.get("alt_m"),
+            "speed_kmh": serializer.data.get("speed_kmh"),
+            "temp_c": serializer.data.get("temp_c"),
         }
 
-        kinesis.put_firehose_record(payload, 'caracal_realtime_user') # fixme: move to env vars
+        kinesis.put_firehose_record(
+            payload, "caracal_realtime_user"
+        )  # fixme: move to env vars
 
         return Response(status=status.HTTP_201_CREATED)
 
@@ -78,13 +81,16 @@ class AddSourceView(generics.GenericAPIView):
 
         source = serializer.save(account=request.user)
 
-        agol_account = user.agol_account if hasattr(user, 'agol_account') else None
-        source_connections.schedule_source_outputs(data, source, user, agol_account=agol_account)
+        agol_account = user.agol_account if hasattr(user, "agol_account") else None
+        source_connections.schedule_source_outputs(
+            data=data, source=source, 
+            user=user, agol_account=agol_account
+        )
 
-        return Response({
-            'source_uid': source.uid,
-            'write_key': source.write_key
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {"source_uid": source.uid, "write_key": source.write_key},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class DeleteSourceView(generics.GenericAPIView):
@@ -98,28 +104,29 @@ class DeleteSourceView(generics.GenericAPIView):
         serializer.is_valid(True)
 
         user = request.user
-
-        source_uid = serializer.data['source_uid']
+        source_uid = serializer.data["source_uid"]
 
         try:
             source = Source.objects.get(uid=source_uid)
         except Source.DoesNotExist:
-            return Response({
-                'error': 'source_does_not_exist',
-                'message': 'source does not exist'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "source_does_not_exist", "message": "source does not exist"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if source.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         source_connections.delete_source_kml(source)
 
-        try: # if agol account exists, try to delete connection...
+        try:  # if agol account exists, try to delete connection...
             agol_account = user.agol_account
         except AgolAccount.DoesNotExist:
             pass
         else:
-            source_connections.delete_source_agol(agol_account=agol_account, source=source)
+            source_connections.delete_source_agol(
+                agol_account=agol_account, source=source
+            )
 
         source.is_active = False
         source.datetime_deleted = datetime.utcnow().replace(tzinfo=timezone.utc)
@@ -136,14 +143,18 @@ class GetDevicesView(generics.ListAPIView):
 
     def get_queryset(self):
 
-        serializer = serializers.GetDevicesQueryParamsSerializer(data=self.request.query_params)
+        serializer = serializers.GetDevicesQueryParamsSerializer(
+            data=self.request.query_params
+        )
         serializer.is_valid(raise_exception=True)
 
-        source_uid = serializer.data['source_uid']
+        source_uid = serializer.data["source_uid"]
         user = self.request.user
 
         try:
-            source = Source.objects.get(uid=source_uid, organization=user.organization, is_active=True)
+            source = Source.objects.get(
+                uid=source_uid, organization=user.organization, is_active=True
+            )
         except Source.DoesNotExist:
             return Device.objects.none()
 
@@ -153,13 +164,15 @@ class GetDevicesView(generics.ListAPIView):
 class GetDeviceDetailView(generics.RetrieveAPIView):
 
     authentication_classes = [CognitoAuthentication]
-    lookup_field = 'uid'
+    lookup_field = "uid"
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.GetDeviceDetailSerializer
 
     def get_queryset(self):
         organization = self.request.user.organization
-        devices = Device.objects.filter(source__organization=organization, is_active=True)
+        devices = Device.objects.filter(
+            source__organization=organization, is_active=True
+        )
         return devices
 
 
@@ -178,7 +191,7 @@ class GetSourcesView(generics.ListAPIView):
 class GetSourceDetailView(generics.RetrieveAPIView):
 
     authentication_classes = [CognitoAuthentication]
-    lookup_field = 'uid'
+    lookup_field = "uid"
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = serializers.GetSourceDetailSerializer
 
@@ -201,23 +214,60 @@ class UpdateDeviceView(generics.GenericAPIView):
         user = request.user
 
         update_data = serializer.data
-        device_uid = update_data.pop('device_uid')
+        device_uid = update_data.pop("device_uid")
 
         try:
             device = Device.objects.get(uid=device_uid, is_active=True)
         except Device.DoesNotExist:
-            return Response({
-                'error': 'device_does_not_exist'
-            })
+            return Response({"error": "device_does_not_exist"})
 
         if device.source.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        Device.objects.filter(uid=device_uid).update(datetime_updated=now, **update_data)
+        # do this before updating device so we know old values
+        # if there is a connected AGOL layer, update features in the layer on device_id
+        # this should just return one connection...
+        agol_connections = device.source.connections.filter(
+            agol_account__isnull=False
+        )
+        for agol_connection in agol_connections:
 
-        message = f'custom source device ({device.device_id}) updated by {user.name}'
-        ActivityChange.objects.create(organization=user.organization, account=user, message=message)
+            attributes = dict()
+            if "name" in update_data and update_data["name"] != device.name:
+                attributes["Name"] = update_data["name"]
+
+            if len(attributes) > 0:
+
+                agol_account = agol_connection.agol_account
+
+                # TODO: this is grossly inefficient, but AGOL doesn't seem to have an update with where clause
+
+                features = agol.get_custom_source_features(
+                    device_id=device.device_id,
+                    layer_id=agol_connection.agol_layer_id,
+                    feature_service_url=agol_account.feature_service_url,
+                    agol_account=agol_account
+                )
+
+                print(f'Updating {len(features)} features')
+                updates = [(f.id, attributes, None) for f in features]  
+
+                agol.update_features(
+                    updates=updates,
+                    layer_id=agol_connection.agol_layer_id,
+                    feature_service_url=agol_account.feature_service_url,
+                    agol_account=agol_account
+                )
+
+        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+        Device.objects.filter(uid=device_uid).update(
+            datetime_updated=now, **update_data
+        )
+
+        message = f"custom source device ({device.device_id}) updated by {user.name}"
+        ActivityChange.objects.create(
+            organization=user.organization, account=user, message=message
+        )
 
         return Response(status=status.HTTP_200_OK)
 
@@ -235,40 +285,48 @@ class UpdateSourceView(generics.GenericAPIView):
         user = request.user
 
         update_data = serializer.data
-        source_uid = update_data.pop('source_uid')
+        source_uid = update_data.pop("source_uid")
 
-        if update_data.get('output_agol', False):
+        if update_data.get("output_agol", False):
             try:
                 agol_account = AgolAccount.objects.get(account=user)
             except AgolAccount.DoesNotExist:
-                return Response({
-                    'error': 'agol_account_required',
-                    'message': 'ArcGIS Online account required'
-                }, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {
+                        "error": "agol_account_required",
+                        "message": "ArcGIS Online account required",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         try:
             source = Source.objects.get(uid=source_uid, is_active=True)
         except Source.DoesNotExist:
-            return Response({
-                'error': 'source_does_not_exist',
-                'message': 'source account does not exist'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "error": "source_does_not_exist",
+                    "message": "source account does not exist",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if source.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        update_data.pop('output_agol', None)
-        update_data.pop('output_database', None)
-        update_data.pop('output_kml', None)
+        update_data.pop("output_agol", None)
+        update_data.pop("output_database", None)
+        update_data.pop("output_kml", None)
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        Source.objects.filter(uid=source_uid).update(datetime_updated=now, **update_data)
+        Source.objects.filter(uid=source_uid).update(
+            datetime_updated=now, **update_data
+        )
 
         source_connections.update_source_outputs(serializer.data, source, user)
 
-        message = f'{source.name} custom source updated by {user.name}'
-        ActivityChange.objects.create(organization=user.organization, account=user, message=message)
+        message = f"{source.name} custom source updated by {user.name}"
+        ActivityChange.objects.create(
+            organization=user.organization, account=user, message=message
+        )
 
         return Response(status=status.HTTP_200_OK)
-
-
