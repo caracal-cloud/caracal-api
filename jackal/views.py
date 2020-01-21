@@ -341,9 +341,9 @@ def _get_or_create_phone(device_id, network):
 
 def _get_or_create_other_phone(phone_number, network):
     try:
-        return OtherPhone.objects.get(network=network, phone_number=other_phone_number, is_active=True)
+        return OtherPhone.objects.get(network=network, phone_number=phone_number, is_active=True)
     except OtherPhone.DoesNotExist:
-        return OtherPhone.objects.create(network=network, phone_number=other_phone_number)
+        return OtherPhone.objects.create(network=network, phone_number=phone_number)
 
 
 def _get_recording_queryset(request, _class):
@@ -351,6 +351,8 @@ def _get_recording_queryset(request, _class):
         serializer = serializers.GetPhoneRecordingQueryParamSerializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
         phone_uid = serializer.data['phone_uid']
+
+        print('phone_uid', phone_uid)
 
         try:
             phone = Phone.objects.get(uid=phone_uid)

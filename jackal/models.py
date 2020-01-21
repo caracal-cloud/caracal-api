@@ -76,6 +76,7 @@ class Call(BaseJackalRecording):
     duration_secs = models.IntegerField()
 
     class Meta:
+        ordering = ['-datetime_recorded']
         unique_together = ['phone', 'other_phone', 'datetime_recorded', 'is_sent', 'duration_secs']
 
 
@@ -86,6 +87,7 @@ class Contact(BaseJackalRecording):
     other_phone = models.ForeignKey(OtherPhone, on_delete=models.CASCADE, related_name='contacts')
 
     class Meta:
+        ordering = ['-datetime_recorded']
         unique_together = ['phone', 'other_phone']
 
 
@@ -98,6 +100,7 @@ class Location(BaseJackalRecording):
     accuracy_m = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
+        ordering = ['-datetime_recorded']
         unique_together = ['phone', 'datetime_recorded', 'position', 'accuracy_m']
 
 
@@ -111,4 +114,5 @@ class Text(BaseJackalRecording):
     message = models.TextField(blank=True) # can add translations later
 
     class Meta:
+        ordering = ['-datetime_recorded']
         unique_together = ['phone', 'other_phone', 'datetime_recorded', 'is_sent', 'message']

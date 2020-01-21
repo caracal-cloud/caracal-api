@@ -27,7 +27,6 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
         agol_account=agol_account,
     )
 
-    # TODO: delete individual rule
     cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
 
     connection.delete()
