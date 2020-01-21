@@ -22,7 +22,7 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
     agol_account = connection.agol_account
 
     agol.delete_feature_layers(
-        layer_ids=[connection.agol_layer_id, connection.agol_individual_layer_id],
+        layer_ids=[connection.agol_layer_id], #, connection.agol_individual_layer_id],
         feature_service_url=agol_account.feature_service_url,
         agol_account=agol_account,
     )
@@ -78,15 +78,17 @@ def schedule_realtime_outputs(
             agol_account=agol_account,
         )
 
+        """
         individual_layer_title = f"{realtime_account.title} - Individuals"
         layer_individuals = agol.create_realtime_feature_layer(
             title=individual_layer_title,
             feature_service=feature_service,
             agol_account=agol_account,
         )
+        connection.agol_individual_layer_id = layer_individuals.id
+        """
 
         connection.agol_layer_id = layer_everything.id
-        connection.agol_individual_layer_id = layer_individuals.id
         connection.save()
 
     if data.get("output_kml", False):
@@ -165,16 +167,18 @@ def update_realtime_outputs(data, realtime_account, user):
                     agol_account=agol_account,
                 )
 
+                """
                 individual_layer_title = f"{realtime_account.title} - Individuals"
                 layer_individuals = agol.create_realtime_feature_layer(
                     title=individual_layer_title,
                     feature_service=feature_service,
                     agol_account=agol_account,
                 )
+                connection.agol_individual_layer_id = layer_individuals.id
+                """
 
                 # update the connection
                 connection.agol_layer_id = layer_everything.id
-                connection.agol_individual_layer_id = layer_individuals.id
                 connection.save()
 
             else:
