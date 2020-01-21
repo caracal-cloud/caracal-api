@@ -59,6 +59,10 @@ class AddTextSerializer(serializers.Serializer):
     def validate(self, attrs):
         return validate_unknown_attrs(attrs, self.initial_data, self.fields)
 
+class CreateNetworkSerializer(serializers.Serializer):
+    output_agol = serializers.NullBooleanField(required=False)
+    output_kml = serializers.NullBooleanField(required=False)
+
 
 class GetPhonesSerializer(serializers.HyperlinkedModelSerializer):
 

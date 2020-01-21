@@ -9,24 +9,10 @@ import uuid
 
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
-from jackal import serializers
+from caracal.common import agol
+from jackal import connections, serializers
+from jackal.decorators import check_network_exists
 from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
-
-
-def get_phone_or_response(device_id, write_key):
-
-    try:
-        network = Network.objects.get(write_key=write_key, is_active=True)
-    except Network.DoesNotExist:
-        return Response({
-            'error': 'network_does_not_exist',
-            'message': 'Jackal network does not exist or write key is incorrect'
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        return Phone.objects.get(device_id=device_id, network=network)
-    except Phone.DoesNotExist:
-        return Phone.objects.create(device_id=device_id, network=network)
 
 
 class AddCallView(generics.GenericAPIView):
@@ -35,8 +21,10 @@ class AddCallView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.AddCallSerializer
 
+    @check_network_exists
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
+        # TODO: this is for debugging purposes, later change to is_valid(True)
         try:
             serializer.is_valid(False)
         except:
@@ -48,17 +36,12 @@ class AddCallView(generics.GenericAPIView):
         write_key = add_data.pop('write_key')
         other_phone_number = add_data.pop('other_phone_number')
 
-        phone = get_phone_or_response(device_id, write_key)
-        if isinstance(phone, Response):
-            return phone
+        network = Network.objects.get(write_key=write_key, is_active=True)
+        phone = _get_or_create_phone(device_id, network)
+        other_phone = _get_or_create_other_phone(other_phone_number, network)
 
         try:
-            other_phone = OtherPhone.objects.get(network=phone.network, phone_number=other_phone_number)
-        except OtherPhone.DoesNotExist:
-            other_phone = OtherPhone.objects.create(network=phone.network, phone_number=other_phone_number)
-
-        try:
-            Call.objects.create(network=phone.network, phone=phone, other_phone=other_phone, **add_data)
+            Call.objects.create(network=network, phone=phone, other_phone=other_phone, **add_data)
         except IntegrityError:
             pass
 
@@ -73,8 +56,10 @@ class AddContactView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.AddContactSerializer
 
+    @check_network_exists
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
+        # TODO: this is for debugging purposes, later change to is_valid(True)
         try:
             serializer.is_valid(False)
         except:
@@ -87,16 +72,12 @@ class AddContactView(generics.GenericAPIView):
         phone_number = add_data.pop('phone_number')
         name = add_data.pop('name')
 
-        phone = get_phone_or_response(device_id, write_key)
-        if isinstance(phone, Response):
-            return phone
+        network = Network.objects.get(write_key=write_key, is_active=True)
+        phone = _get_or_create_phone(device_id, network)
+        other_phone = _get_or_create_other_phone(phone_number, network)
 
-        try:
-            other_phone = OtherPhone.objects.get(network=phone.network, phone_number=phone_number)
-            other_phone.name = name
-            other_phone.save()
-        except:
-            other_phone = OtherPhone.objects.create(network=phone.network, phone_number=phone_number, name=name)
+        other_phone.name = name
+        other_phone.save()
 
         try:
             Contact.objects.create(network=phone.network, phone=phone, other_phone=other_phone, **add_data)
@@ -115,8 +96,10 @@ class AddLocationView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.AddLocationSerializer
 
+    @check_network_exists
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
+        # TODO: this is for debugging purposes, later change to is_valid(True)
         try:
             serializer.is_valid(False)
         except:
@@ -126,17 +109,16 @@ class AddLocationView(generics.GenericAPIView):
         add_data = serializer.data
         device_id = add_data.pop('device_id')
         write_key = add_data.pop('write_key')
-        longitude = float(add_data.pop('longitude'))
-        latitude = float(add_data.pop('latitude'))
+        longitude = round(float(add_data.pop('longitude')), 6)
+        latitude = round(float(add_data.pop('latitude')), 6)
 
-        phone = get_phone_or_response(device_id, write_key)
-        if isinstance(phone, Response):
-            return phone
+        network = Network.objects.get(write_key=write_key, is_active=True)
+        phone = _get_or_create_phone(device_id, network)
 
         point = Point(longitude, latitude)
 
         try:
-            Location.objects.create(phone=phone, network=phone.network, position=point, **add_data)
+            Location.objects.create(phone=phone, network=network, position=point, **add_data)
         except IntegrityError:
             pass
 
@@ -151,8 +133,10 @@ class AddTextView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = serializers.AddTextSerializer
 
+    @check_network_exists
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
+        # TODO: this is for debugging purposes, later change to is_valid(True)
         try:
             serializer.is_valid(False)
         except:
@@ -164,34 +148,33 @@ class AddTextView(generics.GenericAPIView):
         write_key = add_data.pop('write_key')
         other_phone_number = add_data.pop('other_phone_number')
 
-        phone = get_phone_or_response(device_id, write_key)
-        if isinstance(phone, Response):
-            return phone
-
-        try:
-            other_phone = OtherPhone.objects.get(network=phone.network, phone_number=other_phone_number)
-        except OtherPhone.DoesNotExist:
-            other_phone = OtherPhone.objects.create(network=phone.network, phone_number=other_phone_number)
+        network = Network.objects.get(write_key=write_key, is_active=True)
+        phone = _get_or_create_phone(device_id, network)
+        other_phone = _get_or_create_other_phone(other_phone_number, network)
 
         try:
             Text.objects.create(network=phone.network, phone=phone, other_phone=other_phone, **add_data)
         except IntegrityError:
             pass
 
-
         return Response({
             'success': True
         }, status=status.HTTP_201_CREATED)
 
 
-class CreateNetworkView(views.APIView):
+class CreateNetworkView(generics.GenericAPIView):
 
     authentication_classes = [CognitoAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.CreateNetworkSerializer
 
     def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(True)
 
-        organization = request.user.organization
+        user = request.user
+        organization = user.organization
+        data = serializer.validated_data
 
         try:
             network = organization.jackal_network
@@ -199,15 +182,22 @@ class CreateNetworkView(views.APIView):
                 'error': 'network_already_created',
                 'message': 'Jackal network already created'
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        except Network.DoesNotExist:
+        except:
+            # create a new network
             write_key = str(uuid.uuid4()).replace('-', '')
             network = Network.objects.create(write_key=write_key, organization=organization)
+
+        agol_account = user.agol_account if hasattr(user, "agol_account") else None
+        connections.schedule_jackal_outputs(
+            data=data,
+            network=network,
+            user=user,
+            agol_account=agol_account
+        )
 
         return Response({
             'write_key': network.write_key,
         }, status=status.HTTP_201_CREATED)
-
 
 
 class GetCallsView(generics.ListAPIView):
@@ -217,7 +207,7 @@ class GetCallsView(generics.ListAPIView):
     serializer_class = serializers.CallSerializer
 
     def get_queryset(self):
-        return get_recording_queryset(self.request, Call)
+        return _get_recording_queryset(self.request, Call)
 
 
 class GetContactsView(generics.ListAPIView):
@@ -227,7 +217,7 @@ class GetContactsView(generics.ListAPIView):
     serializer_class = serializers.ContactSerializer
 
     def get_queryset(self):
-        return get_recording_queryset(self.request, Contact)
+        return _get_recording_queryset(self.request, Contact)
 
 
 class GetLocationsView(generics.ListAPIView):
@@ -237,7 +227,7 @@ class GetLocationsView(generics.ListAPIView):
     serializer_class = serializers.LocationSerializer
 
     def get_queryset(self):
-        return get_recording_queryset(self.request, Location)
+        return _get_recording_queryset(self.request, Location)
 
 
 class GetTextsView(generics.ListAPIView):
@@ -247,23 +237,7 @@ class GetTextsView(generics.ListAPIView):
     serializer_class = serializers.TextSerializer
 
     def get_queryset(self):
-        return get_recording_queryset(self.request, Text)
-
-
-def get_recording_queryset(request, _class):
-        serializer = serializers.GetPhoneRecordingQueryParamSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-        phone_uid = serializer.data['phone_uid']
-
-        try:
-            phone = Phone.objects.get(uid=phone_uid)
-        except:
-            return _class.objects.none()
-
-        if phone.network.organization != request.user.organization:
-            return _class.objects.none()
-
-        return _class.objects.filter(phone=phone)
+        return _get_recording_queryset(self.request, Text)
 
 
 class GetPhonesView(generics.ListAPIView):
@@ -273,8 +247,9 @@ class GetPhonesView(generics.ListAPIView):
     serializer_class = serializers.GetPhonesSerializer
 
     def get_queryset(self):
+        network = self.request.user.organization.jackal_network
         try:
-            return Phone.objects.filter(network=self.request.user.organization.jackal_network, is_active=True)
+            return Phone.objects.filter(network=network, is_active=True)
         except Network.DoesNotExist:
             return Phone.objects.none()
 
@@ -287,8 +262,9 @@ class GetPhoneDetailView(generics.RetrieveAPIView):
     serializer_class = serializers.GetPhoneDetailSerializer
 
     def get_queryset(self):
+        network = self.request.user.organization.jackal_network
         try:
-            return Phone.objects.filter(network=self.request.user.organization.jackal_network, is_active=True)
+            return Phone.objects.filter(network=network, is_active=True)
         except Network.DoesNotExist:
             return Phone.objects.none()
 
@@ -319,6 +295,34 @@ class UpdatePhoneView(generics.GenericAPIView):
         if phone.network.organization != user.organization:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
+        agol_connection = phone.network.connections.filter(agol_account__isnull=False).first()
+        if agol_connection is not None:
+            
+            attributes = dict()
+            if "name" in update_data and update_data["name"] != phone.name:
+                attributes["Name"] = update_data["name"]
+
+            if len(attributes) > 0:
+
+                agol_account = agol_connection.agol_account
+                
+                # TODO: this is grossly inefficient, but AGOL doesn't seem to have an update with where clause
+
+                features = agol.get_jackal_features(
+                    agol_account=agol_account,
+                    device_id=phone.device_id,
+                    layer_id=agol_connection.agol_layer_id
+                )
+
+                print(f'Updating {len(features)} features')
+                updates = [(f.id, attributes, None) for f in features]  
+
+                agol.update_features(
+                    agol_account=agol_account,
+                    layer_id=agol_connection.agol_layer_id,
+                    updates=updates
+                )
+
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
         Phone.objects.filter(uid=phone_uid).update(datetime_updated=now, **update_data)
 
@@ -328,3 +332,32 @@ class UpdatePhoneView(generics.GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
+def _get_or_create_phone(device_id, network):
+    try:
+        return Phone.objects.get(device_id=device_id, network=network, is_active=True)
+    except Phone.DoesNotExist:
+        return Phone.objects.create(device_id=device_id, network=network)
+
+
+def _get_or_create_other_phone(phone_number, network):
+    try:
+        return OtherPhone.objects.get(network=network, phone_number=other_phone_number, is_active=True)
+    except OtherPhone.DoesNotExist:
+        return OtherPhone.objects.create(network=network, phone_number=other_phone_number)
+
+
+def _get_recording_queryset(request, _class):
+
+        serializer = serializers.GetPhoneRecordingQueryParamSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        phone_uid = serializer.data['phone_uid']
+
+        try:
+            phone = Phone.objects.get(uid=phone_uid)
+        except:
+            return _class.objects.none()
+
+        if phone.network.organization != request.user.organization:
+            return _class.objects.none()
+
+        return _class.objects.filter(phone=phone)

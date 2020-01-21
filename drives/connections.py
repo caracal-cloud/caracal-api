@@ -8,22 +8,34 @@ from outputs.models import AgolAccount, DataConnection
 
 
 def schedule_drives_get_data(drive_account, organization):
+    "Schedules Lambda function to get Drive data and add to S3."
 
     # caracal_production_get_static_google_google_sheet_data
     function_name = f'caracal_{settings.STAGE.lower()}_get_static_{drive_account.provider}_{drive_account.file_type}_data'
     lambda_function = _lambda.get_lambda_function(function_name)
 
-    file_type = drive_account.file_type
-    provider = drive_account.provider
+    file_type, provider = drive_account.file_type, drive_account.provider
     short_name = organization.short_name
-    rule_name = _get_drives_get_data_rule_name(short_name, provider, file_type, settings.STAGE, drive_account.uid)
+
+    rule_name = _get_drives_get_data_rule_name(
+        short_name=short_name,
+        provider=provider,
+        file_type=file_type,
+        stage=settings.STAGE,
+        drive_account_uid=drive_account.uid
+    )
 
     get_data_rule_input = {
         'account_uid': str(drive_account.uid)
     }
 
-    _lambda.schedule_lambda_function(lambda_function['arn'], lambda_function['name'], get_data_rule_input,
-                                 rule_name, settings.COLLARS_GET_DATA_RATE_MINUTES)
+    _lambda.schedule_lambda_function(
+        fn_arn=lambda_function['arn'],
+        fn_name=lambda_function['name'],
+        rule_input=get_data_rule_input,
+        rule_name=rule_name,
+        rate_minutes=settings.COLLARS_GET_DATA_RATE_MINUTES
+    )
 
     return {
         'rule_name': rule_name
@@ -31,6 +43,7 @@ def schedule_drives_get_data(drive_account, organization):
 
 
 def schedule_drives_outputs(data, drive_account, user, agol_account=None):
+    "Schedules Lambda functions to output Drive data in S3."
 
     organization = user.organization
 
@@ -39,7 +52,7 @@ def schedule_drives_outputs(data, drive_account, user, agol_account=None):
         # create a connection and schedule update
         connection = DataConnection.objects.create(organization=organization, account=user,
                                                    drive_account=drive_account, agol_account=agol_account)
-        _schedule_drives_agol(drive_account, connection, organization) # todo: should we schedule after creating layer?
+        _schedule_drives_agol(drive_account, connection, organization)
 
         sheet_ids_to_layer_ids = _create_drive_feature_layers(drive_account, agol_account)
         connection.agol_sheet_ids_to_layer_ids = json.dumps(sheet_ids_to_layer_ids)
@@ -50,6 +63,7 @@ def schedule_drives_outputs(data, drive_account, user, agol_account=None):
 
 
 def delete_drives_kml(drive_account):
+    "Deschedules Lambda function outputting Drive data to KML in S3."
 
     if drive_account.cloudwatch_update_kml_rule_names:
         update_kml_rule_names = drive_account.cloudwatch_update_kml_rule_names.split(',')
@@ -61,6 +75,7 @@ def delete_drives_kml(drive_account):
 
 
 def delete_drives_agol(agol_account=None, drive_account=None, connection=None):
+    "Deschedules Lambda function outputting Drive data to AGOL and deletes connection object."
 
     if connection is None:
         try:
@@ -81,6 +96,7 @@ def delete_drives_agol(agol_account=None, drive_account=None, connection=None):
 
 
 def update_drives_outputs(data, drive_account, user):
+    "Updates Lambda scheduling."
 
     output_kml = data.get('output_kml')
     if output_kml is not None:
@@ -125,7 +141,7 @@ def update_drives_outputs(data, drive_account, user):
 
 
 def _create_drive_feature_layers(drive_account, agol_account):
-    'Creates a feature layer for each sheet. Returns dict of sheet ID to layer ID.'
+    "Creates Feature Layer for each sheet. Returns dict of sheet ID to layer ID."
 
     feature_service = agol.get_or_create_caracal_feature_service(agol_account)
 
@@ -157,6 +173,7 @@ def _create_drive_feature_layers(drive_account, agol_account):
 
 
 def _get_drives_get_data_rule_name(short_name, provider, file_type, stage, drive_account_uid):
+    "Gets the Cloudfront rule name that runs Lambda function which gets Drive data and adds to S3."
 
     # white-willow-prod-drives-get-google-google_sheet-a8sl
 
@@ -173,6 +190,7 @@ def _get_drives_get_data_rule_name(short_name, provider, file_type, stage, drive
 
 
 def _get_drives_update_agol_rule_name(short_name, drive_account_uid, stage, provider, file_type):
+    "Gets the Cloudfront rule name that runs Lambda function which gets Drive data from S3 and adds to AGOL."
 
     stage = stage[:4]
     provider = provider[:10]
@@ -187,6 +205,7 @@ def _get_drives_update_agol_rule_name(short_name, drive_account_uid, stage, prov
 
 
 def _get_drives_update_kml_rule_name(short_name, drive_account_uid, stage, provider, file_type):
+    "Gets the Cloudfront rule name that runs Lambda function which gets Drive data from S3 and create KML in S3."
 
     stage = stage[:4]
     provider = provider[:10]
@@ -201,6 +220,7 @@ def _get_drives_update_kml_rule_name(short_name, drive_account_uid, stage, provi
 
 
 def _schedule_drives_agol(drive_account, connection, organization):
+    "Schedules Lambda function that gets Drive data from S3 and updates AGOL."
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_static_agol'
     update_agol_function = _lambda.get_lambda_function(function_name)
@@ -221,6 +241,7 @@ def _schedule_drives_agol(drive_account, connection, organization):
 
 
 def _schedule_drives_kml(drive_account, organization):
+    "Schedules Lambda function that gets Drive data from S3 and creates KML."
 
     function_name = f'caracal_{settings.STAGE.lower()}_update_static_kml'
     update_kml_function = _lambda.get_lambda_function(function_name)
@@ -237,3 +258,5 @@ def _schedule_drives_kml(drive_account, organization):
 
     drive_account.cloudwatch_update_kml_rule_names = rule_name
     drive_account.save()
+
+    

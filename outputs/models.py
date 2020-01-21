@@ -5,6 +5,7 @@ from caracal.common import constants
 from caracal.common.models import BaseAsset, RealTimeAccount
 from custom_source.models import Source
 from drives.models import DriveFileAccount
+from jackal.models import Network
 
 
 class AgolAccount(BaseAsset):
@@ -30,6 +31,7 @@ class DataConnection(BaseAsset):
     custom_source = models.ForeignKey(Source, on_delete=models.CASCADE, null=True, related_name='connections')
     drive_account = models.ForeignKey(DriveFileAccount, on_delete=models.CASCADE, null=True, related_name='connections')
     realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE, null=True, related_name='connections')
+    jackal_network = models.ForeignKey(Network, on_delete=models.CASCADE, null=True, related_name='connections')
 
     # Output
     agol_account = models.ForeignKey(AgolAccount, on_delete=models.CASCADE, null=True, related_name='connections')

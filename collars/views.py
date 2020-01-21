@@ -302,6 +302,9 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
         agol_connections = individual.account.connections.filter(
             agol_account__isnull=False
         )
+        # TODO: maybe do:
+        # agol_connection = individual.account.connections.filter(agol_account__isnull=False).first()
+        # if agol_connection is not None:
         for agol_connection in agol_connections:
 
             attributes = dict()
@@ -327,20 +330,18 @@ class UpdateCollarIndividualView(generics.GenericAPIView):
                 # TODO: this is grossly inefficient, but AGOL doesn't seem to have an update with where clause
 
                 features = agol.get_collar_features(
+                    agol_account=agol_account,
                     device_id=individual.device_id,
-                    layer_id=agol_connection.agol_layer_id,
-                    feature_service_url=agol_account.feature_service_url,
-                    agol_account=agol_account
+                    layer_id=agol_connection.agol_layer_id
                 )
 
                 print(f'Updating {len(features)} features')
                 updates = [(f.id, attributes, None) for f in features]  
 
                 agol.update_features(
-                    updates=updates,
+                    agol_account=agol_account,
                     layer_id=agol_connection.agol_layer_id,
-                    feature_service_url=agol_account.feature_service_url,
-                    agol_account=agol_account
+                    updates=updates
                 )
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)

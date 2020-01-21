@@ -243,20 +243,18 @@ class UpdateDeviceView(generics.GenericAPIView):
                 # TODO: this is grossly inefficient, but AGOL doesn't seem to have an update with where clause
 
                 features = agol.get_custom_source_features(
+                    agol_account=agol_account,
                     device_id=device.device_id,
-                    layer_id=agol_connection.agol_layer_id,
-                    feature_service_url=agol_account.feature_service_url,
-                    agol_account=agol_account
+                    layer_id=agol_connection.agol_layer_id
                 )
 
                 print(f'Updating {len(features)} features')
                 updates = [(f.id, attributes, None) for f in features]  
 
                 agol.update_features(
-                    updates=updates,
+                    agol_account=agol_account,
                     layer_id=agol_connection.agol_layer_id,
-                    feature_service_url=agol_account.feature_service_url,
-                    agol_account=agol_account
+                    updates=updates
                 )
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)

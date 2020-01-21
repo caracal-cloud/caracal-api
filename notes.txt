@@ -12,7 +12,7 @@ initialize database from eb instance
 . /opt/python/current/env
 source /opt/python/run/venv/bin/activate
 cd /opt/python/current/app/
--- todo: comlete me --
+-- todo: complete me --
 
 
 connect to local postgres
