@@ -193,6 +193,7 @@ class SocialAuthGoogleSerializer(serializers.Serializer):
 
 class UpdateAccountSerializer(serializers.Serializer):
 
+    email = serializers.EmailField(required=False)
     name = serializers.CharField(max_length=150, required=False)
     phone_number = serializers.CharField(max_length=150, required=False)
     organization_name = serializers.CharField(max_length=150, required=False)
@@ -203,6 +204,7 @@ class UpdateAccountSerializer(serializers.Serializer):
     def update(self, account, validated_data):
 
         # account
+        account.email = validated_data.get('email', account.email)
         account.name = validated_data.get('name', account.name)
         account.phone_number = validated_data.get('phone_number', account.phone_number)
         account.datetime_updated = datetime.utcnow().replace(tzinfo=tz.utc)

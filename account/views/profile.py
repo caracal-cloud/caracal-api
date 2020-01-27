@@ -137,16 +137,29 @@ class UpdateAccountView(generics.GenericAPIView):
         if len(admin_fields.intersection(serializer_fields)) > 0:
             if not user.is_admin:
                 return Response({
-                    'error': 'admin_privileges_required'
+                    'error': 'admin_required'
                 }, status=status.HTTP_403_FORBIDDEN)
             else:
                 message = f'organization profile updated by {user.name}'
                 ActivityChange.objects.create(organization=user.organization, account=user, message=message)
 
+        # update email
+        if serializer.validated_data.get('email'):
+            attrs = [{
+                'Name': 'email',
+                'Value': serializer.validated_data['email']    
+            }]
+            try:
+                cognito.update_account(user.email, attrs)
+            except exceptions.AliasExistsException:
+                return Response({
+                    'error': 'email_already_exists',
+                    'message': 'An account with that email already exists.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         serializer.save()
 
         return Response(status=status.HTTP_200_OK)
-
 
 
 class VerifyEmailView(views.APIView):

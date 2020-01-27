@@ -352,8 +352,6 @@ def _get_recording_queryset(request, _class):
         serializer.is_valid(raise_exception=True)
         phone_uid = serializer.data['phone_uid']
 
-        print('phone_uid', phone_uid)
-
         try:
             phone = Phone.objects.get(uid=phone_uid)
         except:

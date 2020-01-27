@@ -85,7 +85,6 @@ class LogoutView(views.APIView):
         status.HTTP_401_UNAUTHORIZED: 'not_authorized'
     }, security=[], operation_id='account - logout')
     def post(self, request):
-
         cognito.sign_out_user(request.user.email)
         return Response(status=status.HTTP_200_OK)
 

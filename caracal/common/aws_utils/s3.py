@@ -34,5 +34,4 @@ def get_presigned_url(object_key, bucket, expiration_secs):
 def put_s3_item(body, bucket, object_key):
 
     client = get_boto_client('s3')
-
     client.put_object(Body=body, Bucket=bucket, Key=object_key)

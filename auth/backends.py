@@ -13,6 +13,7 @@ import time
 from auth import cognito
 from account.models import Account
 
+# use _ and stuff
 
 class CognitoAuthentication(BaseAuthentication):
 
