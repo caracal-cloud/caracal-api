@@ -171,7 +171,6 @@ def get_or_create_caracal_feature_service(agol_account):
         name=CARACAL_SERVICE_NAME, owner_username=agol_account.username
     )
     if feature_service is None:
-        print("creating feature service")
         feature_service = arcgis.services.create_feature_service(
             CARACAL_SERVICE_NAME, CARACAL_SERVICE_DESCRIPTION
         )

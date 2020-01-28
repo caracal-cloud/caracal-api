@@ -7,7 +7,7 @@ import os
 import requests
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
-from sentry_sdk import capture_message
+import sentry_sdk
 import simple_arcgis_wrapper as saw
 from urllib.parse import urlencode
 
@@ -121,6 +121,7 @@ class GetAgolOauthRequestUrlView(views.APIView):
             'client_id': settings.AGOL_CLIENT_ID,
             'response_type': 'code',
             'redirect_uri': agol_redirect_ui,
+            'expiration': -1,
             'state': json.dumps(state)
         }
         authorization_url = f'{AGOL_BASE_URL}/authorize?{urlencode(params)}'
@@ -149,7 +150,7 @@ class AgolOauthResponseView(views.APIView):
         else:
             # code or state occasionally missing
             if 'code' not in data.keys() or 'state' not in data.keys():
-                capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
+                sentry_sdk.capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
                 return Response({
                     'error': 'access_denied',
                     'message': 'code or state missing'
@@ -175,7 +176,7 @@ class AgolOauthResponseView(views.APIView):
 
             # access token occasionaly missing?
             if 'access_token' not in tokens:
-                capture_message(f'WARNING: access_token missing - {json.dumps(tokens)}')
+                sentry_sdk.capture_message(f'WARNING: access_token missing - {json.dumps(tokens)}')
                 return Response({
                     'error': 'access_denied',
                     'message': 'access_token missing'
@@ -215,22 +216,24 @@ class AgolOauthResponseView(views.APIView):
                 client_id=settings.AGOL_CLIENT_ID
             )
             
-            service = arcgis.services.get_feature_service(name='Caracal', owner_username=username)
-            if service is None:
-                service = arcgis.services.create_feature_service('Caracal', 'Caracal data integration outputs')                
-
-            if service is not None:
-                agol_account.feature_service_url = service.url
-                agol_account.feature_service_id = service.id
-                agol_account.save()
-                
-                # changed a name like Caracal (Disconnected) back to Caracal
-                if service.title != 'Caracal':
-                    arcgis.services.update_feature_service(agol_account.feature_service_id, title='Caracal')
-            else:
-                sentry_sdk.capture_message(f'failed to add AGOL account to {username}')
+            try:
+                service = agol.get_or_create_caracal_feature_service(agol_account)
+            except saw.exceptions.ArcGISException as e:
                 agol_account.delete()
+                sentry_sdk.capture_exception(e)
+                return redirect(state['callback']) # TODO: go somewhere else if failed?
+
+            agol_account.feature_service_url = service.url
+            agol_account.feature_service_id = service.id
+            agol_account.save()
+            
+            # changed a name like Caracal (Disconnected) back to Caracal
+            if service.title != 'Caracal':
+                arcgis.services.update_feature_service(agol_account.feature_service_id, title='Caracal')
 
             return redirect(state['callback'])
+
+
+
 
 
