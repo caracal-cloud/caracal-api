@@ -179,7 +179,7 @@ def get_or_create_caracal_feature_service(agol_account):
 
 
 def is_account_connected(agol_account):
-    "Uses a hack to see if account is connected by trying to refresh token."
+    "Checks if account is connect by checking if refresh token is active."
 
     arcgis = saw.ArcgisAPI(
         access_token=agol_account.oauth_access_token,
@@ -188,7 +188,7 @@ def is_account_connected(agol_account):
         client_id=settings.AGOL_CLIENT_ID,
     )
 
-    return arcgis.requester._refresh_access_token()
+    return arcgis.requester.is_refresh_token_active()
 
 
 def update_features(updates, layer_id, agol_account):
