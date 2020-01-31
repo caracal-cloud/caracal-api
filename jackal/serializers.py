@@ -2,7 +2,7 @@
 from rest_framework import serializers
 
 from caracal.common import constants
-from jackal.models import Call, Contact, Location, OtherPhone, Phone, Text
+from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 
 
 class AddCallSerializer(serializers.Serializer):
@@ -128,6 +128,22 @@ class TextSerializer(serializers.ModelSerializer):
         fields = ['datetime_recorded', 'other_phone', 'is_sent', 'message']
 
 
+class GetNetworkSerializer(serializers.ModelSerializer):
+
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, network):
+        connection = network.connections.filter(agol_account__isnull=False).first()
+        return {
+            'output_agol': connection is not None,
+            'output_database': True,
+            'output_kml': False # FIXME: network.cloudwatch_update_kml_rule_names not in [None, '']
+        }
+
+    class Meta:
+        model = Network
+        fields = ['uid', 'write_key', 'outputs']
+
+
 class GetPhoneDetailSerializer(serializers.ModelSerializer):
 
     calls = CallSerializer(many=True)
@@ -143,6 +159,13 @@ class GetPhoneDetailSerializer(serializers.ModelSerializer):
 
 class GetPhoneRecordingQueryParamSerializer(serializers.Serializer):
     phone_uid = serializers.UUIDField()
+
+
+class UpdateNetworkSerializer(serializers.Serializer):
+
+    # network_uid = serializers.UUIDField(required=True) just look up with auth user
+    output_agol = serializers.NullBooleanField(required=False)
+    output_kml = serializers.NullBooleanField(required=False)
 
 
 class UpdatePhoneSerializer(serializers.Serializer):

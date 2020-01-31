@@ -15,7 +15,7 @@ class CallAdmin(admin.ModelAdmin):
 
 @admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'phone', 'other_phone', 'network']
+    list_display = ['uid', 'phone', 'other_phone', 'network',  'datetime_created', 'datetime_recorded', ]
     search_fields = ['other_phone__name', 'other_phone__phone_number']
     list_filter = []
     ordering = ['-datetime_created']

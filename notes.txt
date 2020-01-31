@@ -6,6 +6,7 @@ pip freeze > requirements.txt
 -- git commit
 eb deploy caracal-api-prod --profile=tuma-admin
 -- if changing models, don't forget to update Lambda models.py as well
+-- deployment will fail if upgrading a package (at least simple-arcgis-wrapper)
 
 initialize database from eb instance
 --------------------------------------------------------------------------------
@@ -33,24 +34,11 @@ Get and remove resource-based policies
 aws lambda get-policy --function-name my-function --output text
 aws lambda remove-permission --function-name example --statement-id sns
 
-
-
-
-
-
-
-
-
-when Lambda is adding individuals and positions it will have to provide a JWT
-    - would be inefficient to login each time!
-    - possible login for lambda?
-        - modify CognitoAuthentication to accept lambda user...
-
-
-establish where validation occurs (in model, view, or serializer)!
-
-
 - find better way to handle path measurement (individual serializer)
 
 - handle timezone correctly - standardize everything
+
+- what happens if user needs to sign in to ArcGIS again?
+    - they can sign in again, then add ArcGIS output to each source
+    - the layer will then be populated with the saved data
 

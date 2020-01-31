@@ -69,8 +69,13 @@ class AddContactView(generics.GenericAPIView):
         add_data = serializer.data
         device_id = add_data.pop('device_id')
         write_key = add_data.pop('write_key')
-        phone_number = add_data.pop('phone_number')
         name = add_data.pop('name')
+
+        phone_number = add_data.pop('phone_number')
+        phone_number = phone_number.replace(' ', '')
+        phone_number = phone_number.replace('()', '')
+        phone_number = phone_number.replace(')', '')
+        phone_number = phone_number.replace('-', '')
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = _get_or_create_phone(device_id, network)
@@ -240,6 +245,20 @@ class GetTextsView(generics.ListAPIView):
         return _get_recording_queryset(self.request, Text)
 
 
+class GetNetworkView(generics.RetrieveAPIView):
+    
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.GetNetworkSerializer
+
+    def get_object(self):
+        organization = self.request.user.organization
+        try:
+            return organization.jackal_network
+        except Network.DoesNotExist:
+            return None
+            
+
 class GetPhonesView(generics.ListAPIView):
 
     authentication_classes = [CognitoAuthentication]
@@ -267,6 +286,19 @@ class GetPhoneDetailView(generics.RetrieveAPIView):
             return Phone.objects.filter(network=network, is_active=True)
         except Network.DoesNotExist:
             return Phone.objects.none()
+
+
+class UpdateNetworkView(generics.GenericAPIView):
+
+    authentication_classes = [CognitoAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = serializers.UpdateNetworkSerializer
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(True)
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class UpdatePhoneView(generics.GenericAPIView):
