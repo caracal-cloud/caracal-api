@@ -73,7 +73,7 @@ class AddContactView(generics.GenericAPIView):
 
         phone_number = add_data.pop('phone_number')
         phone_number = phone_number.replace(' ', '')
-        phone_number = phone_number.replace('()', '')
+        phone_number = phone_number.replace('(', '')
         phone_number = phone_number.replace(')', '')
         phone_number = phone_number.replace('-', '')
 
