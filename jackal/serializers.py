@@ -1,7 +1,6 @@
-
 from rest_framework import serializers
 
-from caracal.common import constants
+from caracal.common import constants, models
 from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 
 
@@ -59,6 +58,7 @@ class AddTextSerializer(serializers.Serializer):
     def validate(self, attrs):
         return validate_unknown_attrs(attrs, self.initial_data, self.fields)
 
+
 class CreateNetworkSerializer(serializers.Serializer):
     output_agol = serializers.NullBooleanField(required=False)
     output_kml = serializers.NullBooleanField(required=False)
@@ -66,20 +66,37 @@ class CreateNetworkSerializer(serializers.Serializer):
 
 class GetPhonesSerializer(serializers.HyperlinkedModelSerializer):
 
-    url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='phone-detail')
+    url = serializers.HyperlinkedIdentityField(
+        lookup_field="uid", view_name="phone-detail"
+    )
+
+    # TODO: update this
+    datetime_last_update = serializers.SerializerMethodField()
+    def get_datetime_last_update(self, phone):
+        return models.get_utc_datetime_now()
 
     class Meta:
         model = Phone
-        fields = ['url', 'uid', 'device_id', 'status', 'name', 'description', 'mark', 'phone_numbers']
+        fields = [
+            "url",
+            "uid",
+            "device_id",
+            "status",
+            "name",
+            "description",
+            "mark",
+            "phone_numbers",
+            "datetime_last_update",
+        ]
 
 
 # Recording Serializers
 
-class OtherPhoneSerializer(serializers.ModelSerializer):
 
+class OtherPhoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = OtherPhone
-        fields = ['phone_number', 'name', 'description', 'mark']
+        fields = ["phone_number", "name", "description", "mark"]
 
 
 class CallSerializer(serializers.ModelSerializer):
@@ -88,7 +105,7 @@ class CallSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Call
-        fields = ['datetime_recorded', 'other_phone', 'is_sent', 'duration_secs']
+        fields = ["datetime_recorded", "other_phone", "is_sent", "duration_secs"]
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -97,26 +114,29 @@ class ContactSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Contact
-        fields = ['datetime_recorded', 'other_phone']
+        fields = ["datetime_recorded", "other_phone"]
 
 
 class LocationSerializer(serializers.ModelSerializer):
 
     longitude = serializers.SerializerMethodField()
+
     def get_longitude(self, location):
         return location.position.coords[0]
 
     latitude = serializers.SerializerMethodField()
+
     def get_latitude(self, location):
         return location.position.coords[1]
 
     accuracy_m = serializers.SerializerMethodField()
+
     def get_accuracy_m(self, location):
         return round(float(location.accuracy_m), 2)
 
     class Meta:
         model = Location
-        fields = ['datetime_recorded', 'longitude', 'latitude', 'accuracy_m']
+        fields = ["datetime_recorded", "longitude", "latitude", "accuracy_m"]
 
 
 class TextSerializer(serializers.ModelSerializer):
@@ -125,23 +145,25 @@ class TextSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Text
-        fields = ['datetime_recorded', 'other_phone', 'is_sent', 'message']
+        fields = ["datetime_recorded", "other_phone", "is_sent", "message"]
 
 
 class GetNetworkSerializer(serializers.ModelSerializer):
 
     outputs = serializers.SerializerMethodField()
+
     def get_outputs(self, network):
         connection = network.connections.filter(agol_account__isnull=False).first()
         return {
-            'output_agol': connection is not None,
-            'output_database': True,
-            'output_kml': False # FIXME: network.cloudwatch_update_kml_rule_names not in [None, '']
+            "csv_url": "https://public.caracal.cloud/example.csv",  # TODO: update this to use users.caracal.
+            "output_agol": connection is not None,
+            "output_database": True,
+            "output_kml": False,  # FIXME: network.cloudwatch_update_kml_rule_names not in [None, '']
         }
 
     class Meta:
         model = Network
-        fields = ['uid', 'write_key', 'outputs']
+        fields = ["uid", "write_key", "outputs"]
 
 
 class GetPhoneDetailSerializer(serializers.ModelSerializer):
@@ -151,10 +173,27 @@ class GetPhoneDetailSerializer(serializers.ModelSerializer):
     locations = LocationSerializer(many=True)
     texts = TextSerializer(many=True)
 
+    # TODO: update this
+    datetime_last_update = serializers.SerializerMethodField()
+    def get_datetime_last_update(self, phone):
+        return models.get_utc_datetime_now()
+
     class Meta:
         model = Phone
-        fields = ['uid', 'device_id', 'status', 'name', 'description', 'mark', 'phone_numbers',
-                  'calls', 'contacts', 'locations', 'texts']
+        fields = [
+            "uid",
+            "device_id",
+            "status",
+            "name",
+            "description",
+            "mark",
+            "phone_numbers",
+            "calls",
+            "contacts",
+            "locations",
+            "texts",
+            "datetime_last_update",
+        ]
 
 
 class GetPhoneRecordingQueryParamSerializer(serializers.Serializer):
@@ -172,7 +211,9 @@ class UpdatePhoneSerializer(serializers.Serializer):
 
     phone_uid = serializers.UUIDField(required=True)
 
-    status = serializers.ChoiceField(choices=constants.JACKAL_PHONE_STATUSES, required=False)
+    status = serializers.ChoiceField(
+        choices=constants.JACKAL_PHONE_STATUSES, required=False
+    )
     name = serializers.CharField(max_length=100, required=False)
     description = serializers.CharField(max_length=255, required=False)
     mark = serializers.CharField(max_length=100, required=False)
@@ -185,5 +226,7 @@ class UpdatePhoneSerializer(serializers.Serializer):
 def validate_unknown_attrs(attrs, initial_data, fields):
     unknown = set(initial_data) - set(fields)
     if unknown:
-        raise serializers.ValidationError("Unknown field(s): {}".format(", ".join(unknown)))
+        raise serializers.ValidationError(
+            "Unknown field(s): {}".format(", ".join(unknown))
+        )
     return attrs
