@@ -152,10 +152,14 @@ class GetNetworkSerializer(serializers.ModelSerializer):
 
     outputs = serializers.SerializerMethodField()
 
+    # TODO: update me
+    csv_url = serializers.SerializerMethodField()
+    def get_csv_url(self, network):
+        return "https://public.caracal.cloud/example.csv"
+
     def get_outputs(self, network):
         connection = network.connections.filter(agol_account__isnull=False).first()
         return {
-            "csv_url": "https://public.caracal.cloud/example.csv",  # TODO: update this to use users.caracal.
             "output_agol": connection is not None,
             "output_database": True,
             "output_kml": False,  # FIXME: network.cloudwatch_update_kml_rule_names not in [None, '']
@@ -163,7 +167,7 @@ class GetNetworkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Network
-        fields = ["uid", "write_key", "outputs"]
+        fields = ["uid", "write_key", "outputs", 'csv_url']
 
 
 class GetPhoneDetailSerializer(serializers.ModelSerializer):

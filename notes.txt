@@ -8,6 +8,7 @@ eb deploy caracal-api-prod --profile=tuma-admin
 -- if changing models, don't forget to update Lambda models.py as well
 -- deployment will fail if upgrading a package (at least simple-arcgis-wrapper)
 
+
 initialize database from eb instance
 --------------------------------------------------------------------------------
 . /opt/python/current/env
