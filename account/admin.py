@@ -11,7 +11,10 @@ class AccountAdmin(admin.ModelAdmin):
     search_fields = ['uid_cognito', 'uid_google', 'email', 'organization__name']
     list_filter = ['is_active', 'is_superuser', 'is_staff', 'is_admin']
     ordering = ['-datetime_created']
-    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
+    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated', 
+                       'custom_access_jwt_id', 'custom_refresh_jwt_id', 
+                       'temp_google_oauth_access_token', 'temp_google_oauth_access_token_expiry',
+                       'temp_google_oauth_refresh_token', 'password']
 
 
 @admin.register(AlertRecipient)

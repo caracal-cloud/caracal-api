@@ -11,7 +11,7 @@ from account.models import Account
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import stripe_utils
-from caracal.common.aws_utils import cognito
+from caracal.common.aws_utils import cognito, exceptions
 
 
 class ForceOrganizationUpdateView(generics.GenericAPIView):
