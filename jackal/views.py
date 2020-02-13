@@ -15,6 +15,8 @@ from jackal.decorators import check_network_exists
 from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 
 
+# do not change the response format of add_*/ routes!
+
 class AddCallView(generics.GenericAPIView):
 
     authentication_classes = []
@@ -373,7 +375,7 @@ def _get_or_create_phone(device_id, network):
 
 def _get_or_create_other_phone(phone_number, network):
     try:
-        return OtherPhone.objects.get(network=network, phone_number=phone_number, is_active=True)
+        return OtherPhone.objects.get(network=network, phone_number=phone_number)
     except OtherPhone.DoesNotExist:
         return OtherPhone.objects.create(network=network, phone_number=phone_number)
 
