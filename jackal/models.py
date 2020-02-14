@@ -116,3 +116,82 @@ class Text(BaseJackalRecording):
     class Meta:
         ordering = ['-datetime_recorded']
         unique_together = ['phone', 'other_phone', 'datetime_recorded', 'is_sent', 'message']
+
+
+class WhatsAppCall(BaseJackalRecording):
+
+    network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='whatsapp_calls')
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='whatsapp_calls')
+    whatsapp_user = models.ForeignKey('WhatsAppUser', on_delete=models.CASCADE, related_name='whatsapp_calls')
+
+    call_log_id = models.IntegerField()
+    duration_secs = models.IntegerField()
+    from_me = models.BooleanField()
+
+    class Meta:
+        ordering = ['-datetime_created']
+        unique_together = ['datetime_recorded', 'whatsapp_user', 'call_log_id', 'duration_secs']
+
+
+class WhatsAppGroup(models.Model):
+    
+    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
+    datetime_created = models.DateTimeField(default=get_utc_datetime_now)
+
+    network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='whatsapp_groups')
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='whatsapp_groups')
+
+    jid_id = models.IntegerField()
+    user_string = models.CharField(max_length=200)
+
+    subject = models.CharField(max_length=200, blank=True, null=True) # the name of the group
+
+    class Meta:
+        ordering = ['-datetime_created']
+        unique_together = ['phone', 'user_string']
+
+    def __str__(self):
+        return f"{self.subject} - {self.user_string}"
+
+
+class WhatsAppMessage(BaseJackalRecording):
+    """
+    1. from target to individual (jid_id not null, group_jid_id is null, from_me is True)
+    2. to target from individual (jid_id not null, group_jid_id is null, from_me is False)
+    3. from target to group (jid_id is null, group_jid_id not null, from_me is True)
+    4. from individual to group (jid_id not null, group_jid_id not null, from_me is False)
+    """
+
+    network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='whatsapp_messages')
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='whatsapp_messages')
+    whatsapp_user = models.ForeignKey('WhatsAppUser', on_delete=models.CASCADE, related_name='whatsapp_messages', null=True)
+    whatsapp_group = models.ForeignKey(WhatsAppGroup, on_delete=models.CASCADE, related_name='whatsapp_messages', null=True)
+
+    from_me = models.BooleanField()
+    media_url = models.TextField(blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
+    messages_id = models.IntegerField()
+
+    class Meta:
+        unique_together = ['phone', 'datetime_recorded', 'message', 'from_me']
+
+
+class WhatsAppUser(models.Model):
+
+    uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
+    datetime_created = models.DateTimeField(default=get_utc_datetime_now)
+
+    network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='whatsapp_users')
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='whatsapp_users')
+    groups = models.ManyToManyField(WhatsAppGroup)
+
+    jid_id = models.IntegerField()
+    user_string = models.CharField(max_length=200)
+
+    class Meta:
+        unique_together = ['phone', 'user_string']
+
+    def __str__(self):
+        return f"{self.user_string} - {self.jid_id}"
+
+    

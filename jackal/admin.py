@@ -1,6 +1,18 @@
 from django.contrib import admin
 
-from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
+from jackal.models import (
+    Call, 
+    Contact, 
+    Location, 
+    Network, 
+    OtherPhone, 
+    Phone, 
+    Text,
+    WhatsAppCall,
+    WhatsAppGroup,
+    WhatsAppMessage,
+    WhatsAppUser,
+)
 
 
 
@@ -66,3 +78,43 @@ class NetworkAdmin(admin.ModelAdmin):
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated', 'write_key']
 
+
+
+"""
+    WhatsAppCall,
+    WhatsAppGroup,
+    WhatsAppMessage,
+    WhatsAppUser
+"""
+
+@admin.register(WhatsAppCall)
+class WhatsAppCallAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'whatsapp_user', 'duration_secs', 'call_log_id']
+    search_fields = []
+    list_filter = []
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_recorded']
+
+@admin.register(WhatsAppGroup)
+class WhatsAppGroupAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created', 'phone', 'network', 'subject']
+    search_fields = ['subject']
+    list_filter = []
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created']
+
+@admin.register(WhatsAppMessage)
+class WhatsAppMessageAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network']
+    search_fields = []
+    list_filter = []
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_recorded']
+
+@admin.register(WhatsAppUser)
+class WhatsAppUserAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created', 'phone', 'network', 'user_string']
+    search_fields = ['user_string']
+    list_filter = []
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created']
