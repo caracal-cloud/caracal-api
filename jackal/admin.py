@@ -105,7 +105,7 @@ class WhatsAppGroupAdmin(admin.ModelAdmin):
 
 @admin.register(WhatsAppMessage)
 class WhatsAppMessageAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network']
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'message']
     search_fields = []
     list_filter = []
     ordering = ['-datetime_created']
