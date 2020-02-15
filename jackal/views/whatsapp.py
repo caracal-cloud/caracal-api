@@ -159,14 +159,22 @@ class AddWhatsAppUserView(generics.GenericAPIView):
 
 
 def _get_or_create_whatsapp_group(jid_id, user_string, phone, network):
+    # in between first get and create, another request could have created the group so check again
     try:
         return WhatsAppGroup.objects.get(user_string=user_string, phone=phone)
     except WhatsAppGroup.DoesNotExist:
-        return WhatsAppGroup.objects.create(jid_id=jid_id, user_string=user_string, phone=phone, network=network)
+        try:
+            return WhatsAppGroup.objects.create(jid_id=jid_id, user_string=user_string, phone=phone, network=network)
+        except IntegrityError:
+            return WhatsAppGroup.objects.get(user_string=user_string, phone=phone)
 
 
 def _get_or_create_whatsapp_user(jid_id, user_string, phone, network):
+    # in between first get and create, another request could have created the user so check again
     try:
         return WhatsAppUser.objects.get(user_string=user_string, phone=phone)
     except WhatsAppUser.DoesNotExist:
-        return WhatsAppUser.objects.create(jid_id=jid_id, user_string=user_string, phone=phone, network=network)
+        try:
+            return WhatsAppUser.objects.create(jid_id=jid_id, user_string=user_string, phone=phone, network=network)
+        except IntegrityError:
+            return WhatsAppUser.objects.get(user_string=user_string, phone=phone)
