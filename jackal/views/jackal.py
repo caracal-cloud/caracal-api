@@ -87,9 +87,13 @@ class AddContactView(generics.GenericAPIView):
 
         try:
             Contact.objects.create(
-                network=phone.network, phone=phone, other_phone=other_phone, **add_data
+                network=phone.network, 
+                phone=phone, 
+                other_phone=other_phone, 
+                **add_data
             )
-        except IntegrityError as ie:  # fixme: this is always throwing
+
+        except IntegrityError as ie:
             print(ie)
             pass
 
@@ -108,6 +112,7 @@ class AddLocationView(generics.GenericAPIView):
         try:
             serializer.is_valid(True)
         except:
+            print(serializer.data)
             print(serializer.errors)
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -116,6 +121,7 @@ class AddLocationView(generics.GenericAPIView):
         write_key = add_data.pop("write_key")
         longitude = round(float(add_data.pop("longitude")), 6)
         latitude = round(float(add_data.pop("latitude")), 6)
+        accuracy_m = round(float(add_data.pop("accuracy_m")), 2)
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -124,7 +130,11 @@ class AddLocationView(generics.GenericAPIView):
 
         try:
             Location.objects.create(
-                phone=phone, network=network, position=point, **add_data
+                phone=phone, 
+                network=network, 
+                position=point, 
+                accuracy_m=accuracy_m,
+                **add_data
             )
         except IntegrityError:
             pass

@@ -37,9 +37,9 @@ class AddLocationSerializer(serializers.Serializer):
     device_id = serializers.CharField(max_length=100)
     datetime_recorded = serializers.DateTimeField()
 
-    latitude = serializers.DecimalField(max_digits=12, decimal_places=6)
-    longitude = serializers.DecimalField(max_digits=12, decimal_places=6)
-    accuracy_m = serializers.DecimalField(max_digits=10, decimal_places=2)
+    latitude = serializers.DecimalField(max_digits=None, decimal_places=None)
+    longitude = serializers.DecimalField(max_digits=None, decimal_places=None)
+    accuracy_m = serializers.DecimalField(max_digits=None, decimal_places=None)
 
     def validate(self, attrs):
         return validate_unknown_attrs(attrs, self.initial_data, self.fields)

@@ -48,11 +48,11 @@ class AddRecordView(views.APIView):
             "device_id": device.pk,
             "source_id": source.pk,
             "datetime_recorded": serializer.data["datetime_recorded"],
-            "lat": serializer.data["lat"],
-            "lon": serializer.data["lon"],
-            "alt_m": serializer.data.get("alt_m"),
-            "speed_kmh": serializer.data.get("speed_kmh"),
-            "temp_c": serializer.data.get("temp_c"),
+            "lat": round(float(serializer.data["lat"]), 6),
+            "lon": round(float(serializer.data["lon"]), 6),
+            "alt_m": round(float(serializer.data.get("alt_m")), 2),
+            "speed_kmh": round(float(serializer.data.get("speed_kmh")), 2),
+            "temp_c": round(float(serializer.data.get("temp_c")), 2),
         }
 
         kinesis.put_firehose_record(

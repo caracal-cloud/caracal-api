@@ -10,13 +10,13 @@ class AddRecordSerializer(serializers.Serializer):
     write_key = serializers.CharField()
 
     datetime_recorded = serializers.DateTimeField()
-    lat = serializers.DecimalField(max_digits=12, decimal_places=6)
-    lon = serializers.DecimalField(max_digits=12, decimal_places=6)
+    lat = serializers.DecimalField(max_digits=None, decimal_places=None)
+    lon = serializers.DecimalField(max_digits=None, decimal_places=None)
     device_id = serializers.CharField(max_length=100)
 
-    alt_m = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    speed_kmh = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    temp_c = serializers.DecimalField(max_digits=5, decimal_places=2, required=False)
+    alt_m = serializers.DecimalField(max_digits=None, decimal_places=None, required=False)
+    speed_kmh = serializers.DecimalField(max_digits=None, decimal_places=None, required=False)
+    temp_c = serializers.DecimalField(max_digits=None, decimal_places=None, required=False)
 
 
 class AddSourceSerializer(serializers.Serializer):

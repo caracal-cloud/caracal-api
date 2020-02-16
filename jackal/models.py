@@ -82,7 +82,6 @@ class Contact(BaseJackalRecording):
 
     network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='contacts')
     phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='contacts')
-    
     other_phone = models.ForeignKey(OtherPhone, on_delete=models.CASCADE, related_name='contacts')
 
     class Meta:

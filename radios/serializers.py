@@ -21,8 +21,8 @@ class AddPositionSerializer(serializers.Serializer):
     account_uid = serializers.UUIDField()
     source = serializers.CharField() # radio
     device_id = serializers.CharField()
-    longitude = serializers.DecimalField(max_digits=12, decimal_places=6)
-    latitude = serializers.DecimalField(max_digits=12, decimal_places=6)
+    longitude = serializers.DecimalField(max_digits=None, decimal_places=None)
+    latitude = serializers.DecimalField(max_digits=None, decimal_places=None)
     datetime_recorded = serializers.DateTimeField()
 
 
