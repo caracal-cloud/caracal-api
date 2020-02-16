@@ -89,8 +89,8 @@ class AddContactView(generics.GenericAPIView):
             Contact.objects.create(
                 network=phone.network, phone=phone, other_phone=other_phone, **add_data
             )
-        except IntegrityError:  # fixme: this is always throwing
-            print("integrity")
+        except IntegrityError as ie:  # fixme: this is always throwing
+            print(ie)
             pass
 
         return Response({"success": True}, status=status.HTTP_201_CREATED)
@@ -105,7 +105,11 @@ class AddLocationView(generics.GenericAPIView):
     @check_network_exists
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(True)
+        try:
+            serializer.is_valid(True)
+        except:
+            print(serializer.errors)
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
         add_data = serializer.data
         device_id = add_data.pop("device_id")
