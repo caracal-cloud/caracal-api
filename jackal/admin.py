@@ -4,6 +4,7 @@ from jackal.models import (
     Call, 
     Contact, 
     Location, 
+    Log,
     Network, 
     OtherPhone, 
     Phone, 
@@ -39,6 +40,15 @@ class LocationAdmin(admin.ModelAdmin):
     list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'position', 'accuracy_m']
     search_fields = []
     list_filter = []
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_recorded']
+
+
+@admin.register(Log)
+class LogAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'level', 'message']
+    search_fields = ['level']
+    list_filter = ['level']
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_recorded']
 
@@ -79,14 +89,6 @@ class NetworkAdmin(admin.ModelAdmin):
     readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated', 'write_key']
 
 
-
-"""
-    WhatsAppCall,
-    WhatsAppGroup,
-    WhatsAppMessage,
-    WhatsAppUser
-"""
-
 @admin.register(WhatsAppCall)
 class WhatsAppCallAdmin(admin.ModelAdmin):
     list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'whatsapp_user', 'duration_secs', 'call_log_id']
@@ -94,6 +96,7 @@ class WhatsAppCallAdmin(admin.ModelAdmin):
     list_filter = []
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_recorded']
+
 
 @admin.register(WhatsAppGroup)
 class WhatsAppGroupAdmin(admin.ModelAdmin):
@@ -103,6 +106,7 @@ class WhatsAppGroupAdmin(admin.ModelAdmin):
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created']
 
+
 @admin.register(WhatsAppMessage)
 class WhatsAppMessageAdmin(admin.ModelAdmin):
     list_display = ['uid', 'datetime_created', 'datetime_recorded', 'phone', 'network', 'message']
@@ -110,6 +114,7 @@ class WhatsAppMessageAdmin(admin.ModelAdmin):
     list_filter = []
     ordering = ['-datetime_created']
     readonly_fields = ['datetime_created', 'datetime_recorded']
+
 
 @admin.register(WhatsAppUser)
 class WhatsAppUserAdmin(admin.ModelAdmin):

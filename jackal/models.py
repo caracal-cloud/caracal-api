@@ -13,7 +13,7 @@ from caracal.common.models import BaseAsset, get_utc_datetime_now
 class Network(BaseAsset):
 
     organization = models.OneToOneField(Organization, on_delete=models.CASCADE, related_name='jackal_network')
-    write_key = models.CharField(max_length=100, editable=False)
+    write_key = models.CharField(max_length=100, editable=False) # unique = True?
 
 
 # Individual Jackal Phone
@@ -36,8 +36,6 @@ class Phone(BaseAsset):
     def __str__(self):
         return f'{self.device_id}, {self.name}'
 
-
-# Phone Contacted by Jackal Phone
 
 class OtherPhone(BaseAsset):
 
@@ -102,6 +100,18 @@ class Location(BaseJackalRecording):
     class Meta:
         ordering = ['-datetime_recorded']
         unique_together = ['phone', 'datetime_recorded', 'position', 'accuracy_m']
+
+
+class Log(BaseJackalRecording):
+
+    network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='logs')
+    phone = models.ForeignKey(Phone, on_delete=models.CASCADE, related_name='logs')
+
+    level = models.CharField(max_length=50) # info, warning, error
+    message = models.TextField()
+
+    class Meta:
+        ordering = ['-datetime_recorded']
 
 
 class Text(BaseJackalRecording):

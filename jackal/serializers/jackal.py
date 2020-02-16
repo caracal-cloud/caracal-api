@@ -45,6 +45,16 @@ class AddLocationSerializer(serializers.Serializer):
         return validate_unknown_attrs(attrs, self.initial_data, self.fields)
 
 
+class AddLogSerializer(serializers.Serializer):
+
+    write_key = serializers.CharField(max_length=100)
+    device_id = serializers.CharField(max_length=100)
+    datetime_recorded = serializers.DateTimeField()
+
+    level = serializers.CharField(max_length=50)
+    message = serializers.CharField()
+
+
 class AddTextSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)

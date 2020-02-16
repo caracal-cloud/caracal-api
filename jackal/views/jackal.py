@@ -14,6 +14,7 @@ from jackal.models import (
     Call,
     Contact,
     Location,
+    Log,
     Network,
     OtherPhone,
     Phone,
@@ -127,6 +128,32 @@ class AddLocationView(generics.GenericAPIView):
         return Response({"success": True}, status=status.HTTP_201_CREATED)
 
 
+class AddLogView(generics.GenericAPIView):
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+    serializer_class = serializers.AddLogSerializer
+
+    @check_network_exists
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(True)
+
+        data = serializer.data
+        device_id, write_key = data.pop('device_id'), data.pop('write_key')
+
+        network = Network.objects.get(write_key=write_key)
+        phone = utilities.get_or_create_phone(device_id, network)
+
+        try:
+            Log.objects.create(network=network, phone=phone, **data)
+        except IntegrityError as ie:
+            print(ie)
+            pass
+
+        return Response({"success": True}, status=status.HTTP_201_CREATED)
+
+
 class AddTextView(generics.GenericAPIView):
 
     authentication_classes = []
@@ -149,7 +176,7 @@ class AddTextView(generics.GenericAPIView):
 
         try:
             Text.objects.create(
-                network=phone.network, phone=phone, other_phone=other_phone, **add_data
+                network=network, phone=phone, other_phone=other_phone, **add_data
             )
         except IntegrityError:
             pass
