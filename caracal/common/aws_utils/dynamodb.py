@@ -6,7 +6,6 @@ import json
 from caracal.common.aws_utils import get_boto_client
 
 
-# FIXME: can just use other boto3 method for accessing dynamodb content...
 def create_dynamodb_credentials(org_short_name, username, password, permissions):
     assert isinstance(permissions, list)
 
@@ -43,6 +42,9 @@ def get_dynamodb_credentials(short_name):
             }
         }
     )
+
+    print(short_name)
+    print(item)
 
     item = dynamodb_json_util.loads(item)['Item']
     return item['credentials']

@@ -216,7 +216,6 @@ class GetPhoneRecordingQueryParamSerializer(serializers.Serializer):
 
 class UpdateNetworkSerializer(serializers.Serializer):
 
-    # network_uid = serializers.UUIDField(required=True) just look up with auth user
     output_agol = serializers.NullBooleanField(required=False)
     output_kml = serializers.NullBooleanField(required=False)
 

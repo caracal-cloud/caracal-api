@@ -4,12 +4,12 @@ from django.db import IntegrityError
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, status, generics
 from rest_framework.response import Response
+import uuid
 
 from account import serializers
 from account.models import Organization, Account
 from caracal.common import stripe_utils, names
-from caracal.common.aws_utils import exceptions
-from caracal.common.aws_utils import cognito
+from caracal.common.aws_utils import cognito, dynamodb, exceptions
 
 
 class RegisterView(generics.GenericAPIView):
@@ -40,11 +40,15 @@ class RegisterView(generics.GenericAPIView):
 
         try:
             uid_cognito = cognito.create_user(account_email, password, registration_method='email')
-            
             cognito.confirm_account(account_email)
-
-            account = Account.objects.create(uid_cognito=uid_cognito, organization=organization, email=account_email,
-                                             name=account_name, phone_number=account_phone_number, is_admin=True)
+            account = Account.objects.create(
+                uid_cognito=uid_cognito, 
+                organization=organization, 
+                email=account_email,
+                name=account_name, 
+                phone_number=account_phone_number, 
+                is_admin=True
+            )
 
         except (IntegrityError, exceptions.UsernameExistsException):
             organization.delete()
@@ -56,6 +60,9 @@ class RegisterView(generics.GenericAPIView):
             return Response({
                 'error': 'invalid_parameter',
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        dynamodb_password = str(uuid.uuid4())[:8]
+        dynamodb.create_dynamodb_credentials(organization_short_name, 'admin', dynamodb_password, ['all'])
 
         """
         # create a Stripe customer and save id to organization

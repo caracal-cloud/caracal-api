@@ -8,7 +8,7 @@ import uuid
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol
-from jackal import connections
+from jackal import connections as jackal_connections
 from jackal.decorators import check_network_exists
 from jackal.models import (
     Call,
@@ -229,7 +229,7 @@ class CreateNetworkView(generics.GenericAPIView):
             )
 
         agol_account = user.agol_account if hasattr(user, "agol_account") else None
-        connections.schedule_jackal_outputs(
+        jackal_connections.schedule_jackal_outputs(
             data=data, network=network, user=user, agol_account=agol_account
         )
 
@@ -330,6 +330,37 @@ class UpdateNetworkView(generics.GenericAPIView):
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
+
+        user = request.user
+        try:
+            network = user.organization.jackal_network
+        except Network.DoesNotExist:
+            return Response({
+                'error': 'network_not_found',
+                'message': 'a network was not found'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        update_data = serializer.data
+
+        if update_data.get("output_agol", False):
+            try:
+                agol_account = user.agol_account
+            except AgolAccount.DoesNotExist:
+                return Response(
+                    {
+                        "error": "agol_account_required",
+                        "message": "ArcGIS Online account required",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        message = f"Jackal account updated by {user.name}"
+        ActivityChange.objects.create(
+            organization=user.organization, account=user, message=message
+        )
+
+        jackal_connections.update_jackal_outputs(serializer.data, network, user)
+
 
         return Response(status=status.HTTP_200_OK)
 

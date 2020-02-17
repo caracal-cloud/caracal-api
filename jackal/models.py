@@ -15,6 +15,8 @@ class Network(BaseAsset):
     organization = models.OneToOneField(Organization, on_delete=models.CASCADE, related_name='jackal_network')
     write_key = models.CharField(max_length=100, editable=False) # unique = True?
 
+    cloudwatch_update_kml_rule_names = models.TextField(default="", blank=True, null=True)
+
     def __str__(self):
         return f'{self.organization.name} - {self.organization.short_name}'
 

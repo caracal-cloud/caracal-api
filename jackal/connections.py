@@ -6,6 +6,41 @@ from caracal.common.aws_utils import cloudwatch, _lambda
 from outputs.models import AgolAccount, DataConnection
 
 
+def delete_jackal_agol(agol_account=None, network=None, connection=None):
+    
+    if connection is None:
+        try:
+            connection = DataConnection.objects.get(
+                jackal_network=network, agol_account=agol_account
+            )
+        except DataConnection.DoesNotExist:
+            print("connection does not exist")
+            return
+
+    agol_account = connection.agol_account
+
+    agol.delete_feature_layers(
+        layer_ids=[connection.agol_layer_id],
+        feature_service_url=agol_account.feature_service_url,
+        agol_account=agol_account,
+    )
+
+    cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+
+    connection.delete()
+
+
+def delete_jackal_kml(network):
+    
+    if network.cloudwatch_update_kml_rule_names:
+        update_kml_rule_names = network.cloudwatch_update_kml_rule_names.split(",")
+        for rule_name in update_kml_rule_names:
+            cloudwatch.delete_cloudwatch_rule(rule_name)
+
+    network.cloudwatch_update_kml_rule_names = None
+    network.save()
+
+
 def schedule_jackal_outputs(data, network, user, agol_account=None):
 
     organization = user.organization
@@ -42,6 +77,67 @@ def schedule_jackal_outputs(data, network, user, agol_account=None):
 
     if data.get("output_kml", False):
         _schedule_jackal_kml(network, organization)
+
+
+def update_jackal_outputs(data, network, user):
+
+    output_kml = data.get("output_kml", False)
+    if output_kml:
+
+        if output_kml != network.cloudwatch_update_kml_rule_names is not None:
+            if output_kml:
+                _schedule_jackal_kml(network, user.organization)
+            else:
+                delete_jackal_kml(network)
+
+    # if True, user.agol_account will not be None, validated before
+    output_agol = data.get("output_agol")
+    if output_agol is not None:
+        try:
+            connection = DataConnection.objects.get(
+                jackal_network=network, 
+                agol_account=user.agol_account
+            )
+        except (AgolAccount.DoesNotExist, DataConnection.DoesNotExist):
+            connection = None
+
+        # output flag is different than current state (agol connection for account is alias for agol output enabled)
+        if output_agol != (connection is not None):
+
+            agol_account = user.agol_account
+
+            if output_agol:
+
+                # create a connection and schedule update
+                connection = DataConnection.objects.create(
+                    organization=user.organization,
+                    account=user,
+                    jackal_network=realtime_account,
+                    agol_account=user.agol_account,
+                )
+
+                # schedule the Lambda AGOL update
+                _schedule_jackal_agol(
+                    network=network,
+                    connection=connection,
+                    organization=user.organization
+                )
+
+                # create the AGOL resources (service and layers)
+                feature_service = agol.get_or_create_caracal_feature_service(
+                    agol_account
+                )
+                feature_layer = agol.create_jackal_feature_layer(
+                    title='Jackal Locations',
+                    feature_service=feature_service,
+                    agol_account=agol_account,
+                )
+
+                connection.agol_layer_id = feature_layer.id
+                connection.save()
+
+            else:
+                delete_jackal_agol(connection=connection)
 
 
 def _get_jackal_update_agol_rule_name(short_name, jackal_network_uid, stage):
