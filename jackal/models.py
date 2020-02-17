@@ -40,7 +40,7 @@ class Phone(BaseAsset):
 class OtherPhone(BaseAsset):
 
     network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='other_phones')
-    phone_number = models.CharField(max_length=30, unique=True)
+    phone_number = models.CharField(max_length=30)
     name = models.CharField(max_length=50, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)
     mark = models.CharField(max_length=100, blank=True, null=True)

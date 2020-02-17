@@ -405,10 +405,14 @@ class UpdatePhoneView(generics.GenericAPIView):
 
 
 def _get_or_create_other_phone(phone_number, network):
+    # in between first get and create, another request could have created the other-phone so check again
     try:
         return OtherPhone.objects.get(network=network, phone_number=phone_number)
     except OtherPhone.DoesNotExist:
-        return OtherPhone.objects.create(network=network, phone_number=phone_number)
+        try:
+            return OtherPhone.objects.create(network=network, phone_number=phone_number)
+        except IntegrityError:
+            return OtherPhone.objects.get(network=network, phone_number=phone_number)
 
 
 def _get_recording_queryset(request, _class):
