@@ -74,7 +74,6 @@ def schedule_jackal_outputs(data, network, user, agol_account=None):
         connection.agol_layer_id = feature_layer.id
         connection.save()
 
-
     if data.get("output_kml", False):
         _schedule_jackal_kml(network, organization)
 
@@ -124,9 +123,7 @@ def update_jackal_outputs(data, network, user):
                 )
 
                 # create the AGOL resources (service and layers)
-                feature_service = agol.get_or_create_caracal_feature_service(
-                    agol_account
-                )
+                feature_service = agol.get_or_create_caracal_feature_service(agol_account)
                 feature_layer = agol.create_jackal_feature_layer(
                     title='Jackal Locations',
                     feature_service=feature_service,

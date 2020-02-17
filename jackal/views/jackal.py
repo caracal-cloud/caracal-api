@@ -354,13 +354,12 @@ class UpdateNetworkView(generics.GenericAPIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        jackal_connections.update_jackal_outputs(serializer.data, network, user)
+
         message = f"Jackal account updated by {user.name}"
         ActivityChange.objects.create(
             organization=user.organization, account=user, message=message
         )
-
-        jackal_connections.update_jackal_outputs(serializer.data, network, user)
-
 
         return Response(status=status.HTTP_200_OK)
 
