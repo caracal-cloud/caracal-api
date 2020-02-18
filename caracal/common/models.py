@@ -20,6 +20,10 @@ def get_utc_datetime_now():
     return datetime.utcnow().replace(tzinfo=timezone.utc)
 
 
+def get_datetime_epoch_start():
+    return datetime(1970, 1, 1, 0, 0, 0).replace(tzinfo=timezone.utc)
+
+
 class BaseAsset(models.Model):
 
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)

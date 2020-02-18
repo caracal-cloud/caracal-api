@@ -8,6 +8,7 @@ import uuid
 from activity.models import ActivityChange
 from auth.backends import CognitoAuthentication
 from caracal.common import agol
+from caracal.common.models import get_utc_datetime_now
 from jackal import connections as jackal_connections
 from jackal.decorators import check_network_exists
 from jackal.models import (
@@ -45,6 +46,9 @@ class AddCallView(generics.GenericAPIView):
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
         other_phone = _get_or_create_other_phone(other_phone_number, network)
+
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
 
         try:
             Call.objects.create(
@@ -84,6 +88,9 @@ class AddContactView(generics.GenericAPIView):
 
         other_phone.name = name
         other_phone.save()
+
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
 
         try:
             Contact.objects.create(
@@ -126,6 +133,9 @@ class AddLocationView(generics.GenericAPIView):
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
 
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
+
         point = Point(longitude, latitude)
 
         try:
@@ -159,6 +169,9 @@ class AddLogView(generics.GenericAPIView):
         network = Network.objects.get(write_key=write_key)
         phone = utilities.get_or_create_phone(device_id, network)
 
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
+
         try:
             Log.objects.create(network=network, phone=phone, **data)
         except IntegrityError as ie:
@@ -187,6 +200,9 @@ class AddTextView(generics.GenericAPIView):
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
         other_phone = _get_or_create_other_phone(other_phone_number, network)
+
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
 
         try:
             Text.objects.create(

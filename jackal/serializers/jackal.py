@@ -80,11 +80,6 @@ class GetPhonesSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field="uid", view_name="phone-detail"
     )
 
-    # TODO: update this
-    datetime_last_update = serializers.SerializerMethodField()
-    def get_datetime_last_update(self, phone):
-        return models.get_utc_datetime_now()
-
     class Meta:
         model = Phone
         fields = [
@@ -186,12 +181,7 @@ class GetPhoneDetailSerializer(serializers.ModelSerializer):
     contacts = ContactSerializer(many=True)
     locations = LocationSerializer(many=True)
     texts = TextSerializer(many=True)
-
-    # TODO: update this
-    datetime_last_update = serializers.SerializerMethodField()
-    def get_datetime_last_update(self, phone):
-        return models.get_utc_datetime_now()
-
+    
     class Meta:
         model = Phone
         fields = [

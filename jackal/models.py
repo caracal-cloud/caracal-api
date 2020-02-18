@@ -5,7 +5,7 @@ import uuid
 
 from account.models import Organization
 from caracal.common import constants
-from caracal.common.models import BaseAsset, get_utc_datetime_now
+from caracal.common.models import BaseAsset, get_datetime_epoch_start, get_utc_datetime_now
 
 
 # Network of Jackal Phones - just one per organization
@@ -28,6 +28,7 @@ class Phone(BaseAsset):
     network = models.ForeignKey(Network, on_delete=models.CASCADE, related_name='phones')
     device_id = models.CharField(max_length=200) # device specific id
 
+    datetime_last_update = models.DateTimeField(default=get_datetime_epoch_start)
     status = models.CharField(choices=constants.JACKAL_PHONE_STATUSES, max_length=50, default='pending')
     name = models.CharField(max_length=50, blank=True, null=True)
     description = models.CharField(max_length=255, blank=True, null=True)

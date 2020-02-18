@@ -40,6 +40,9 @@ class AddWhatsAppCallView(generics.GenericAPIView):
         phone = utilities.get_or_create_phone(device_id, network)
         whatsapp_user = _get_or_create_whatsapp_user(user_jid_id, user_user_string, phone, network)
 
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
+
         try:
             WhatsAppCall.objects.create(
                 network=network, 
@@ -76,6 +79,9 @@ class AddWhatsAppGroupParticipantView(generics.GenericAPIView):
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
 
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
+
         whatsapp_group = _get_or_create_whatsapp_group(group_jid_id, group_user_string, phone, network)
         whatsapp_group.subject = group_subject
         whatsapp_group.save()
@@ -107,6 +113,9 @@ class AddWhatsAppMessageView(generics.GenericAPIView):
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
+
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
 
         whatsapp_group, whatsapp_user = None, None
 
@@ -152,6 +161,9 @@ class AddWhatsAppUserView(generics.GenericAPIView):
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
+
+        phone.datetime_last_update = get_utc_datetime_now()
+        phone.save()
 
         whatsapp_user = _get_or_create_whatsapp_user(user_jid_id, user_user_string, phone, network)
 
