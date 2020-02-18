@@ -26,7 +26,6 @@ def delete_jackal_agol(agol_account=None, network=None, connection=None):
     )
 
     cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
-
     connection.delete()
 
 
@@ -46,33 +45,7 @@ def schedule_jackal_outputs(data, network, user, agol_account=None):
     organization = user.organization
 
     if data.get("output_agol", False) and agol_account is not None:
-
-        # 1. Create a connection
-        connection = DataConnection.objects.create(
-            organization=organization,
-            account=user,
-            jackal_network=network,
-            agol_account=agol_account,
-        )
-
-        # 2. Schedule Lambda function to update AGOL
-        _schedule_jackal_agol(
-            network=network,
-            connection=connection,
-            organization=organization
-        )
-
-        # 3. Create feature service and layers in AGOL
-        feature_service = agol.get_or_create_caracal_feature_service(agol_account)
-        feature_layer = agol.create_jackal_feature_layer(
-            title='Jackal Locations',
-            feature_service=feature_service,
-            agol_account=agol_account,
-        )
-
-        # 4. Update connection with layer ID
-        connection.agol_layer_id = feature_layer.id
-        connection.save()
+        _create_agol_resources(network, user)
 
     if data.get("output_kml", False):
         _schedule_jackal_kml(network, organization)
@@ -94,47 +67,50 @@ def update_jackal_outputs(data, network, user):
     if output_agol is not None:
         try:
             connection = DataConnection.objects.get(
-                jackal_network=network, 
+                jackal_network=network,
                 agol_account=user.agol_account
             )
         except (AgolAccount.DoesNotExist, DataConnection.DoesNotExist):
             connection = None
 
-        # output flag is different than current state (agol connection for account is alias for agol output enabled)
+        # output_agol is different from the current state
         if output_agol != (connection is not None):
 
-            agol_account = user.agol_account
-
             if output_agol:
-
-                # create a connection and schedule update
-                connection = DataConnection.objects.create(
-                    organization=user.organization,
-                    account=user,
-                    jackal_network=realtime_account,
-                    agol_account=user.agol_account,
-                )
-
-                # schedule the Lambda AGOL update
-                _schedule_jackal_agol(
-                    network=network,
-                    connection=connection,
-                    organization=user.organization
-                )
-
-                # create the AGOL resources (service and layers)
-                feature_service = agol.get_or_create_caracal_feature_service(agol_account)
-                feature_layer = agol.create_jackal_feature_layer(
-                    title='Jackal Locations',
-                    feature_service=feature_service,
-                    agol_account=agol_account,
-                )
-
-                connection.agol_layer_id = feature_layer.id
-                connection.save()
-
+                _create_agol_resources(network, user)
             else:
                 delete_jackal_agol(connection=connection)
+
+
+def _create_agol_resources(network, user):
+
+    agol_account = user.agol_account
+
+    # create a connection and schedule update
+    connection = DataConnection.objects.create(
+        organization=user.organization,
+        account=user,
+        jackal_network=network,
+        agol_account=agol_account,
+    )
+
+    # schedule the Lambda AGOL update
+    _schedule_update_jackal_agol(
+        network=network,
+        connection=connection,
+        organization=user.organization
+    )
+
+    # create the AGOL resources (service and layers)
+    feature_service = agol.get_or_create_caracal_feature_service(agol_account)
+    feature_layer = agol.create_jackal_feature_layer(
+        title='Jackal Locations',
+        feature_service=feature_service,
+        agol_account=agol_account,
+    )
+
+    connection.agol_layer_id = feature_layer.id
+    connection.save()
 
 
 def _get_jackal_update_agol_rule_name(short_name, jackal_network_uid, stage):
@@ -166,7 +142,7 @@ def _get_jackal_update_kml_rule_name(short_name, jackal_network_uid, stage, peri
     return rule_name
 
 
-def _schedule_jackal_agol(network, connection, organization):
+def _schedule_update_jackal_agol(network, connection, organization):
 
     function_name = f"caracal_{settings.STAGE.lower()}_update_jackal_agol"
     update_agol_function = _lambda.get_lambda_function(function_name)
@@ -225,5 +201,5 @@ def _schedule_jackal_kml(network, organization):
             rate_minutes=rate_minutes
         )
 
-    realtime_account.cloudwatch_update_kml_rule_names = ",".join(rule_names)
-    realtime_account.save()
+    network.cloudwatch_update_kml_rule_names = ",".join(rule_names)
+    network.save()

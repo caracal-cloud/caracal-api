@@ -346,13 +346,10 @@ class UpdateNetworkView(generics.GenericAPIView):
             try:
                 agol_account = user.agol_account
             except AgolAccount.DoesNotExist:
-                return Response(
-                    {
-                        "error": "agol_account_required",
-                        "message": "ArcGIS Online account required",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+                return Response({
+                    "error": "agol_account_required",
+                    "message": "ArcGIS Online account required",
+                },status=status.HTTP_400_BAD_REQUEST)
 
         jackal_connections.update_jackal_outputs(serializer.data, network, user)
 

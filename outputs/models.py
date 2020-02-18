@@ -43,6 +43,15 @@ class DataConnection(BaseAsset):
     cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)
     cloudwatch_update_individual_rule_name = models.CharField(max_length=200, blank=True, null=True)
 
+    # locations uses agol_record_index
+    jackal_calls_record_index = models.IntegerField(default=-1, null=True)
+    jackal_contacts_record_index = models.IntegerField(default=-1, null=True)
+    jackal_texts_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_calls_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_groups_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_messages_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_users_record_index = models.IntegerField(default=-1, null=True)
+
     def __str__(self):
         if self.realtime_account:
             source = 'realtime 3p'
