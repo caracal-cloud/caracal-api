@@ -42,6 +42,7 @@ class AddCallView(generics.GenericAPIView):
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
         other_phone_number = add_data.pop("other_phone_number")
+        datetime_recorded = add_data['datetime_recorded']
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -52,13 +53,17 @@ class AddCallView(generics.GenericAPIView):
 
         try:
             Call.objects.create(
-                network=network, phone=phone, other_phone=other_phone, **add_data
+                network=network, 
+                phone=phone, 
+                other_phone=other_phone, 
+                **add_data
             )
         except IntegrityError:
             pass
 
         try:
             Contact.objects.create(
+                datetime_recorded=datetime_recorded,
                 network=network, 
                 phone=phone, 
                 other_phone=other_phone
@@ -80,12 +85,15 @@ class AddContactView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(True)
 
-        add_data = serializer.data
-        device_id = add_data.pop("device_id")
-        write_key = add_data.pop("write_key")
-        name = add_data.pop("name")
+        d = serializer.data
+        device_id, write_key, datetime_recorded, name, phone_number = (
+            d["device_id"],
+            d["write_key"],
+            d["datetime_recorded"],
+            d["name"],
+            d["phone_number"]
+        )
 
-        phone_number = add_data.pop("phone_number")
         phone_number = phone_number.replace(" ", "")
         phone_number = phone_number.replace("(", "")
         phone_number = phone_number.replace(")", "")
@@ -103,6 +111,7 @@ class AddContactView(generics.GenericAPIView):
 
         try:
             Contact.objects.create(
+                datetime_recorded=datetime_recorded,
                 network=network, 
                 phone=phone, 
                 other_phone=other_phone 
@@ -202,6 +211,7 @@ class AddTextView(generics.GenericAPIView):
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
         other_phone_number = add_data.pop("other_phone_number")
+        datetime_recorded = add_data['datetime_recorded']
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -221,12 +231,13 @@ class AddTextView(generics.GenericAPIView):
             pass
 
         try:
-            Contact.objects.create(
+            contact = Contact.objects.create(
+                datetime_recorded=datetime_recorded,
                 network=network, 
                 phone=phone, 
                 other_phone=other_phone
             )
-        except IntegrityError:
+        except IntegrityError as ie:
             pass
 
         return Response({"success": True}, status=status.HTTP_201_CREATED)
