@@ -59,19 +59,19 @@ class DataConnection(BaseAsset):
 
 class JackalAgolConnection(BaseAsset):
 
-    jackal_calls_layer_id = models.CharField(max_length=100, null=True)
+    jackal_calls_table_id = models.CharField(max_length=100, null=True)
     jackal_calls_record_index = models.IntegerField(default=-1, null=True)
-    jackal_contacts_layer_id = models.CharField(max_length=100, null=True)
+    jackal_contacts_table_id = models.CharField(max_length=100, null=True)
     jackal_contacts_record_index = models.IntegerField(default=-1, null=True)
-    jackal_texts_layer_id = models.CharField(max_length=100, null=True)
+    jackal_texts_table_id = models.CharField(max_length=100, null=True)
     jackal_texts_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_calls_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_calls_table_id = models.CharField(max_length=100, null=True)
     jackal_wa_calls_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_groups_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_groups_table_id = models.CharField(max_length=100, null=True)
     jackal_wa_groups_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_messages_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_messages_table_id = models.CharField(max_length=100, null=True)
     jackal_wa_messages_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_users_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_users_table_id = models.CharField(max_length=100, null=True)
     jackal_wa_users_record_index = models.IntegerField(default=-1, null=True)
 
 

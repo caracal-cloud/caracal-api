@@ -51,7 +51,7 @@ def create_drive_feature_layer(
 def create_jackal_feature_layer(title, feature_service, agol_account):
 
     fields = saw.fields.Fields()
-    fields.add_field("Date", saw.fields.DateField)
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
     fields.add_field("DeviceId", saw.fields.StringField)
     fields.add_field("Name", saw.fields.StringField)
     fields.add_field("AccuracyM", saw.fields.DoubleField)

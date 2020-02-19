@@ -57,6 +57,15 @@ class AddCallView(generics.GenericAPIView):
         except IntegrityError:
             pass
 
+        try:
+            Contact.objects.create(
+                network=network, 
+                phone=phone, 
+                other_phone=other_phone
+            )
+        except IntegrityError:
+            pass
+
         return Response({"success": True}, status=status.HTTP_201_CREATED)
 
 
@@ -94,14 +103,11 @@ class AddContactView(generics.GenericAPIView):
 
         try:
             Contact.objects.create(
-                network=phone.network, 
+                network=network, 
                 phone=phone, 
-                other_phone=other_phone, 
-                **add_data
+                other_phone=other_phone 
             )
-
         except IntegrityError as ie:
-            print(ie)
             pass
 
         return Response({"success": True}, status=status.HTTP_201_CREATED)
@@ -206,7 +212,19 @@ class AddTextView(generics.GenericAPIView):
 
         try:
             Text.objects.create(
-                network=network, phone=phone, other_phone=other_phone, **add_data
+                network=network, 
+                phone=phone, 
+                other_phone=other_phone, 
+                **add_data
+            )
+        except IntegrityError:
+            pass
+
+        try:
+            Contact.objects.create(
+                network=network, 
+                phone=phone, 
+                other_phone=other_phone
             )
         except IntegrityError:
             pass
