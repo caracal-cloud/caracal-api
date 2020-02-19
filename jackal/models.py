@@ -146,7 +146,8 @@ class WhatsAppCall(BaseJackalRecording):
 
     class Meta:
         ordering = ['-datetime_created']
-        unique_together = ['datetime_recorded', 'whatsapp_user', 'call_log_id', 'duration_secs']
+        unique_together = ['datetime_recorded', 'whatsapp_user', 'call_log_id', 
+        'duration_secs', 'from_me']
 
 
 class WhatsAppGroup(models.Model):

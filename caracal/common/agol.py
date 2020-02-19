@@ -113,6 +113,7 @@ def create_jackal_wa_groups_table(feature_service, agol_account):
     fields = saw.fields.Fields()
     fields.add_field("DatetimeRecorded", saw.fields.DateField)
     fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
     fields.add_field("Subject", saw.fields.StringField)
 
     return _create_table("Jackal WhatsApp Groups", fields, feature_service, agol_account, "Jackal WhatsApp groups")
