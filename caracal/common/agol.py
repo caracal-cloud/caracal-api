@@ -59,6 +59,89 @@ def create_jackal_feature_layer(title, feature_service, agol_account):
     return _create_feature_layer(title, fields, feature_service, agol_account)
 
 
+def create_jackal_calls_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
+    fields.add_field("OtherPhoneNumber", saw.fields.StringField)
+    fields.add_field("OtherPhoneName", saw.fields.StringField)
+    fields.add_field("Direction", saw.fields.StringField) # incoming, outgoing
+    fields.add_field("Duration", saw.fields.IntegerField)
+
+    return _create_table("Jackal Calls", fields, feature_service, agol_account, "Jackal calls")
+
+def create_jackal_contacts_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
+    fields.add_field("OtherPhoneNumber", saw.fields.StringField)
+    fields.add_field("OtherPhoneName", saw.fields.StringField)
+
+    return _create_table("Jackal Contacts", fields, feature_service, agol_account, "Jackal contacts")
+
+def create_jackal_texts_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
+    fields.add_field("OtherPhoneNumber", saw.fields.StringField)
+    fields.add_field("OtherPhoneName", saw.fields.StringField)
+    fields.add_field("Direction", saw.fields.StringField) # sent, received
+    fields.add_field("Message", saw.fields.StringField)
+
+    return _create_table("Jackal Texts", fields, feature_service, agol_account, "Jackal texts")
+
+def create_jackal_wa_calls_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
+    fields.add_field("WhatsAppUser", saw.fields.StringField)
+    fields.add_field("Direction", saw.fields.StringField) # incoming, outgoing
+    fields.add_field("Duration", saw.fields.IntegerField)
+
+    return _create_table("Jackal WhatsApp Calls", fields, feature_service, agol_account, "Jackal WhatsApp calls")
+
+def create_jackal_wa_groups_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Subject", saw.fields.StringField)
+
+    return _create_table("Jackal WhatsApp Groups", fields, feature_service, agol_account, "Jackal WhatsApp groups")
+
+def create_jackal_wa_messages_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
+    fields.add_field("WhatsAppUser", saw.fields.StringField)
+    fields.add_field("WhatsAppGroup", saw.fields.StringField)
+    fields.add_field("Direction", saw.fields.StringField) # sent, received
+    fields.add_field("Message", saw.fields.StringField)
+
+    return _create_table("Jackal WhatsApp Messages", fields, feature_service, agol_account, "Jackal WhatsApp messages")
+
+
+def create_jackal_wa_users_table(feature_service, agol_account):
+
+    fields = saw.fields.Fields()
+    fields.add_field("DatetimeRecorded", saw.fields.DateField)
+    fields.add_field("DeviceId", saw.fields.StringField)
+    fields.add_field("Name", saw.fields.StringField)
+    fields.add_field("WhatsAppUser", saw.fields.StringField)
+
+    return _create_table("Jackal WhatsApp Users", fields, feature_service, agol_account, "Jackal WhatsApp users")
+
+
 def create_realtime_feature_layer(title, feature_service, agol_account):
 
     fields = saw.fields.Fields()
@@ -95,6 +178,24 @@ def _create_feature_layer(title, fields, feature_service, agol_account, descript
     )
 
     return feature_layer
+
+def _create_table(title, fields, feature_service, agol_account, description=""):
+
+    arcgis = saw.ArcgisAPI(
+        access_token=agol_account.oauth_access_token,
+        refresh_token=agol_account.oauth_refresh_token,
+        username=agol_account.username,
+        client_id=settings.AGOL_CLIENT_ID,
+    )
+
+    table = arcgis.services.create_table(
+        name=title,
+        description=description,
+        feature_service_url=feature_service.url,
+        fields=fields
+    )
+
+    return table
 
 
 def delete_feature_layers(layer_ids, feature_service_url, agol_account):
@@ -172,8 +273,13 @@ def get_or_create_caracal_feature_service(agol_account):
     )
     if feature_service is None:
         feature_service = arcgis.services.create_feature_service(
-            CARACAL_SERVICE_NAME, CARACAL_SERVICE_DESCRIPTION
+            CARACAL_SERVICE_NAME, 
+            CARACAL_SERVICE_DESCRIPTION
         )
+        
+    agol_account.feature_service_url = feature_service.url
+    agol_account.feature_service_id = feature_service.id
+    agol_account.save()
 
     return feature_service
 

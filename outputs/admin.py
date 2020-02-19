@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from outputs.models import AgolAccount, DataConnection
+from outputs.models import AgolAccount, DataConnection, JackalAgolConnection
 
 
 @admin.register(AgolAccount)
@@ -16,7 +16,16 @@ class AgolAccountAdmin(admin.ModelAdmin):
 @admin.register(DataConnection)
 class DataConnectionAdmin(admin.ModelAdmin):
     list_display = ['uid', 'datetime_created', 'organization', 'custom_source', 'drive_account', 'realtime_account',
-                    'agol_account']
+                    'jackal_network', 'agol_account']
+    search_fields = ['uid']
+    list_filter = ['is_active']
+    ordering = ['-datetime_created']
+    readonly_fields = ['datetime_created', 'datetime_deleted', 'datetime_updated']
+
+
+@admin.register(JackalAgolConnection)
+class JackalAgolConnectionAdmin(admin.ModelAdmin):
+    list_display = ['uid', 'datetime_created']
     search_fields = ['uid']
     list_filter = ['is_active']
     ordering = ['-datetime_created']

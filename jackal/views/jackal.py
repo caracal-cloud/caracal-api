@@ -244,11 +244,6 @@ class CreateNetworkView(generics.GenericAPIView):
                 write_key=write_key, organization=organization
             )
 
-        agol_account = user.agol_account if hasattr(user, "agol_account") else None
-        jackal_connections.schedule_jackal_outputs(
-            data=data, network=network, user=user, agol_account=agol_account
-        )
-
         return Response(
             {"write_key": network.write_key,}, status=status.HTTP_201_CREATED
         )

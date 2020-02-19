@@ -217,15 +217,12 @@ class AgolOauthResponseView(views.APIView):
             )
             
             try:
+                # get feature service and update agol_account
                 service = agol.get_or_create_caracal_feature_service(agol_account)
             except saw.exceptions.ArcGISException as e:
                 agol_account.delete()
                 sentry_sdk.capture_exception(e)
                 return redirect(state['callback']) # TODO: go somewhere else if failed?
-
-            agol_account.feature_service_url = service.url
-            agol_account.feature_service_id = service.id
-            agol_account.save()
             
             # changed a name like Caracal (Disconnected) back to Caracal
             if service.title != 'Caracal':

@@ -43,27 +43,40 @@ class DataConnection(BaseAsset):
     cloudwatch_update_rule_name = models.CharField(max_length=200, blank=True, null=True)
     cloudwatch_update_individual_rule_name = models.CharField(max_length=200, blank=True, null=True)
 
-    # locations uses agol_record_index
-    jackal_calls_record_index = models.IntegerField(default=-1, null=True)
-    jackal_contacts_record_index = models.IntegerField(default=-1, null=True)
-    jackal_texts_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_calls_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_groups_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_messages_record_index = models.IntegerField(default=-1, null=True)
-    jackal_wa_users_record_index = models.IntegerField(default=-1, null=True)
+    jackal_agol_connection = models.OneToOneField('JackalAgolConnection', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         if self.realtime_account:
             source = 'realtime 3p'
         elif self.custom_source:
             source = 'realtime custom source'
-        else:
+        elif self.drive_account:
             source = 'drive account'
+        else:
+            source = 'jackal network'
         return f'{self.organization.name} - {source}'
 
 
+class JackalAgolConnection(BaseAsset):
+
+    jackal_calls_layer_id = models.CharField(max_length=100, null=True)
+    jackal_calls_record_index = models.IntegerField(default=-1, null=True)
+    jackal_contacts_layer_id = models.CharField(max_length=100, null=True)
+    jackal_contacts_record_index = models.IntegerField(default=-1, null=True)
+    jackal_texts_layer_id = models.CharField(max_length=100, null=True)
+    jackal_texts_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_calls_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_calls_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_groups_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_groups_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_messages_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_messages_record_index = models.IntegerField(default=-1, null=True)
+    jackal_wa_users_layer_id = models.CharField(max_length=100, null=True)
+    jackal_wa_users_record_index = models.IntegerField(default=-1, null=True)
+
+
+
 class RealtimeAlert(BaseAsset):
-    # not exactly an "output"
 
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     realtime_account = models.ForeignKey(RealTimeAccount, on_delete=models.CASCADE) # simplifies queries from account to alert

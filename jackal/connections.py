@@ -3,7 +3,7 @@ from django.conf import settings
 
 from caracal.common import agol
 from caracal.common.aws_utils import cloudwatch, _lambda
-from outputs.models import AgolAccount, DataConnection
+from outputs.models import AgolAccount, DataConnection, JackalAgolConnection
 
 
 def delete_jackal_agol(agol_account=None, network=None, connection=None):
@@ -19,13 +19,26 @@ def delete_jackal_agol(agol_account=None, network=None, connection=None):
 
     agol_account = connection.agol_account
 
+    jackal_agol_connection = connection.jackal_agol_connection
+
     agol.delete_feature_layers(
-        layer_ids=[connection.agol_layer_id],
+        layer_ids=[
+            connection.agol_layer_id,
+            jackal_agol_connection.jackal_calls_layer_id,
+            jackal_agol_connection.jackal_contacts_layer_id,
+            jackal_agol_connection.jackal_texts_layer_id,
+            jackal_agol_connection.jackal_wa_calls_layer_id,
+            jackal_agol_connection.jackal_wa_groups_layer_id,
+            jackal_agol_connection.jackal_wa_messages_layer_id,
+            jackal_agol_connection.jackal_wa_users_layer_id
+        ],
         feature_service_url=agol_account.feature_service_url,
         agol_account=agol_account,
     )
 
     cloudwatch.delete_cloudwatch_rule(connection.cloudwatch_update_rule_name)
+
+    jackal_agol_connection.delete()
     connection.delete()
 
 
@@ -86,12 +99,23 @@ def _create_agol_resources(network, user):
 
     agol_account = user.agol_account
 
+    # create the AGOL resources (service and layers)
+    feature_service = agol.get_or_create_caracal_feature_service(agol_account)
+    locations_layer = agol.create_jackal_feature_layer(
+        title='Jackal Locations',
+        feature_service=feature_service,
+        agol_account=agol_account,
+    )
+
     # create a connection and schedule update
+    jackal_agol_connection = _create_jackal_agol_connection(feature_service, agol_account)
     connection = DataConnection.objects.create(
         organization=user.organization,
         account=user,
         jackal_network=network,
         agol_account=agol_account,
+        agol_layer_id=locations_layer.id,
+        jackal_agol_connection=jackal_agol_connection
     )
 
     # schedule the Lambda AGOL update
@@ -101,16 +125,33 @@ def _create_agol_resources(network, user):
         organization=user.organization
     )
 
-    # create the AGOL resources (service and layers)
-    feature_service = agol.get_or_create_caracal_feature_service(agol_account)
-    feature_layer = agol.create_jackal_feature_layer(
-        title='Jackal Locations',
-        feature_service=feature_service,
-        agol_account=agol_account,
-    )
+def _create_jackal_agol_connection(feature_service, agol_account):
 
-    connection.agol_layer_id = feature_layer.id
-    connection.save()
+    jackal_agol_connection = JackalAgolConnection()
+
+    calls_table = agol.create_jackal_calls_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_calls_layer_id = calls_table.id
+
+    contacts_table = agol.create_jackal_contacts_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_contacts_layer_id = contacts_table.id
+
+    texts_table = agol.create_jackal_texts_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_texts_layer_id = texts_table.id
+
+    wa_calls_table = agol.create_jackal_wa_calls_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_wa_calls_layer_id = wa_calls_table.id
+
+    wa_groups_table = agol.create_jackal_wa_groups_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_wa_groups_layer_id = wa_groups_table.id
+
+    wa_messages_table = agol.create_jackal_wa_messages_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_wa_messages_layer_id = wa_messages_table.id
+
+    wa_users_table = agol.create_jackal_wa_users_table(feature_service, agol_account)
+    jackal_agol_connection.jackal_wa_users_layer_id = wa_users_table.id
+
+    jackal_agol_connection.save()
+    return jackal_agol_connection
 
 
 def _get_jackal_update_agol_rule_name(short_name, jackal_network_uid, stage):
