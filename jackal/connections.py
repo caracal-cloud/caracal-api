@@ -24,13 +24,13 @@ def delete_jackal_agol(agol_account=None, network=None, connection=None):
     agol.delete_feature_layers(
         layer_ids=[
             connection.agol_layer_id,
-            jackal_agol_connection.jackal_calls_layer_id,
-            jackal_agol_connection.jackal_contacts_layer_id,
-            jackal_agol_connection.jackal_texts_layer_id,
-            jackal_agol_connection.jackal_wa_calls_layer_id,
-            jackal_agol_connection.jackal_wa_groups_layer_id,
-            jackal_agol_connection.jackal_wa_messages_layer_id,
-            jackal_agol_connection.jackal_wa_users_layer_id
+            jackal_agol_connection.jackal_calls_table_id,
+            jackal_agol_connection.jackal_contacts_table_id,
+            jackal_agol_connection.jackal_texts_table_id,
+            jackal_agol_connection.jackal_wa_calls_table_id,
+            jackal_agol_connection.jackal_wa_groups_table_id,
+            jackal_agol_connection.jackal_wa_messages_table_id,
+            jackal_agol_connection.jackal_wa_users_table_id
         ],
         feature_service_url=agol_account.feature_service_url,
         agol_account=agol_account,
@@ -130,25 +130,25 @@ def _create_jackal_agol_connection(feature_service, agol_account):
     jackal_agol_connection = JackalAgolConnection()
 
     calls_table = agol.create_jackal_calls_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_calls_layer_id = calls_table.id
+    jackal_agol_connection.jackal_calls_table_id = calls_table.id
 
     contacts_table = agol.create_jackal_contacts_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_contacts_layer_id = contacts_table.id
+    jackal_agol_connection.jackal_contacts_table_id = contacts_table.id
 
     texts_table = agol.create_jackal_texts_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_texts_layer_id = texts_table.id
+    jackal_agol_connection.jackal_texts_table_id = texts_table.id
 
     wa_calls_table = agol.create_jackal_wa_calls_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_wa_calls_layer_id = wa_calls_table.id
+    jackal_agol_connection.jackal_wa_calls_table_id = wa_calls_table.id
 
     wa_groups_table = agol.create_jackal_wa_groups_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_wa_groups_layer_id = wa_groups_table.id
+    jackal_agol_connection.jackal_wa_groups_table_id = wa_groups_table.id
 
     wa_messages_table = agol.create_jackal_wa_messages_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_wa_messages_layer_id = wa_messages_table.id
+    jackal_agol_connection.jackal_wa_messages_table_id = wa_messages_table.id
 
     wa_users_table = agol.create_jackal_wa_users_table(feature_service, agol_account)
-    jackal_agol_connection.jackal_wa_users_layer_id = wa_users_table.id
+    jackal_agol_connection.jackal_wa_users_table_id = wa_users_table.id
 
     jackal_agol_connection.save()
     return jackal_agol_connection
