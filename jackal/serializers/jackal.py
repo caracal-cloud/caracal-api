@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from caracal.common import constants, models
+from caracal.common.aws_utils import s3
 from jackal.models import Call, Contact, Location, Network, OtherPhone, Phone, Text
 
 
@@ -157,10 +158,12 @@ class GetNetworkSerializer(serializers.ModelSerializer):
 
     outputs = serializers.SerializerMethodField()
 
-    # TODO: update me
+    # currently signing S3 URL rather than CloudFront users.caracal.cloud
+    # need to check on freshness of files under CloudFront
     csv_url = serializers.SerializerMethodField()
     def get_csv_url(self, network):
-        return "https://public.caracal.cloud/example.csv"
+        object_key = f'{network.organization.short_name}/excel/jackal.xlxs'
+        return s3.get_presigned_url(object_key, 'caracal-users', 3600)
 
     def get_outputs(self, network):
         connection = network.connections.filter(agol_account__isnull=False).first()
