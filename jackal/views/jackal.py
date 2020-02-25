@@ -259,6 +259,10 @@ class CreateNetworkView(generics.GenericAPIView):
 
         try:
             network = organization.jackal_network
+
+            if not network.cloudwatch_update_excel_rule_name:
+                jackal_connections.schedule_jackal_excel(network, organization)
+
             return Response(
                 {
                     "error": "network_already_created",
@@ -273,7 +277,6 @@ class CreateNetworkView(generics.GenericAPIView):
                 write_key=write_key, organization=organization
             )
 
-        # TODO: test this!
         jackal_connections.schedule_jackal_excel(network, organization)
 
         return Response(

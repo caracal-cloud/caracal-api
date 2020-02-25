@@ -76,7 +76,7 @@ def schedule_jackal_excel(network, organization):
         rate_minutes=settings.JACKAL_EXCEL_UPDATE_RATE_MINTES
     )
 
-    network.cloudwatch_update_excel_rule_names = rule_name
+    network.cloudwatch_update_excel_rule_name = rule_name
     network.save()
 
 
