@@ -273,6 +273,9 @@ class CreateNetworkView(generics.GenericAPIView):
                 write_key=write_key, organization=organization
             )
 
+        # TODO: test this!
+        jackal_connections.schedule_jackal_excel(network, organization)
+
         return Response(
             {"write_key": network.write_key,}, status=status.HTTP_201_CREATED
         )

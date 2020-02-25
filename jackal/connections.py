@@ -53,6 +53,33 @@ def delete_jackal_kml(network):
     network.save()
 
 
+def schedule_jackal_excel(network, organization):
+
+    function_name = f"caracal_{settings.STAGE.lower()}_create_jackal_excel"
+    create_excel_function = _lambda.get_lambda_function(function_name)
+    
+    create_excel_input = {
+        "network_uid": str(network.uid),
+    }
+
+    rule_name = _get_jackal_create_excel_rule_name(
+        short_name=organization.short_name,
+        jackal_network_uid=network.uid,
+        stage=settings.STAGE
+    )
+
+    _lambda.schedule_lambda_function(
+        fn_arn=create_excel_function["arn"],
+        fn_name=create_excel_function["name"],
+        rule_input=create_excel_input,
+        rule_name=rule_name,
+        rate_minutes=settings.JACKAL_EXCEL_UPDATE_RATE_MINTES
+    )
+
+    network.cloudwatch_update_excel_rule_names = rule_name
+    network.save()
+
+
 def schedule_jackal_outputs(data, network, user, agol_account=None):
 
     organization = user.organization
@@ -160,6 +187,20 @@ def _get_jackal_update_agol_rule_name(short_name, jackal_network_uid, stage):
     jackal_network_uid = str(jackal_network_uid)[:4]
 
     rule_name = f"{short_name}-{stage}-jackal-agol-{jackal_network_uid}"
+    rule_name = rule_name.lower()
+
+    print("rule_name", rule_name, len(rule_name))
+
+    assert len(rule_name) < 64
+    return rule_name
+
+
+def _get_jackal_create_excel_rule_name(short_name, jackal_network_uid, stage):
+
+    stage = stage[:4]
+    jackal_network_uid = str(jackal_network_uid)[:4]
+
+    rule_name = f"{short_name}-{stage}-jackal-excel-{jackal_network_uid}"
     rule_name = rule_name.lower()
 
     print("rule_name", rule_name, len(rule_name))
