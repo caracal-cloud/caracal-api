@@ -162,7 +162,7 @@ class GetNetworkSerializer(serializers.ModelSerializer):
     # need to check on freshness of files under CloudFront
     csv_url = serializers.SerializerMethodField()
     def get_csv_url(self, network):
-        object_key = f'{network.organization.short_name}/excel/jackal.xlxs'
+        object_key = f'{network.organization.short_name}/excel/jackal.xlsx'
         return s3.get_presigned_url(object_key, 'caracal-users', 3600)
 
     def get_outputs(self, network):
