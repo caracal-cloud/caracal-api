@@ -31,7 +31,7 @@ KML_PERIOD_HOURS = [24, 72, 168, 720]
 DUMMY_EMAIL = 'dummy@caracal.cloud'
 DUMMY_SHORT_NAME = 'dummy3141592'
 
-DEFAULT_EMAIL_SENDER = "noreply@caracal.cloud"
+DEFAULT_EMAIL_SENDER = "contact@caracal.cloud"
 DEFAULT_EMAIL_RECIPIENT = "contact@caracal.cloud"
 OVERLORD_EMAIL = os.environ['CARACAL_OVERLORD_EMAIL']
 OVERLORD_PASSWORD = os.environ['CARACAL_OVERLORD_PASSWORD']
