@@ -147,90 +147,88 @@ class AgolOauthResponseView(views.APIView):
             return Response({
                 'error': 'access_denied'
             }, status=status.HTTP_401_UNAUTHORIZED)
-        else:
-            # code or state occasionally missing
-            if 'code' not in data.keys() or 'state' not in data.keys():
-                sentry_sdk.capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
-                return Response({
-                    'error': 'access_denied',
-                    'message': 'code or state missing'
-                }, status=status.HTTP_401_UNAUTHORIZED)
 
-            code = data['code']
-            state = json.loads(data['state'])
-            account_uid = state['account_uid'] #refresh_token user account uid
+        # code or state occasionally missing
+        if 'code' not in data.keys() or 'state' not in data.keys():
+            sentry_sdk.capture_message(f'WARNING: code or state missing: {data.get("code")} - {data.get("state")}')
+            return Response({
+                'error': 'access_denied',
+                'message': 'code or state missing'
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
-            agol_redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
+        code = data['code']
+        state = json.loads(data['state'])
+        account_uid = state['account_uid'] #refresh_token user account uid
 
-            # exchange code for tokens
-            token_url = f'{AGOL_BASE_URL}/token'
-            data = {
-                'client_id': settings.AGOL_CLIENT_ID,
-                'code': code,
-                'redirect_uri': agol_redirect_uri,
-                'grant_type': 'authorization_code'
-            }
+        agol_redirect_uri = settings.HOSTNAME + reverse('agol-oauth-response')
 
-            res = requests.post(token_url, data=data)
-            tokens = res.json()
+        # exchange code for tokens
+        token_url = f'{AGOL_BASE_URL}/token'
+        data = {
+            'client_id': settings.AGOL_CLIENT_ID,
+            'code': code,
+            'redirect_uri': agol_redirect_uri,
+            'grant_type': 'authorization_code'
+        }
 
-            # access token occasionaly missing?
-            if 'access_token' not in tokens:
-                sentry_sdk.capture_message(f'WARNING: access_token missing - {json.dumps(tokens)}')
-                return Response({
-                    'error': 'access_denied',
-                    'message': 'access_token missing'
-                }, status=status.HTTP_401_UNAUTHORIZED)
+        res = requests.post(token_url, data=data)
+        tokens = res.json()
 
-            access_token = tokens['access_token']
-            refresh_token = tokens['refresh_token']
-            username = tokens['username']
-            expires_in = tokens['expires_in']
-            expiry = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(seconds=expires_in)
+        # access token occasionaly missing?
+        if 'access_token' not in tokens:
+            sentry_sdk.capture_message(f'WARNING: access_token missing - {json.dumps(tokens)}')
+            return Response({
+                'error': 'access_denied',
+                'message': 'access_token missing'
+            }, status=status.HTTP_401_UNAUTHORIZED)
 
-            try:
-                user = Account.objects.get(uid_cognito=account_uid)
-            except Account.DoesNotExist:
-                return Response({
-                    'error': 'account_not_found'
-                }, status=status.HTTP_400_BAD_REQUEST)
+        access_token = tokens['access_token']
+        refresh_token = tokens['refresh_token']
+        username = tokens['username']
+        expires_in = tokens['expires_in']
+        expiry = datetime.utcnow().replace(tzinfo=timezone.utc) + timedelta(seconds=expires_in)
 
-            # check if user already has an agol account (possible if they click AGOL multiple times quickly)
-            try:
-                agol_account = user.agol_account
-                agol_account.delete()
-            except AgolAccount.DoesNotExist:
-                pass
+        try:
+            user = Account.objects.get(uid_cognito=account_uid)
+        except Account.DoesNotExist:
+            return Response({
+                'error': 'account_not_found'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        # instead of always using most recent agol account (as before), if already exists, update the tokens
+        # this will support users signing in again after an expired refresh token without losing data
+        try:
+            agol_account = user.agol_account
+            agol_account.oauth_access_token = access_token
+            agol_account.oauth_refresh_token = refresh_token
+            agol_account.oauth_access_token_expiry = expiry
+            agol_account.save()
+        except AgolAccount.DoesNotExist:
             agol_account = AgolAccount.objects.create(organization=user.organization, account=user,
-                                                      oauth_access_token=access_token,
-                                                      oauth_access_token_expiry=expiry,
-                                                      oauth_refresh_token=refresh_token,
-                                                      username=username)
+                                                        oauth_access_token=access_token,
+                                                        oauth_access_token_expiry=expiry,
+                                                        oauth_refresh_token=refresh_token,
+                                                        username=username)
 
-            # create a feature service in AGOL, update name if changed
-            arcgis = saw.ArcgisAPI(
-                access_token=access_token,   
-                refresh_token=refresh_token, 
-                username=username,           
-                client_id=settings.AGOL_CLIENT_ID
-            )
-            
-            try:
-                # get feature service and update agol_account
-                service = agol.get_or_create_caracal_feature_service(agol_account)
-            except saw.exceptions.ArcGISException as e:
-                agol_account.delete()
-                sentry_sdk.capture_exception(e)
-                return redirect(state['callback']) # TODO: go somewhere else if failed?
-            
-            # changed a name like Caracal (Disconnected) back to Caracal
-            if service.title != 'Caracal':
-                arcgis.services.update_feature_service(agol_account.feature_service_id, title='Caracal')
+        # create a feature service in AGOL, update name if changed
+        arcgis = saw.ArcgisAPI(
+            access_token=access_token,   
+            refresh_token=refresh_token, 
+            username=username,           
+            client_id=settings.AGOL_CLIENT_ID
+        )
+        
+        try:
+            # get feature service and update agol_account
+            service = agol.get_or_create_caracal_feature_service(agol_account)
+        except saw.exceptions.ArcGISException as e:
+            agol_account.delete()
+            sentry_sdk.capture_exception(e)
+            return redirect(state['callback']) # TODO: go somewhere else if failed?
+        
+        # changed a name like Caracal (Disconnected) back to Caracal
+        if service.title != 'Caracal':
+            arcgis.services.update_feature_service(agol_account.feature_service_id, title='Caracal')
 
-            return redirect(state['callback'])
-
-
-
-
+        return redirect(state['callback'])
 

@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta, timezone
 from django.conf import settings
 from django.utils.encoding import smart_text
