@@ -100,7 +100,9 @@ class GetAgolOauthRequestUrlView(views.APIView):
         callback = serializer.data.get('callback', 'https://caracal.cloud')
 
         user = request.user
-
+    
+        """
+        allow users to sign in again if refresh token expired
         try:
             agol_account = user.agol_account
             return Response({
@@ -109,6 +111,7 @@ class GetAgolOauthRequestUrlView(views.APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         except AgolAccount.DoesNotExist:
             pass
+        """
 
         state = {
             'account_uid': str(user.uid_cognito),
