@@ -58,7 +58,7 @@ ruamel.yaml==0.15.89
 s3transfer==0.2.0
 semantic-version==2.5.0
 sentry-sdk==0.10.2
-simple-arcgis-wrapper==1.0.4
+simple-arcgis-wrapper==1.0.5
 simplejson==3.16.0
 six==1.11.0
 stripe==2.36.2
