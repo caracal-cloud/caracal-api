@@ -4,7 +4,7 @@ deploy to eb
 --------------------------------------------------------------------------------
 pip freeze > requirements.txt
 -- git commit
-eb deploy caracal-api-prod --profile=tuma-admin
+eb deploy caracal-api-prod --profile=caracal-admin
 -- if changing models, don't forget to update Lambda models.py as well
 -- deployment will fail if upgrading a package (at least simple-arcgis-wrapper)
 

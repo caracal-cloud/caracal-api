@@ -55,7 +55,6 @@ class GetCollarAccountsSerializer(serializers.HyperlinkedModelSerializer):
         connection = realtime_account.connections.filter(agol_account__isnull=False).first()
         return {
             'output_agol': connection is not None,
-            'output_database': True,
             'output_kml': realtime_account.cloudwatch_update_kml_rule_names not in [None, '']
         }
 
@@ -72,7 +71,6 @@ class GetCollarAccountDetailSerializer(serializers.ModelSerializer):
         connection = realtime_account.connections.filter(agol_account__isnull=False).first()
         return {
             'output_agol': connection is not None,
-            'output_database': True,
             'output_kml': realtime_account.cloudwatch_update_kml_rule_names not in [None, '']
         }
 

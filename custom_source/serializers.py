@@ -81,7 +81,6 @@ class GetSourcesSerializer(serializers.HyperlinkedModelSerializer):
         connection = source.connections.filter(agol_account__isnull=False).first()
         return {
             'output_agol': connection is not None,
-            'output_database': True,
             'output_kml': source.cloudwatch_update_kml_rule_names not in [None, '']
         }
 
@@ -98,7 +97,6 @@ class GetSourceDetailSerializer(serializers.ModelSerializer):
         connection = source.connections.filter(agol_account__isnull=False).first()
         return {
             'output_agol': connection is not None,
-            'output_database': True,
             'output_kml': source.cloudwatch_update_kml_rule_names not in [None, '']
         }
 
