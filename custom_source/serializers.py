@@ -93,10 +93,19 @@ class GetSourcesSerializer(serializers.HyperlinkedModelSerializer):
 
 class GetSourceDetailSerializer(serializers.ModelSerializer):
 
+    outputs = serializers.SerializerMethodField()
+    def get_outputs(self, source):
+        connection = source.connections.filter(agol_account__isnull=False).first()
+        return {
+            'output_agol': connection is not None,
+            'output_database': True,
+            'output_kml': source.cloudwatch_update_kml_rule_names not in [None, '']
+        }
+
     class Meta:
         model = Source
         fields = ['uid', 'datetime_created', 'datetime_updated',
-                  'name', 'description', 'write_key']
+                  'name', 'description', 'write_key', 'outputs']
 
 
 class UpdateDeviceSerializer(serializers.Serializer):

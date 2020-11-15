@@ -36,6 +36,8 @@ def check_agol_account_connected(f):
     @wraps(f)
     def wrapper(view, request, *args, **kwargs):
 
+        # FIXME: even when output_agol = False it is still passing first condition
+
         data = request.data
         user = request.user
 
