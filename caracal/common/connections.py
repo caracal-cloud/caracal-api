@@ -35,6 +35,8 @@ def delete_realtime_agol(agol_account=None, realtime_account=None, connection=No
 def delete_realtime_kml(realtime_account):
     "Deschedules Lambda function outputting to KML."
 
+    print("delete_realtime_kml")
+
     if realtime_account.cloudwatch_update_kml_rule_names:
         update_kml_rule_names = realtime_account.cloudwatch_update_kml_rule_names.split(
             ","
@@ -102,12 +104,12 @@ def schedule_realtime_outputs(
 def update_realtime_outputs(data, realtime_account, user):
     "Updates scheduling for Lambda functions."
 
-    output_kml = data.get("output_kml", False)
-    if output_kml:
+    output_kml = data.get("output_kml")
+    if output_kml is not None:
 
         # output flag is different than current state (kml rule name exists is alias for kml output enabled)
         if output_kml != (
-            realtime_account.cloudwatch_update_kml_rule_names is not None
+            realtime_account.cloudwatch_update_kml_rule_names not in [None, '']
         ):
             if output_kml:
                 _schedule_realtime_kml(

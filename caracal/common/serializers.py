@@ -68,7 +68,6 @@ class UpdateRtAccountSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=100, required=False)
 
     output_agol = serializers.NullBooleanField(required=False)
-    output_database = serializers.NullBooleanField(required=False)
     output_kml = serializers.NullBooleanField(required=False)
 
     def validate(self, attrs):

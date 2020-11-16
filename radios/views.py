@@ -202,7 +202,6 @@ class UpdateRadioAccountView(generics.GenericAPIView):
         provider = 'TRBOnet' if radio_account.provider == 'trbonet' else radio_account.provider
 
         update_data.pop('output_agol', None)
-        update_data.pop('output_database', None)
         update_data.pop('output_kml', None)
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)

@@ -312,7 +312,6 @@ class UpdateSourceView(generics.GenericAPIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         update_data.pop("output_agol", None)
-        update_data.pop("output_database", None)
         update_data.pop("output_kml", None)
 
         now = datetime.utcnow().replace(tzinfo=timezone.utc)
