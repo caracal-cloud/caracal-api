@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+from django.conf import settings
+from django.contrib.gis.geos import Point
 from rest_framework import permissions, status, generics, views
 from rest_framework.response import Response
 import stripe
@@ -11,7 +13,7 @@ from caracal.common.models import get_num_sources
 from caracal.common.decorators import check_agol_account_connected, check_source_limit
 from custom_source import serializers
 from custom_source import connections as source_connections
-from custom_source.models import Device, Source
+from custom_source.models import Device, Record, Source
 from outputs.models import AgolAccount
 
 
@@ -44,20 +46,40 @@ class AddRecordView(views.APIView):
         except Device.DoesNotExist:
             device = Device.objects.create(device_id=device_id, source=source)
 
+        datetime_recorded = serializer.data["datetime_recorded"]
+        lat = round(float(serializer.data["lat"]), 6)
+        lon = round(float(serializer.data["lon"]), 6)
+        alt_m = round(float(serializer.data.get("alt_m")), 2)
+        speed_kmh = round(float(serializer.data.get("speed_kmh")), 2)
+        temp_c = round(float(serializer.data.get("temp_c")), 2)
+
         payload = {
             "device_id": device.pk,
             "source_id": source.pk,
-            "datetime_recorded": serializer.data["datetime_recorded"],
-            "lat": round(float(serializer.data["lat"]), 6),
-            "lon": round(float(serializer.data["lon"]), 6),
-            "alt_m": round(float(serializer.data.get("alt_m")), 2),
-            "speed_kmh": round(float(serializer.data.get("speed_kmh")), 2),
-            "temp_c": round(float(serializer.data.get("temp_c")), 2),
+            "datetime_recorded": datetime_recorded,
+            "lat": lat,
+            "lon": lon,
+            "alt_m": alt_m,
+            "speed_kmh": speed_kmh,
+            "temp_c": temp_c,
         }
 
-        kinesis.put_firehose_record(
-            payload, "caracal_realtime_user"
-        )  # fixme: move to env vars
+        if settings.STAGE in ["testing", "development"]:
+            position = Point(lon, lat, srid=settings.SRID)   
+            Record.objects.create(
+                source=source, 
+                device=device, 
+                position=position,
+                datetime_recorded=datetime_recorded,
+                alt_m=alt_m,
+                speed_kmh=speed_kmh,
+                temp_c=temp_c
+            )
+
+        else:
+            kinesis.put_firehose_record(
+                payload, "caracal_realtime_user"
+            )  # fixme: move to env vars
 
         return Response(status=status.HTTP_201_CREATED)
 

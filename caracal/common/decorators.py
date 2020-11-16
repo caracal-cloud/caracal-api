@@ -36,12 +36,10 @@ def check_agol_account_connected(f):
     @wraps(f)
     def wrapper(view, request, *args, **kwargs):
 
-        # FIXME: even when output_agol = False it is still passing first condition
-
-        data = request.data
+        output_agol = request.data.get('output_agol') in ['true', 'True']
         user = request.user
 
-        if data.get('output_agol', False):
+        if output_agol:
             try:
                 agol_account = user.agol_account
             except AgolAccount.DoesNotExist:

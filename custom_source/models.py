@@ -30,7 +30,7 @@ class Record(models.Model):
     uid = models.UUIDField(unique=True, editable=False, default=uuid.uuid4)
     datetime_created = models.DateTimeField(default=get_utc_datetime_now)
     source = models.ForeignKey('Source', on_delete=models.CASCADE)
-    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True) # remove null?
+    device = models.ForeignKey(Device, on_delete=models.CASCADE, null=True, related_name="records")
 
     # where and when
     position = models.PointField(srid=settings.SRID, null=False) # fixme: allow to specify srid

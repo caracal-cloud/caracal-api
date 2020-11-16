@@ -58,10 +58,18 @@ class GetDevicesSerializer(serializers.HyperlinkedModelSerializer):
 
     url = serializers.HyperlinkedIdentityField(lookup_field='uid', view_name='device-detail')
 
+    datetime_last_position = serializers.SerializerMethodField()
+    def get_datetime_last_position(self, device):
+        if device.records.exists():
+            last_position = device.records.order_by('-datetime_recorded').first()
+            return last_position.datetime_recorded
+        else:
+            return None
+
     class Meta:
         model = Device
         fields = ['url', 'uid', 'datetime_created', 'datetime_updated',
-                  'name', 'description', 'device_id']
+                  'datetime_last_position', 'name', 'description', 'device_id']
 
 
 class GetDeviceDetailSerializer(serializers.HyperlinkedModelSerializer):
