@@ -9,7 +9,7 @@ class AddCallSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    timestamp_recorded = serializers.IntegerField()
 
     is_sent = serializers.BooleanField(required=True)
     other_phone_number = serializers.CharField(max_length=50)
@@ -23,7 +23,7 @@ class AddContactSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    timestamp_recorded = serializers.IntegerField()
 
     name = serializers.CharField(max_length=255)
     phone_number = serializers.CharField(max_length=50)
@@ -50,7 +50,7 @@ class AddLogSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    timestamp_recorded = serializers.IntegerField()
 
     level = serializers.CharField(max_length=50)
     message = serializers.CharField()
@@ -60,7 +60,7 @@ class AddTextSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    timestamp_recorded = serializers.IntegerField()
 
     is_sent = serializers.BooleanField()
     other_phone_number = serializers.CharField(max_length=50)

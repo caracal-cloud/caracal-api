@@ -42,7 +42,8 @@ class AddCallView(generics.GenericAPIView):
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
         other_phone_number = add_data.pop("other_phone_number")
-        datetime_recorded = add_data['datetime_recorded']
+        timestamp_recorded = add_data.pop("timestamp_recorded")
+        datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -56,6 +57,7 @@ class AddCallView(generics.GenericAPIView):
                 network=network, 
                 phone=phone, 
                 other_phone=other_phone, 
+                datetime_recorded=datetime_recorded,
                 **add_data
             )
         except IntegrityError:
@@ -143,8 +145,7 @@ class AddLocationView(generics.GenericAPIView):
         write_key = add_data.pop("write_key")
         timestamp_recorded = add_data.pop("timestamp_recorded")
         datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
-        print(timestamp_recorded)
-        print(datetime_recorded)
+
 
         longitude = round(float(add_data.pop("longitude")), 6)
         latitude = round(float(add_data.pop("latitude")), 6)
