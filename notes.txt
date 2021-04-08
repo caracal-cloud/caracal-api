@@ -1,4 +1,6 @@
 
+# TODO: let custom source description be blank
+
 deploy to eb
 --------------------------------------------------------------------------------
 pip freeze > requirements.txt
