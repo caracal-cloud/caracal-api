@@ -42,8 +42,10 @@ class AddCallView(generics.GenericAPIView):
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
         other_phone_number = add_data.pop("other_phone_number")
-        timestamp_recorded = add_data.pop("timestamp_recorded")
-        datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
+        datetime_recorded = add_data.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = add_data.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -88,13 +90,17 @@ class AddContactView(generics.GenericAPIView):
         serializer.is_valid(True)
 
         d = serializer.data
-        device_id, write_key, datetime_recorded, name, phone_number = (
+        device_id, write_key, name, phone_number = (
             d["device_id"],
             d["write_key"],
-            d["datetime_recorded"],
             d["name"],
             d["phone_number"]
         )
+
+        datetime_recorded = d.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = d.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         phone_number = phone_number.replace(" ", "")
         phone_number = phone_number.replace("(", "")
@@ -143,9 +149,10 @@ class AddLocationView(generics.GenericAPIView):
         add_data = serializer.data
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
-        timestamp_recorded = add_data.pop("timestamp_recorded")
-        datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
-
+        datetime_recorded = add_data.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = add_data.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         longitude = round(float(add_data.pop("longitude")), 6)
         latitude = round(float(add_data.pop("latitude")), 6)
@@ -187,6 +194,10 @@ class AddLogView(generics.GenericAPIView):
 
         data = serializer.data
         device_id, write_key = data.pop('device_id'), data.pop('write_key')
+        datetime_recorded = data.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = data.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         network = Network.objects.get(write_key=write_key)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -195,7 +206,7 @@ class AddLogView(generics.GenericAPIView):
         phone.save()
 
         try:
-            Log.objects.create(network=network, phone=phone, **data)
+            Log.objects.create(network=network, phone=phone, datetime_recorded=datetime_recorded, **data)
         except IntegrityError as ie:
             print(ie)
             pass
@@ -218,7 +229,10 @@ class AddTextView(generics.GenericAPIView):
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
         other_phone_number = add_data.pop("other_phone_number")
-        datetime_recorded = add_data['datetime_recorded']
+        datetime_recorded = add_data.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = add_data.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -231,7 +245,8 @@ class AddTextView(generics.GenericAPIView):
             Text.objects.create(
                 network=network, 
                 phone=phone, 
-                other_phone=other_phone, 
+                other_phone=other_phone,
+                datetime_recorded=datetime_recorded,
                 **add_data
             )
         except IntegrityError:

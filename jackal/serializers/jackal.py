@@ -9,7 +9,8 @@ class AddCallSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    timestamp_recorded = serializers.IntegerField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     is_sent = serializers.BooleanField(required=True)
     other_phone_number = serializers.CharField(max_length=50)
@@ -23,7 +24,8 @@ class AddContactSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    timestamp_recorded = serializers.IntegerField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     name = serializers.CharField(max_length=255)
     phone_number = serializers.CharField(max_length=50)
@@ -36,7 +38,8 @@ class AddLocationSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    timestamp_recorded = serializers.IntegerField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     latitude = serializers.DecimalField(max_digits=None, decimal_places=None)
     longitude = serializers.DecimalField(max_digits=None, decimal_places=None)
@@ -50,7 +53,8 @@ class AddLogSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    timestamp_recorded = serializers.IntegerField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     level = serializers.CharField(max_length=50)
     message = serializers.CharField()
@@ -60,7 +64,8 @@ class AddTextSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    timestamp_recorded = serializers.IntegerField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     is_sent = serializers.BooleanField()
     other_phone_number = serializers.CharField(max_length=50)
