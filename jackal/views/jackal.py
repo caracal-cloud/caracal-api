@@ -141,6 +141,11 @@ class AddLocationView(generics.GenericAPIView):
         add_data = serializer.data
         device_id = add_data.pop("device_id")
         write_key = add_data.pop("write_key")
+        timestamp_recorded = add_data.pop("timestamp_recorded")
+        datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
+        print(timestamp_recorded)
+        print(datetime_recorded)
+
         longitude = round(float(add_data.pop("longitude")), 6)
         latitude = round(float(add_data.pop("latitude")), 6)
         accuracy_m = round(float(add_data.pop("accuracy_m")), 2)
@@ -159,6 +164,7 @@ class AddLocationView(generics.GenericAPIView):
                 network=network, 
                 position=point, 
                 accuracy_m=accuracy_m,
+                datetime_recorded=datetime_recorded,
                 **add_data
             )
         except IntegrityError:

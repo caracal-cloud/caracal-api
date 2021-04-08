@@ -13,7 +13,5 @@ urlpatterns = [
         ])),
     ])),
 
-    path('get_accounts/', )
-
     path('get_kmz_hrefs/', kmz.GetKmzHrefsView.as_view())
 ]

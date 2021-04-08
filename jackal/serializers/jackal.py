@@ -36,7 +36,7 @@ class AddLocationSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    timestamp_recorded = serializers.IntegerField()
 
     latitude = serializers.DecimalField(max_digits=None, decimal_places=None)
     longitude = serializers.DecimalField(max_digits=None, decimal_places=None)
