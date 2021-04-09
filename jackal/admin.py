@@ -64,7 +64,7 @@ class TextAdmin(admin.ModelAdmin):
 
 @admin.register(OtherPhone)
 class OtherPhoneAdmin(admin.ModelAdmin):
-    list_display = ['uid', 'datetime_created', 'network', 'name', 'phone_number']
+    list_display = ['uid', 'datetime_created', 'network', 'name', 'phone_number', 'aliases']
     search_fields = ['uid', 'name', 'phone_number', 'description', 'mark']
     list_filter = []
     ordering = ['-datetime_created']

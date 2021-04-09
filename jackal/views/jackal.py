@@ -79,6 +79,9 @@ class AddCallView(generics.GenericAPIView):
 
 
 class AddContactView(generics.GenericAPIView):
+    # this also supports updates
+    # if the phone number has changed, a new entry will be created
+    # if the name has changed, the entry will be updated
 
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
@@ -110,6 +113,14 @@ class AddContactView(generics.GenericAPIView):
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
         other_phone = _get_or_create_other_phone(phone_number, network)
+
+        # if the phone already has a name, add the previous one to aliases
+        if other_phone.name:
+            if other_phone.aliases:
+                if other_phone.name not in other_phone.aliases.split(", "):
+                    other_phone.aliases = other_phone.aliases + ", " + other_phone.name
+            elif other_phone.name != name:
+                other_phone.aliases = other_phone.name
 
         other_phone.name = name
         other_phone.save()
