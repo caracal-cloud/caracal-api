@@ -292,25 +292,18 @@ class CreateNetworkView(generics.GenericAPIView):
 
         try:
             network = organization.jackal_network
-
-            if not network.cloudwatch_update_excel_rule_name:
-                jackal_connections.schedule_jackal_excel(network, organization)
-
-            return Response(
-                {
-                    "error": "network_already_created",
-                    "message": "Jackal network already created",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         except:
-            # create a new network
             write_key = str(uuid.uuid4()).replace("-", "")
             network = Network.objects.create(
-                write_key=write_key, organization=organization
+                write_key=write_key, 
+                organization=organization
             )
 
-        jackal_connections.schedule_jackal_excel(network, organization)
+        if not network.cloudwatch_update_excel_rule_name:
+            jackal_connections.schedule_jackal_excel(network, organization)
+
+        if not network.cloudwatch_update_kml_rule_names:
+            jackal_connections.schedule_jackal_kml(network, organization)
 
         return Response(
             {"write_key": network.write_key,}, status=status.HTTP_201_CREATED

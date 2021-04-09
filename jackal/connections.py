@@ -80,6 +80,39 @@ def schedule_jackal_excel(network, organization):
     network.save()
 
 
+def schedule_jackal_kml(network, organization):
+
+    function_name = f"caracal_{settings.STAGE.lower()}_update_jackal_kml"
+    update_kml_function = _lambda.get_lambda_function(function_name)
+
+    rule_names = list()
+    for hours in [24, 36, 168, 720, 8760]:
+        update_kml_input = {
+            'period_hours': hours,
+            'jackal_network_uid': str(network.uid)
+        }
+
+        short_name = organization.short_name
+        rule_name = _get_jackal_update_kml_rule_name(
+            short_name=short_name, 
+            jackal_network_uid=network.uid, 
+            stage=settings.STAGE, 
+            period=hours
+        )
+        rule_names.append(rule_name)
+
+        _lambda.schedule_lambda_function(
+            fn_arn=update_kml_function["arn"],
+            fn_name=update_kml_function["name"],
+            rule_input=update_kml_input,
+            rule_name=rule_name,
+            rate_minutes=settings.JACKAL_KML_UPDATE_RATE_MINTES
+        )
+
+    network.cloudwatch_update_kml_rule_names = ",".join(rule_names)
+    network.save()
+
+
 def schedule_jackal_outputs(data, network, user, agol_account=None):
 
     organization = user.organization
