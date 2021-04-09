@@ -35,6 +35,10 @@ class AddWhatsAppCallView(generics.GenericAPIView):
         write_key = add_data.pop("write_key")
         user_jid_id = add_data.pop("user_jid_id")
         user_user_string = add_data.pop("user_user_string")
+        datetime_recorded = add_data.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = add_data.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -48,6 +52,7 @@ class AddWhatsAppCallView(generics.GenericAPIView):
                 network=network, 
                 phone=phone, 
                 whatsapp_user=whatsapp_user, 
+                datetime_recorded=datetime_recorded,
                 **add_data
             )
         except IntegrityError:
@@ -110,6 +115,10 @@ class AddWhatsAppMessageView(generics.GenericAPIView):
         group_user_string = add_data.pop("group_user_string", None)
         user_jid_id = add_data.pop("user_jid_id", None)
         user_user_string = add_data.pop("user_user_string", None)
+        datetime_recorded = add_data.pop("datetime_recorded", None)
+        if datetime_recorded is None:
+            timestamp_recorded = add_data.pop("timestamp_recorded")
+            datetime_recorded = datetime.fromtimestamp(timestamp_recorded//1000).replace(tzinfo=timezone.utc)
 
         network = Network.objects.get(write_key=write_key, is_active=True)
         phone = utilities.get_or_create_phone(device_id, network)
@@ -134,6 +143,7 @@ class AddWhatsAppMessageView(generics.GenericAPIView):
                 phone=phone, 
                 whatsapp_group=whatsapp_group, 
                 whatsapp_user=whatsapp_user, 
+                datetime_recorded=datetime_recorded,
                 **add_data
             )
         except IntegrityError:

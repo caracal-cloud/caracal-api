@@ -8,7 +8,8 @@ class AddWhatsAppCallSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     user_jid_id = serializers.IntegerField()
     user_user_string = serializers.CharField()
@@ -25,7 +26,8 @@ class AddWhatsAppGroupParticipantSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     group_jid_id = serializers.IntegerField()
     group_subject = serializers.CharField()
@@ -39,7 +41,8 @@ class AddWhatsAppMessageSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     group_jid_id = serializers.IntegerField(required=False)
     group_user_string = serializers.CharField(required=False)
@@ -56,7 +59,8 @@ class AddWhatsAppUserSerializer(serializers.Serializer):
 
     write_key = serializers.CharField(max_length=100)
     device_id = serializers.CharField(max_length=100)
-    datetime_recorded = serializers.DateTimeField()
+    datetime_recorded = serializers.DateTimeField(required=False)
+    timestamp_recorded = serializers.IntegerField(required=False)
 
     user_jid_id = serializers.IntegerField()
     user_user_string = serializers.CharField()
