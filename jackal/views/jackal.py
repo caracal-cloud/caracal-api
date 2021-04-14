@@ -292,7 +292,7 @@ class CreateNetworkView(generics.GenericAPIView):
 
         try:
             network = organization.jackal_network
-        except:
+        except Network.DoesNotExist:
             write_key = str(uuid.uuid4()).replace("-", "")
             network = Network.objects.create(
                 write_key=write_key, 
@@ -524,7 +524,7 @@ def _get_recording_queryset(request, _class):
 
     try:
         phone = Phone.objects.get(uid=phone_uid)
-    except:
+    except Phone.DoesNotExist:
         return _class.objects.none()
 
     if phone.network.organization != request.user.organization:

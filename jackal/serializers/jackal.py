@@ -86,6 +86,20 @@ class GetPhonesSerializer(serializers.HyperlinkedModelSerializer):
         lookup_field="uid", view_name="phone-detail"
     )
 
+    datetime_last_location = serializers.SerializerMethodField()
+    def get_datetime_last_location(self, phone):
+        last_location = Location.objects.filter(phone=phone).order_by('-datetime_recorded').first()
+        return str(last_location.datetime_recorded) if last_location is not None else None
+
+    last_coordinates = serializers.SerializerMethodField()
+    def get_last_coordinates(self, phone):
+        last_location = Location.objects.filter(phone=phone).order_by('-datetime_recorded').first()
+        if last_location is not None:
+            return {
+                "longitude": last_location.position.coords[1],
+                "latitude": last_location.position.coords[0]
+            }
+
     class Meta:
         model = Phone
         fields = [
@@ -98,6 +112,8 @@ class GetPhonesSerializer(serializers.HyperlinkedModelSerializer):
             "mark",
             "phone_numbers",
             "datetime_last_update",
+            "datetime_last_location",
+            "last_coordinates",
         ]
 
 
